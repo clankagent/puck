@@ -1,0 +1,51 @@
+{
+  "name": "@clankagent/puck",
+  "version": "0.1.0",
+  "description": "Frame-independent six-axis input and pan/zoom motion for the web",
+  "type": "module",
+  "sideEffects": false,
+  "packageManager": "pnpm@10.33.0",
+  "files": [
+    "dist",
+    "README.md",
+    "examples/camera.mjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./webhid": {
+      "types": "./dist/webhid.d.ts",
+      "import": "./dist/webhid.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test tests/*.test.mjs",
+    "check": "pnpm run build && pnpm test",
+    "prepack": "pnpm run check"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clankagent/puck.git"
+  },
+  "homepage": "https://github.com/clankagent/puck#readme",
+  "bugs": {
+    "url": "https://github.com/clankagent/puck/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "spacemouse",
+    "webhid",
+    "pan",
+    "zoom",
+    "input"
+  ]
+}
