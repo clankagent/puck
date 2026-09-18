@@ -7,6 +7,8 @@ Documentation is versioned with source. This checkout includes experimental unre
 ## Documentation
 
 - [Overview and version status](README.md)
+- [Changelog and compatibility](CHANGELOG.md)
+- [Upgrade and integration paths](docs/upgrading.md)
 - [Complete integration](docs/quickstart.md)
 - [API reference: imports, units, defaults, lifecycle](docs/api.md)
 - [Tunes, recording and calibration](docs/tuning.md)

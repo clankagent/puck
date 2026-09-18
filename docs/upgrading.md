@@ -1,0 +1,47 @@
+# Upgrading and adopting updates
+
+[Changelog](../CHANGELOG.md) · [Documentation](../README.md) · [API reference](api.md)
+
+## Identify the version first
+
+Read the changelog for the version you are adopting, then use docs from that same tag or installed package. Main can contain unreleased features. `pnpm list @clankagent/puck` shows your app's installed version; its exports and declarations determine which APIs are available.
+
+The current gesture, tune, recording, calibration and graph additions are **unreleased**. To try them reproducibly, build a chosen source revision and install its packed artifact:
+
+```sh
+# Inside a checkout of clankagent/puck at your chosen revision:
+pnpm install --frozen-lockfile
+pnpm check
+pnpm pack --pack-destination artifacts
+
+# Inside your app, replace this path with the generated tarball:
+pnpm add /path/to/puck/artifacts/clankagent-puck-0.1.0.tgz
+```
+
+The experimental tarball still carries package version 0.1.0, so record the source commit alongside it; that version alone does not distinguish it from the original baseline. This is a local development path. After a release, install the explicit released version listed in the changelog and commit your app's lockfile.
+
+## Existing pan/zoom applications
+
+No migration is required for the new opt-in features: decoding, `createPanZoom` and `/webhid` behavior and defaults are unchanged from the original baseline. Keep your existing camera, input ownership and render loop.
+
+## Add only what your app needs
+
+| Goal | Add | Application responsibility |
+|---|---|---|
+| React to single/double gestures | `createGestures(tune)` | Feed every report, advance the same clock, reset on lifecycle changes, consume events. [Complete integration](quickstart.md) |
+| Offer softer/harder controls | Presets and immutable tune methods | Retain the returned tune and create a new recognizer to apply it. [Tune editing](tuning.md#gesture-tunes) |
+| Save a personal tune | `createGestureTune` | Save JSON; restore through the constructor. [Tune API](api.md#tunes) |
+| Learn a tune from normal input | Recorder plus `calibrateGestures` | Own capture/storage; show missing/ambiguous evidence and apply only a non-null tune. [Calibration](tuning.md#recording-and-custom-calibration) |
+| Explain the learned result | Optional `/graph` imports | Show a text status/count summary and select the matching capture for overlays. [Graphs](api.md#graphs) |
+
+To add gestures alongside motion, reuse the existing connection and frame loop. Fan physical reports out to both processors. Ignore the exact `neutralInput` lifecycle sentinel for gestures and reset both processors in `onReset`. Use `performance.now()` in both gesture report and frame callbacks. The [session example](../examples/gesture-session.mjs) demonstrates lifecycle handling; adapt it to your existing connection/loop rather than starting duplicate ones.
+
+## Behavior to choose explicitly
+
+- **Single versus double:** exclusive singles wait for the double window. Immediate mode is additive: a double also produces the earlier single. It does not undo an action.
+- **Gesture versus camera:** both processors may react to the same movement. Your app decides whether a gesture tool pauses camera motion or permits both.
+- **Applying a tune:** changing a variable does not retune an existing recognizer. Replace the recognizer or reconnect the example session with the new tune; pending actions are discarded and fresh neutral is required.
+- **Calibration quality:** require three singles and three doubles in each direction. Group order does not matter. Closely spaced singles can look like a double; inferred counts are not labeled accuracy. Avoid duplicate captures as new evidence.
+- **Data versions:** package versions are separate from tune/recording `version: 1`. Validate restored data through public APIs; do not manually change a format version to bypass validation.
+
+Before shipping, check a single, double, held input, neutral rearming, blur/disconnect and teardown. Check JSON restoration and incomplete calibration if used. [Troubleshooting](troubleshooting.md) maps common symptoms to fixes.

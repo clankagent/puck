@@ -8,6 +8,7 @@ Six-axis input, responsive pan/zoom, and tunable single/double gestures for Spac
 
 | You want to… | Read |
 |---|---|
+| See what changed and adopt an update | [Changelog](CHANGELOG.md), [upgrade guide](docs/upgrading.md) |
 | Connect a device and recognize gestures | [Complete browser integration](docs/quickstart.md) |
 | Add smooth pan and zoom | [Motion and hardware](docs/motion.md), [camera arithmetic](examples/camera.mjs) |
 | Set sensitivity or learn a personal tune | [Tunes, recording and calibration](docs/tuning.md) |
