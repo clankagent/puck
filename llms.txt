@@ -1,0 +1,25 @@
+# Puck
+
+> TypeScript/ESM six-axis input, pan/zoom, tunable cap gestures and freeform calibration. Zero runtime dependencies.
+
+Documentation is versioned with source. This checkout includes experimental unreleased gesture/tune/recording/calibration/graph APIs; check the installed package exports before using them.
+
+## Documentation
+
+- [Overview and version status](README.md)
+- [Complete integration](docs/quickstart.md)
+- [API reference: imports, units, defaults, lifecycle](docs/api.md)
+- [Tunes, recording and calibration](docs/tuning.md)
+- [Motion and hardware scope](docs/motion.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Agent integration invariants](docs/agents.md)
+- [Runnable session wrapper](examples/gesture-session.mjs)
+- [Camera arithmetic](examples/camera.mjs)
+
+## Source development
+
+- [Contribution workflow](CONTRIBUTING.md)
+- [Repository agent instructions](AGENTS.md)
+- [Local gesture lab](docs/lab.md)
+
+Exact build signatures are in dist/index.d.ts, dist/webhid.d.ts and dist/graph.d.ts. Import from @clankagent/puck, @clankagent/puck/webhid and @clankagent/puck/graph only.

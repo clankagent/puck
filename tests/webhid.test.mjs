@@ -104,3 +104,31 @@ test('only this device disconnect clears its input and notifies the consumer', a
   device.report(1);
   assert.equal(inputs.length, 2);
 });
+
+test('WebHID lifecycle neutral cancels pending gestures instead of completing them', async () => {
+  const { createGestures } = await import('../dist/index.js');
+  const device = new Device();
+  const hid = new Hid([device]);
+  const g = createGestures({ activation: .2, neutralMs: 35, doubleMs: 320 });
+  let now = 0;
+  const events = [];
+  const connection = await connectWebHid({ hid, onInput(input) {
+    if (input === neutralInput) { g.reset(); return; }
+    events.push(...g.update(input, now));
+  }, onReset: g.reset });
+  device.report(1, 0);
+  now = 10; device.report(1, 200);
+  now = 90; device.report(1, 0);
+  g.advance(125);
+  // No frame tick before a lifecycle clear after the single deadline.
+  now = 500; connection.pause();
+  assert.deepEqual(events, []);
+  assert.deepEqual(g.advance(600), []);
+  assert.equal(g.state.phase, 'blocked');
+  connection.resume();
+  now = 610; device.report(1, 200);
+  assert.equal(g.state.phase, 'blocked');
+  now = 620; device.report(1, 0);
+  assert.equal(g.state.phase, 'neutral');
+  await connection.close();
+});

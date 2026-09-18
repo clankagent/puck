@@ -5,3 +5,74 @@
 - Packed artifact installs into a separate ESM TypeScript consumer. Both public entry points resolve, declarations type-check, and importing the adapter in Node does not access browser globals. The packed artifact contains emitted code/declarations, package metadata and README; original captures and workspace documentation are excluded.
 - The extracted adapter has not yet been exercised with physical hardware. Physical testing established the report layout and motion defaults in a prototype; adapter lifecycle coverage is currently synthetic.
 - Package name: @clankagent/puck. License: MIT. Publication status is available from GitHub releases and the npm registry.
+
+## Gesture experiment (2026-09-18)
+
+- `pnpm check`: 26 tests pass. Added four-direction single/double coverage,
+  additive behavior, completion-window boundaries, pulse limits, hysteresis,
+  neutral dwell, reversal rejection, dominance, cancellation, timestamp validation,
+  report bursts, frame-rate independence, and WebHID lifecycle cancellation.
+- Browser QA over HTTPS: pointer double rotation, keyboard single pull, preset
+  changes, save/restore comparison, and clear history verified. Zero minimum
+  pulse/dwell were used for instantaneous automation; balanced defaults restored.
+- Desktop and 390px phone layouts visually inspected. Input trace and threshold
+  lines render; event table fits the phone layout.
+- Fixed mixed report/rAF clock timestamps by using performance.now() in both
+  callbacks. Lifecycle neutral sentinels cancel rather than complete gestures.
+- At this stage the gesture work was a local experiment. Later SDK and delivery
+  verification is recorded below; inferred replay does not establish subjective feel.
+
+## Freeform recording (2026-09-18)
+
+- Recording is the first section. No guided capture or prescribed gesture order.
+- Stores input reports, frame timing, resets and detected events; settings locked
+  during capture, two-minute cap, retry/download fallback, and saved session list.
+- 29 tests pass, including schema validation, session-token enforcement,
+  save/list/readback, and deterministic replay.
+- Browser simulator recording was saved and then read directly by the analysis
+  CLI. Replayed double matched the recorded event; a pending final single was
+  reported correctly. Simulator evidence is not physical gesture calibration.
+- User feedback: vertical push/pull activation should be lower than rotation.
+  Capture raw data first, then infer suitable separate thresholds from natural use.
+
+## Direction threshold refinement
+
+- Added validated axis/direction overrides without changing existing defaults.
+- Lab has one symmetric rotation gate and independent push/pull gates.
+- Recording tuned preset uses rotation activation/release .25/.15, push .20/.08,
+  pull .12/.06, neutral dwell 25 ms, and double window 400 ms.
+- 33 tests pass. Synthetic regressions cover gentle vertical input, independent
+  signs, cross-axis pressure during twist, partial release and invalid thresholds.
+- Physical freeform replay yields 18 doubles and 17 singles under the candidate
+  profile. These are inferred gesture groups, not ground-truth accuracy labels.
+
+## Reusable tune / calibration SDK
+
+- Added immutable versioned tune objects, default/soft/hard presets, fractional
+  soften/harden/narrow/widen transformations and JSON restoration. Missing
+  recognizer configuration now uses the complete default tune consistently.
+- Added bounded recording independent of transport, browser, timers and storage.
+- Added raw-shape calibration, independent of recorded event labels and action
+  ordering. At least three of each of eight actions are required; incomplete or
+  ambiguous evidence produces no tune. Multiple recordings can be combined;
+  reset/session boundaries prevent accidental pairing.
+- 42 tests pass, including shuffled action groups, ambiguity, missing evidence,
+  immutable transforms, JSON round trips, recording bounds, default parity and
+  graph output. Existing pan/zoom, decoding and lifecycle tests continue to pass.
+- The physical freeform capture passes all eight quotas; the automatically
+  generated tune reproduces 18 double and 17 single actions on replay. This is
+  consistency with inferred intent, not a claim of labeled accuracy.
+- Browser QA: analyze saved capture, zoom a double, soften/reset/apply tune,
+  deduplicate combined captures, desktop/phone graph inspection. Mobile graph
+  labels and width were adjusted after visual inspection.
+
+## Documentation and repository delivery (2026-09-18)
+
+- 43 tests pass, including the public integration example's recording lifecycle,
+  pending-action cancellation and frame cleanup.
+- README navigation, API reference, browser integration, calibration guide,
+  troubleshooting and agent guidance are included in the packed artifact.
+- Checked 48 relative documentation links. Package inspection confirms docs and
+  reusable examples ship, while the lab server and raw recordings stay excluded.
+- Gesture APIs remain experimental and are not yet an npm release. Source delivery
+  includes the gesture lab; captured device recordings remain outside the repository.

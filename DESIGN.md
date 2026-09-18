@@ -25,3 +25,18 @@ One ESM TypeScript package, core and `/webhid` exports, no runtime dependencies.
 Puck ships a core and an optional WebHID adapter. No website, renderer or server
 is part of the library. The first release documents the measured hardware scope
 and distinguishes prototype physical testing from extracted-adapter tests.
+
+## Tune and calibration API
+
+Tune data is immutable, versioned JSON with shared rotation and independent
+push/pull force bands. Method edits copy rather than mutate and do not affect
+timing. Gesture recording is a bounded transport-independent utility; apps
+retain responsibility for storage and permissions. Calibration consumes raw
+samples independently of the old recognizer event log or the order of action
+groups, and requires three examples per action. Uncertain trains and missing
+coverage cannot produce a ready tune.
+
+The optional /graph export provides renderer-neutral data and a standalone SVG
+renderer. It draws four unsigned direction lanes instead of overlaying two
+signed axes and four gates. It owns no DOM, camera, subscriptions or frame loop.
+The lab adds selection/zoom and tune editing as application responsibilities.
