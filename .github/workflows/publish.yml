@@ -31,4 +31,4 @@ jobs:
       - run: pnpm check
       # Keep dependency management on pinned pnpm; pin an OIDC-capable publisher.
       # Do not configure registry-url: setup-node's dummy auth token blocks OIDC.
-      - run: pnpm dlx npm@11.15.0 publish --access public --ignore-scripts
+      - run: pnpm dlx npm@11.15.0 publish --access public --ignore-scripts --loglevel verbose
