@@ -24,7 +24,7 @@ const names = {clockwise:'Clockwise',counterclockwise:'Counterclockwise',push:'P
 let options = {...presets.default}, recognizer = createGestures(options), input = {...neutralInput};
 let connection = null, held = null, log = [], samples = [], comparison = null;
 const calibration=createCalibrationPanel({applyTune(tune){currentTune=tune;options=tune.toOptions();apply();}});
-const recorder=createRecorder({onSaved:calibration.show,snapshot:()=>({source:connection?'device':'simulator',options}),begin(){recognizer.reset();feed(input);}});
+const recorder=createRecorder({onSaved:calibration.show,snapshot:()=>({source:connection?'device':'simulator',options}),begin(){recognizer.reset();}});
 try { const saved = JSON.parse(localStorage.getItem('puck-gesture-comparison')); if(saved){createGestures(saved);comparison=saved;} } catch {}
 for (const [id,label,min,max,step,unit,hint] of specs) {
   const node=document.createElement('div');
@@ -49,7 +49,7 @@ function received(events){recorder.events(events);
  }
  if(events.length){log=log.slice(0,40);$('events').replaceChildren();for(const e of log){const row=document.createElement('tr');for(const value of [names[e.direction],e.kind,`${Math.round(e.durationMs)} ms`,`${Math.round(e.delay)} ms`]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('events').append(row);}}
 }
-function feed(value){const t=performance.now();input={...value};recorder.input(input,t);received(recognizer.update(input,t));}
+function feed(value,physical=false){const t=performance.now();input={...value};recorder.input(input,t,physical);received(recognizer.update(input,t));}
 function clearInput(){recorder.reset(performance.now());held=null;input={...neutralInput};recognizer.reset();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
 function start(direction){if(connection||held)return;held=direction;const v={...neutralInput};if(direction==='push')v.z=.75;if(direction==='pull')v.z=-.75;if(direction==='clockwise')v.rz=.75;if(direction==='counterclockwise')v.rz=-.75;feed(v);document.querySelector(`[data-direction="${direction}"]`).classList.add('held');}
 function stop(){if(!held)return;held=null;feed(neutralInput);document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
@@ -75,12 +75,12 @@ $('save').onclick=()=>{comparison={...options};$('restore').disabled=false;try{l
 $('restore').onclick=()=>{options={...comparison};apply();$('saved').textContent='Comparison A restored.';};
 $('export').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(options,null,2));$('feedback').textContent='Settings copied.';}catch{$('feedback').textContent=JSON.stringify(options);}};
 $('clear').onclick=()=>{log=[];$('events').innerHTML='<tr><td colspan="4" class="muted">History cleared. Try another gesture.</td></tr>';};
-function connectionUI(){const connected=Boolean(connection);$('connect').textContent=connected?'Disconnect':'Connect SpaceMouse';$('source').textContent=connected?'Live device':'Simulator';document.querySelectorAll('[data-direction]').forEach(b=>b.disabled=connected);}
+function connectionUI(){const connected=Boolean(connection);recorder.connected(connected);$('connect').textContent=connected?'Disconnect':'Connect SpaceMouse';$('source').textContent=connected?'Live device':'Simulator';document.querySelectorAll('[data-direction]').forEach(b=>b.disabled=connected);}
 $('connect').onclick=async()=>{
  $('connect').disabled=true;
  try{
   if(connection){const closing=connection;connection=null;await closing.close();$('connection').textContent='Disconnected. Simulator ready.';}
-  else{clearInput();connection=await connectWebHid({onInput(value){if(value===neutralInput)clearInput();else feed(value);},onReset:clearInput,onDisconnect(){connection=null;clearInput();connectionUI();$('connection').textContent='Device disconnected. Simulator ready.';}});$('connection').textContent=connection?'Live input. Release the cap to neutral to arm the recognizer.':'No device selected. Simulator ready.';if(connection)recognizer.reset();}
+  else{clearInput();connection=await connectWebHid({onInput(value){if(value===neutralInput)clearInput();else feed(value,true);},onReset:clearInput,onDisconnect(){connection=null;clearInput();connectionUI();$('connection').textContent='Device disconnected. Simulator ready.';}});$('connection').textContent=connection?'Live input. Release the cap to neutral to arm the recognizer.':'No device selected. Simulator ready.';if(connection)recognizer.reset();}
  }catch(error){$('connection').textContent=error.message;}finally{$('connect').disabled=false;connectionUI();}
 };
 let lastGraph=0;

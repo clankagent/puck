@@ -29,8 +29,8 @@ lab:analyze` reads the newest device recording, or accepts a JSON file path.
 ## Combined-gesture research
 
 Open the lab with `?capture=press-move` for freeform push-move/pull-move capture.
-Use natural pressure, including relaxation during sideways movement. Aim for
-three examples per push/pull × sideways direction, plus ordinary single and
+Use natural pressure, including relaxation while rotating or tilting the cap.
+Aim for three examples per push/pull × movement direction, plus ordinary single and
 double presses for comparison; no required order or guided sequence. Multiple
 captures are fine if two minutes is too short.
 
@@ -39,3 +39,17 @@ These captures are marked in their note and withheld from the simple-gesture
 automatic tuner, which cannot yet infer combined-gesture settings. The new
 gesture implementation and tolerances will be based on analysis of these
 recordings. See the [1.0 criteria](roadmap.md).
+
+## Verify capture before starting
+
+Connect the device and move the cap once. Start recording remains disabled
+until an actual device movement report arrives. During capture the report and
+movement counts must rise when you move; all six axes are retained independently
+of the gesture gates. Captures without movement are not saved as usable
+recordings. Disconnect ends and saves a partial capture if movement was received.
+The download backup remains available even for an empty diagnostic capture.
+
+Simulator recording is only enabled explicitly with `?source=simulator` (or
+`&source=simulator` after an existing query). It is labeled as simulator input
+and is not physical calibration evidence. Reload after lab updates; a reload
+requires reconnecting the device.

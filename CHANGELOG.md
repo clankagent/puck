@@ -4,6 +4,11 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 
 ## Unreleased
 
+- Fixed the lab accepting disconnected, empty captures as successful recordings.
+  Device recording now requires a received movement report, shows live report
+  counts, rejects captures without movement, and preserves partial recordings on
+  disconnect. Simulator recording requires explicit test mode.
+
 - Added a [freeform combined-gesture capture mode](docs/lab.md#combined-gesture-research)
   to the source lab. It preserves natural pressure relaxation and excludes these
   recordings from the existing simple-gesture tuner. Push-move/pull-move
