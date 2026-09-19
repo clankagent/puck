@@ -2,7 +2,7 @@
 
 > TypeScript/ESM six-axis input, pan/zoom, tunable cap gestures and freeform calibration. Zero runtime dependencies.
 
-Documentation is versioned with source. This checkout includes experimental unreleased gesture/tune/recording/calibration/graph APIs; check the installed package exports before using them.
+Documentation targets 0.2.0, including experimental gesture/tune/recording/calibration/graph APIs. Match documentation to your installed version.
 
 ## Documentation
 

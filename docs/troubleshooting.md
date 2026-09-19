@@ -4,7 +4,7 @@
 
 | Symptom | Check / fix |
 |---|---|
-| Import or graph entry point missing | These docs include unreleased APIs. Check your installed version and package exports; build this checkout for experimental features. |
+| Import or graph entry point missing | Gesture and graph APIs require 0.2.0 or later. Check your installed version and package exports; see the upgrade guide. |
 | Bare import fails in browser | Resolve package imports with a bundler or import map. A browser cannot resolve npm package names by itself. |
 | WebHID unavailable / chooser fails | Use a supporting browser and secure context; connect from a user click and display the caught error. Core processing works without WebHID. |
 | Chooser cancelled | A null connection is expected; allow another click. |

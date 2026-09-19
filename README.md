@@ -2,7 +2,7 @@
 
 Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.
 
-**Version note:** these docs describe this source checkout. Gesture recognition, tunes, recording, calibration and the graph entry point are experimental, unreleased additions; do not assume an installed registry version contains them. Build this checkout to try them. The package version has not yet been bumped for these additions.
+**Version note:** these docs target 0.2.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when moving from 0.1.0.
 
 ## Start here
 

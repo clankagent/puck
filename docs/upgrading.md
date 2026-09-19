@@ -6,19 +6,16 @@
 
 Read the changelog for the version you are adopting, then use docs from that same tag or installed package. Main can contain unreleased features. `pnpm list @clankagent/puck` shows your app's installed version; its exports and declarations determine which APIs are available.
 
-The current gesture, tune, recording, calibration and graph additions are **unreleased**. To try them reproducibly, build a chosen source revision and install its packed artifact:
+Gesture, tune, recording, calibration and graph APIs are included in 0.2.0. In your consuming app:
 
 ```sh
-# Inside a checkout of clankagent/puck at your chosen revision:
-pnpm install --frozen-lockfile
-pnpm check
-pnpm pack --pack-destination artifacts
-
-# Inside your app, replace this path with the generated tarball:
-pnpm add /path/to/puck/artifacts/clankagent-puck-0.1.0.tgz
+pnpm add @clankagent/puck@0.2.0
+pnpm list @clankagent/puck
 ```
 
-The experimental tarball still carries package version 0.1.0, so record the source commit alongside it; that version alone does not distinguish it from the original baseline. This is a local development path. After a release, install the explicit released version listed in the changelog and commit your app's lockfile.
+Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.2.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
+
+To test future unreleased source, build a chosen revision with `pnpm install --frozen-lockfile`, `pnpm check` and `pnpm pack --pack-destination artifacts`, then install the generated tarball into your app with `pnpm add /path/to/package.tgz`. Record the source commit alongside it; a working-tree package version alone does not identify unreleased changes.
 
 ## Existing pan/zoom applications
 

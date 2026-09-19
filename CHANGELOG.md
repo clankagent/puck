@@ -2,7 +2,7 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
-## Unreleased
+## 0.2.0 — 2026-09-19
 
 ### Added
 
@@ -24,7 +24,7 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 - Tune and recording JSON formats start at `version: 1`. Restore tunes through `createGestureTune`; handle a null calibration tune before applying results.
 - Hardware scope is unchanged. Cap gestures do not add physical button decoding or support for unverified devices.
 
-**Adopt the update:** [Upgrade and integration guide](docs/upgrading.md). [Source comparison with the original baseline](https://github.com/clankagent/puck/compare/f065d4a...main).
+**Adopt the update:** [Upgrade and integration guide](docs/upgrading.md). [Source comparison with the original baseline](https://github.com/clankagent/puck/compare/f065d4a...v0.2.0).
 
 ## Original 0.1.0 source baseline
 

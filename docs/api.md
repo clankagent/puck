@@ -2,7 +2,7 @@
 
 [Documentation](../README.md) · [Quickstart](quickstart.md) · [Tuning guide](tuning.md)
 
-This reference describes the current checkout, including unreleased experimental APIs. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
+This reference describes 0.2.0, including its experimental gesture APIs. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
 
 ## Imports and units
 
