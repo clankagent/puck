@@ -14,6 +14,13 @@ Configuration and initial publication require account authentication.
 The core does not own animation or rendering. A release should preserve the
 measured motion defaults unless a deliberate behavior change is documented.
 
+Dependency installation and checks use the project's pinned pnpm. Publishing
+uses `pnpm dlx npm@11.15.0 publish` for OIDC support. Do not add setup-node's
+registry-url setting or a placeholder NODE_AUTH_TOKEN; these can prevent the
+OIDC path from activating. For a failed publication, dispatch publish.yml on
+main with the existing release tag as its tag input. This retries the tagged
+source without moving the tag or inventing another package version.
+
 ## Release notes and adoption guidance
 
 For user-facing changes, add an Unreleased entry to CHANGELOG.md explaining
