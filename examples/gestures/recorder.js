@@ -1,6 +1,13 @@
 import { createGestureRecorder } from '../../dist/index.js';
 const $=id=>document.getElementById(id);
 export function createRecorder({snapshot,begin,onSaved=()=>{}}){
+ const pressMove=new URLSearchParams(location.search).get('capture')==='press-move';
+ if(pressMove){
+  $('recordTitle').textContent='Record push-move & pull-move';
+  $('recordTitle').closest('.section-head').nextElementSibling.textContent='Move naturally: push down or pull up, then sideways in each of the four directions. Aim for three examples of each combination, plus ordinary single and double presses. Any order; groups are fine. Relax pressure however feels normal, and leave a short pause between separate actions.';
+  $('recordStatus').textContent='Freeform capture. Connect, record, then stop & save. No prompts or fixed sequence.';
+  $('calibrationStatus').textContent='Combined gestures will be analyzed from the raw six-axis recording in chat. The existing automatic tuner covers simple presses and twists only.';
+ }
  let active=null,started=0,last=null,saving=false,timer=null,reports=0;
  const status=text=>{$('recordStatus').textContent=text;};
  function lock(value){document.querySelectorAll('aside input, aside select, #restore, #connect, #calibrationPanel button, #calibrationPanel select, #calibrationPanel input').forEach(el=>{if(value)el.dataset.beforeRecordDisabled=String(el.disabled);el.disabled=value?true:el.dataset.beforeRecordDisabled==='true';});$('recordNote').disabled=value;$('recordStart').disabled=value||saving;$('recordStop').disabled=!value;}
@@ -14,7 +21,7 @@ export function createRecorder({snapshot,begin,onSaved=()=>{}}){
    const session=await fetch('/api/session');if(!session.ok)throw Error('Session unavailable');const {token}=await session.json();
    const response=await fetch('/api/recordings',{method:'POST',headers:{'Content-Type':'application/json','X-Puck-Token':token},body:JSON.stringify(last)});
    const result=await response.json();if(!response.ok)throw Error(result.error||'Save failed');
-   status(`Saved ${result.id.slice(0,8)}. Automatic analysis appears below; I can also read it directly.`);$('recordRetry').hidden=true;await history();onSaved(last,result);
+   status(`Saved ${result.id.slice(0,8)}. ${pressMove?'Tell me “analyze my latest recording” in chat; no upload needed.':'Automatic analysis appears below; I can also read it directly.'}`);$('recordRetry').hidden=true;await history();onSaved(last,result);
   }catch(error){status(`Not saved: ${error.message}. Your capture is still here. Retry or download a backup before leaving.`);$('recordRetry').hidden=false;}
   finally{saving=false;$('recordStart').disabled=false;$('recordRetry').disabled=false;}
  }
@@ -22,8 +29,8 @@ export function createRecorder({snapshot,begin,onSaved=()=>{}}){
   if(!active)return;last=active.snapshot(performance.now());active=null;clearInterval(timer);lock(false);$('recordClock').textContent=`${Math.round(last.durationMs/1000)}s captured${reason?' · '+reason:''}`;$('recordDownload').hidden=false;await save();
  }
  $('recordStart').onclick=()=>{
-  const current=snapshot();started=performance.now();active=createGestureRecorder({startTimeMs:started,options:current.options,source:current.source,note:$('recordNote').value});reports=0;
-  last=null;$('recordDownload').hidden=true;$('recordRetry').hidden=true;lock(true);begin();status(`Recording ${current.source==='device'?'SpaceMouse input':'SIMULATOR input'}. Aim for at least three singles and three doubles in each direction, in any order.`);refreshCount();timer=setInterval(()=>{refreshCount();if(performance.now()-started>=120000||active?.full)void stop('Recording limit reached');},250);
+  const current=snapshot();started=performance.now();active=createGestureRecorder({startTimeMs:started,options:current.options,source:current.source,note:(pressMove?'[press-move] ':'')+$('recordNote').value});reports=0;
+  last=null;$('recordDownload').hidden=true;$('recordRetry').hidden=true;lock(true);begin();status(`Recording ${current.source==='device'?'SpaceMouse input':'SIMULATOR input'}. ${pressMove?'Use natural push-move, pull-move and ordinary presses. All six raw axes are being saved.':'Aim for at least three singles and three doubles in each direction, in any order.'}`);refreshCount();timer=setInterval(()=>{refreshCount();if(performance.now()-started>=120000||active?.full)void stop('Recording limit reached');},250);
  };
  $('recordStop').onclick=()=>void stop();$('recordRetry').onclick=()=>void save();$('recordRefresh').onclick=()=>void history();
  $('recordDownload').onclick=()=>{if(!last)return;const url=URL.createObjectURL(new Blob([JSON.stringify(last,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='puck-recording.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};

@@ -16,6 +16,14 @@ export function createCalibrationPanel({applyTune}){
   draw();
  }
  function show(value,meta={}){
+  if(value.note?.startsWith('[press-move] ')){
+   recording=null;result=null;tune=null;original=null;captures=[];
+   $('calibrationStatus').textContent='Saved for combined-gesture analysis in chat. The simple-gesture tuner cannot yet calibrate push-move or pull-move.';
+   $('coverage').replaceChildren();$('calibrationIssues').textContent='Raw x/y/z and rotation traces are preserved, including pressure relaxation. Recognition labels are not used as ground truth.';
+   $('inspectAction').replaceChildren(new Option('Awaiting combined-gesture analysis','-1'));$('inspectAction').disabled=true;
+   $('calibrationGraph').textContent='The existing four-lane graph omits sideways motion. Analysis in chat will compare sideways movement with push/pull pressure.';
+   renderTune();$('tuneJson').textContent='No combined-gesture tune has been inferred yet.';return;
+  }
   try{recording=value;if(!$('combineRecordings').checked)captures=[];const id=meta.id??value.id??'unsaved';const existing=captures.findIndex(c=>c.id===id);if(existing>=0)captures[existing]={id,value};else captures.push({id,value});result=calibrateGestures(captures.map(c=>c.value));tune=result.tune;original=tune;
    $('calibrationStatus').textContent=`${meta.id?meta.id.slice(0,8)+' · ':''}${value.source==='simulator'?'Simulator · ':''}${result.status==='ready'?'Calibration ready':result.status==='ambiguous'?'Ambiguous actions need a clearer recording':'More examples needed'} · ${result.actions.length} inferred actions across ${captures.length} recording(s)`;
    $('coverage').replaceChildren();for(const [key,count] of Object.entries(result.counts)){const [d,k]=key.split('.');const li=document.createElement('li');li.className=count>=3?'complete':'missing';li.textContent=`${labels[d]} ${k}: ${count} / 3`;$('coverage').append(li);}

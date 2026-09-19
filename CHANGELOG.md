@@ -2,6 +2,15 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
+## Unreleased
+
+- Added a [freeform combined-gesture capture mode](docs/lab.md#combined-gesture-research)
+  to the source lab. It preserves natural pressure relaxation and excludes these
+  recordings from the existing simple-gesture tuner. Push-move/pull-move
+  recognition is pending physical recording analysis; no new npm API is released.
+- Defined [1.0 readiness criteria](docs/roadmap.md), including stable contracts,
+  real gesture evidence, calibration coverage and verified consumer releases.
+
 ## 0.2.0 — 2026-09-19
 
 ### Added

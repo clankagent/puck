@@ -16,6 +16,7 @@ Six-axis input, responsive pan/zoom, and tunable single/double gestures for Spac
 | Fix input or calibration problems | [Troubleshooting](docs/troubleshooting.md) |
 | Integrate using an agent | [Agent integration guide](docs/agents.md), [plain-text index](llms.txt) |
 | Try and record real input | [Gesture lab](docs/lab.md) |
+| Understand the next release and 1.0 criteria | [Roadmap](docs/roadmap.md) |
 
 For a registry release, install with `pnpm add @clankagent/puck`. For this checkout:
 
