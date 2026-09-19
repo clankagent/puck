@@ -24,3 +24,11 @@ This guide is for agents building applications with Puck. Repository contributio
 Exercise a single, a double, neutral rearming, a long hold, a reversal, report silence, blur/disconnect and teardown. Confirm one action handler invocation per expected event and no completed gesture caused by disconnect. Check incomplete calibration and JSON tune restoration. Use performance.now() consistently in a browser and an explicit monotonic clock in deterministic tests.
 
 For library contributions, run `pnpm check` from the source checkout. The tests use built ESM modules. Read CONTRIBUTING before proposing API/profile changes. Do not edit generated dist files as the source of truth.
+
+## Tilt integrations (0.3)
+
+Read [standalone and combined tilt](press-tilt.md) before enabling these families.
+Use `calibrateTilts` for standalone singles/doubles and `calibratePressTilts` for
+pressure-first combinations; do not interpret one family's coverage as another.
+Handle expanded direction unions and optional event.tilt. Keep modes separate
+from persisted tune data, and never claim inferred labels are ground truth.

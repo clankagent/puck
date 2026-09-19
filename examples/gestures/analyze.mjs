@@ -1,4 +1,4 @@
-import { createGestures, calibrateGestures } from '../../dist/index.js';
+import { createGestures, calibrateGestures, calibrateTilts, calibratePressTilts } from '../../dist/index.js';
 export function replayRecording(recording,overrides={}){
  const g=createGestures({...recording.options,...overrides}),events=[];
  for(const row of recording.timeline){
@@ -17,7 +17,7 @@ export function analyzeRecording(recording){
  }
  const gaps=reports.slice(1).map((r,i)=>r.t-reports[i].t);
  const replay=replayRecording(recording);
- return {calibration:calibrateGestures(recording),id:recording.id,source:recording.source,note:recording.note,durationMs:recording.durationMs,reports:reports.length,resets:recording.timeline.filter(r=>r.type==='reset').length,
+ return {calibration:calibrateGestures(recording),standaloneTiltCalibration:calibrateTilts(recording),pressTiltCalibration:calibratePressTilts(recording),id:recording.id,source:recording.source,note:recording.note,durationMs:recording.durationMs,reports:reports.length,resets:recording.timeline.filter(r=>r.type==='reset').length,
   reportGapMs:{median:percentile(gaps,.5),p95:percentile(gaps,.95),max:gaps.length?Math.max(...gaps):0},axisStats,
   recordedEvents:recording.events,replayed:replay,
   thresholdComparisons:[.12,.2,.3,.4,.5].map(activation=>{const release=Math.min(recording.options.release??.12,activation*.4);const result=replayRecording(recording,{activation,release,pressActivation:activation,twistActivation:activation,pressRelease:release,twistRelease:release,clockwiseActivation:activation,counterclockwiseActivation:activation,pushActivation:activation,pullActivation:activation,clockwiseRelease:release,counterclockwiseRelease:release,pushRelease:release,pullRelease:release});return {activation,events:result.events};}),

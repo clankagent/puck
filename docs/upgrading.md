@@ -9,13 +9,28 @@ Read the changelog for the version you are adopting, then use docs from that sam
 Gesture, tune, recording, calibration and graph APIs are included in 0.2.0. In your consuming app:
 
 ```sh
-pnpm add @clankagent/puck@0.2.0
+pnpm add @clankagent/puck@0.3.0
 pnpm list @clankagent/puck
 ```
 
-Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.2.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
+Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.3.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
 
 To test future unreleased source, build a chosen revision with `pnpm install --frozen-lockfile`, `pnpm check` and `pnpm pack --pack-destination artifacts`, then install the generated tarball into your app with `pnpm add /path/to/package.tgz`. Record the source commit alongside it; a working-tree package version alone does not identify unreleased changes.
+
+## From 0.2 to 0.3
+
+No new gesture family is enabled automatically. Add `standaloneTilt:true` for
+rx/ry singles and doubles; add `pressMode:'auto'` or `'tilt'` for push/pull +
+tilt combinations. Keep `singleMode:'exclusive'` when combined modes are enabled.
+See the [tilt integration guide](press-tilt.md) for event examples, default gates,
+freeform calibration and graphs. Feed every physical report and advance the clock
+as before; camera arbitration remains application-owned.
+
+`GestureDirection` now also includes four rx/ry directions. TypeScript consumers
+with exhaustive direction maps must extend them, even if the feature stays off.
+Use exported `PulseDirection` for APIs intentionally limited to the original four.
+Combined events add an optional `tilt`; route those before handling plain pressure.
+Tune version stays 1 with optional new fields; old tune JSON is supported.
 
 ## Existing pan/zoom applications
 

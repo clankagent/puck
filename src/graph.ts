@@ -1,5 +1,6 @@
-import type { GestureDirection, TiltDirection } from './gestures.js';
+import type { PulseDirection as GestureDirection, TiltDirection } from './gestures.js';
 import type { PressTiltAction } from './press-tilt-calibration.js';
+import type { TiltCalibrationAction } from './tilt-calibration.js';
 import { defaultGestureTune } from './tune.js';
 import type { GestureTune } from './tune.js';
 import { validateGestureRecording } from './recording.js';
@@ -48,6 +49,13 @@ export function createPressTiltGraph(recording:GestureRecording,tune:GestureTune
   return graph;
 }
 const escape=(value:string)=>value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+/** Four standalone tilt lanes with independent rx/ry bands and single/double action spans. */
+export function createTiltGraph(recording:GestureRecording,tune:GestureTune=defaultGestureTune,config:{start?:number;end?:number;actions?:readonly TiltCalibrationAction[];recordingIndex?:number}={}):GestureGraph {
+  const graph=createPressTiltGraph(recording,tune,{start:config.start,end:config.end});
+  const bands=tune.standaloneTilt??defaultGestureTune.standaloneTilt!;
+  graph.lanes=graph.lanes.filter(l=>l.direction.startsWith('r')).map(l=>({...l,...(l.direction.startsWith('rx')?bands.rx:bands.ry),actions:(config.actions??[]).filter(a=>a.recording===(config.recordingIndex??0)&&a.direction===l.direction&&a.end>=graph.start&&a.start<=graph.end).map(a=>({start:a.start,end:a.end,kind:a.kind}))}));
+  return graph;
+}
 /** Standalone accessible SVG. No DOM, canvas, frameworks or global listeners. */
 export function renderGestureGraphSvg(graph:GestureGraph,options:{width?:number;title?:string}={}):string {
   const width=options.width??960;

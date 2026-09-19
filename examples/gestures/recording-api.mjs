@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { createGestures } from '../../dist/index.js';
 export const MAX_DURATION = 120000;
 const axes = ['x','y','z','rx','ry','rz'];
-const directions = ['clockwise','counterclockwise','push','pull'];
+const directions = ['clockwise','counterclockwise','push','pull','rx+','rx-','ry+','ry-'];
 const number = (v,min,max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 function requireValue(ok) { if (!ok) throw new Error('Invalid recording format.'); }
 export function validateRecording(data) {
@@ -14,7 +14,7 @@ export function validateRecording(data) {
  requireValue(Array.isArray(data.timeline) && data.timeline.length<=60000);
  requireValue(Array.isArray(data.events) && data.events.length<=10000);
  requireValue(data.options && typeof data.options==='object' && !Array.isArray(data.options));
- const allowed=['activation','release','clockwiseActivation','clockwiseRelease','counterclockwiseActivation','counterclockwiseRelease','pushActivation','pushRelease','pullActivation','pullRelease','pressActivation','pressRelease','twistActivation','twistRelease','minPulseMs','maxPulseMs','neutralMs','doubleMs','singleMode','dominance','pressMode','pushMode','pullMode','tiltActivation','tiltRelease','tiltMinMs','tiltArmMs','tiltRelaxMs','tiltMaxMs','tiltDominance'];
+ const allowed=['activation','release','clockwiseActivation','clockwiseRelease','counterclockwiseActivation','counterclockwiseRelease','pushActivation','pushRelease','pullActivation','pullRelease','pressActivation','pressRelease','twistActivation','twistRelease','minPulseMs','maxPulseMs','neutralMs','doubleMs','singleMode','dominance','pressMode','pushMode','pullMode','tiltActivation','tiltRelease','tiltMinMs','tiltArmMs','tiltRelaxMs','tiltMaxMs','tiltDominance','standaloneTilt','tiltXActivation','tiltXRelease','tiltYActivation','tiltYRelease','standaloneMinPulseMs','standaloneMaxPulseMs','standaloneNeutralMs','standaloneDoubleMs'];
  requireValue(Object.keys(data.options).every(key=>allowed.includes(key)));
  createGestures(data.options);
  let previous=0;

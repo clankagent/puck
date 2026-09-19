@@ -2,7 +2,7 @@
 
 Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.
 
-**Version note:** these docs target 0.2.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when moving from 0.1.0.
+**Version note:** these docs target 0.3.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
 
 ## Start here
 
@@ -17,7 +17,7 @@ Six-axis input, responsive pan/zoom, and tunable single/double gestures for Spac
 | Integrate using an agent | [Agent integration guide](docs/agents.md), [plain-text index](llms.txt) |
 | Try and record real input | [Gesture lab](docs/lab.md) |
 | Understand the next release and 1.0 criteria | [Roadmap](docs/roadmap.md) |
-| Try unreleased combined gestures from source | [Push/pull + tilt](docs/press-tilt.md) |
+| Add standalone or pressure-first tilts | [Push/pull + tilt](docs/press-tilt.md) |
 
 For a registry release, install with `pnpm add @clankagent/puck`. For this checkout:
 
@@ -43,7 +43,7 @@ const gestures = createGestures(tune);
 |---|---|
 | Core `@clankagent/puck` | Decode reports; process motion and gestures; record samples; derive tunes. No browser globals, timers or storage. |
 | Optional `/webhid` | Device chooser, reports and connection lifecycle. |
-| Optional `/graph` | Four-lane graph data and a standalone SVG renderer. |
+| Optional `/graph` | Gesture-family graph data and a standalone SVG renderer. |
 | Your app | Render loop, action handling, camera, capture controls, persistence and UI. |
 
 The verified device profile is vendor `0x256f`, product `0xc63a`, Bluetooth on Windows. Other layouts and physical buttons are not implemented. Gestures are **cap pulses**, not button clicks. See [hardware scope](docs/motion.md#hardware-scope) before adding a profile.

@@ -2,7 +2,7 @@ import { createGestures, neutralInput, defaultGestureTune, gesturePresets, creat
 import { connectWebHid } from '../../dist/webhid.js';
 import { createRecorder } from './recorder.js';
 import { createCalibrationPanel } from './calibration-panel.js';
-import { createGestureGraph, createPressTiltGraph, renderGestureGraphSvg } from '../../dist/graph.js';
+import { createGestureGraph, createPressTiltGraph, createTiltGraph, renderGestureGraphSvg } from '../../dist/graph.js';
 const $ = id => document.getElementById(id);
 const presets=Object.fromEntries(Object.entries(gesturePresets).map(([key,tune])=>[key,tune.toOptions()]));
 let currentTune=defaultGestureTune;
@@ -19,16 +19,19 @@ const specs = [
   ['neutralMs','Neutral dwell',0,120,5,' ms','Require a stable release before counting.'],
   ['doubleMs','Double window',100,650,10,' ms','Time between completed pulses.'],
   ['dominance','Axis dominance',1,2.5,.1,'×','Strongest axis ÷ other axis at activation.'],
+  ['tiltXActivation','Standalone rx activation',.06,.8,.01,'','Shared threshold for positive and negative rx.'],
+  ['tiltYActivation','Standalone ry activation',.06,.8,.01,'','Shared threshold for positive and negative ry.'],
+  ['standaloneDoubleMs','Standalone double window',100,650,10,' ms','Time between completed tilt pulses.'],
   ['tiltActivation','Tilt activation',.08,.8,.01,'','Tilt on rx/ry after push or pull.'],
   ['tiltRelease','Tilt release',.02,.3,.01,'','Tilt must return below this to complete.'],
   ['tiltMinMs','Tilt noise filter',0,100,5,' ms','Minimum sustained tilt, not a target gesture speed.'],
   ['tiltArmMs','Time to begin tilt',100,800,25,' ms','Maximum allowance after pressure begins.'],
   ['tiltRelaxMs','Pressure relaxation allowance',0,300,10,' ms','Brief full release may still belong to the same combination.'],
 ];
-const names = {clockwise:'Clockwise',counterclockwise:'Counterclockwise',push:'Push down',pull:'Pull up'};
+const names = {clockwise:'Clockwise',counterclockwise:'Counterclockwise',push:'Push down',pull:'Pull up','rx+':'Tilt rx+','rx-':'Tilt rx−','ry+':'Tilt ry+','ry-':'Tilt ry−'};
 let options = {...presets.default}, recognizer = createGestures(options), input = {...neutralInput};
 let connection = null, held = null, log = [], samples = [], comparison = null;
-const calibration=createCalibrationPanel({applyTune(tune,combined){currentTune=tune;options={...defaultGestureTune.toOptions(),...tune.toOptions(),pressMode:combined?'auto':'simple'};apply();}});
+const calibration=createCalibrationPanel({applyTune(tune,family){currentTune=tune;options={...defaultGestureTune.toOptions(),...tune.toOptions(),pressMode:family==='combined'?'auto':'simple',standaloneTilt:family==='standalone'};apply();}});
 const recorder=createRecorder({onSaved:calibration.show,snapshot:()=>({source:connection?'device':'simulator',options}),begin(){recognizer.reset();}});
 try { const saved = JSON.parse(localStorage.getItem('puck-gesture-comparison')); if(saved){createGestures(saved);comparison=saved;} } catch {}
 for (const [id,label,min,max,step,unit,hint] of specs) {
@@ -64,13 +67,14 @@ window.addEventListener('keyup',e=>{if(keyMap[e.key]===held){e.preventDefault();
 window.addEventListener('blur',clearInput);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
 function apply(){
  options={...defaultGestureTune.toOptions(),...options};
+ for(const axis of ['X','Y'])options['tilt'+axis+'Release']=Math.min(options['tilt'+axis+'Release'],options['tilt'+axis+'Activation']-.01);
  options.tiltRelease=Math.min(options.tiltRelease,options.tiltActivation-.01);
  options.tiltRelaxMs=Math.min(options.tiltRelaxMs,options.tiltArmMs);
  if(options.pressMode&&options.pressMode!=='simple')options.singleMode='exclusive';
  for(const axis of Object.keys(directionAxes)){options[axis+'Activation']??=options[directionAxes[axis]+'Activation']??options.activation;options[axis+'Release']??=options[directionAxes[axis]+'Release']??options.release;}
  recognizer=createGestures(options);clearInput();
  for(const [id,,,,,unit] of specs){$(id).value=options[id];$(id+'Value').textContent=Number(options[id].toFixed(3))+unit;}
- for(const axis of Object.keys(directionAxes))$(axis+'Release').max=(options[axis+'Activation']-.01).toFixed(2);$('singleMode').value=options.singleMode;$('pressMode').value=options.pressMode??'simple';$('singleMode').disabled=Boolean(options.pressMode&&options.pressMode!=='simple');
+ for(const axis of Object.keys(directionAxes))$(axis+'Release').max=(options[axis+'Activation']-.01).toFixed(2);$('standaloneTilt').checked=Boolean(options.standaloneTilt);$('singleMode').value=options.singleMode;$('pressMode').value=options.pressMode??'simple';$('singleMode').disabled=Boolean(options.pressMode&&options.pressMode!=='simple');
  $('modeHelp').textContent=options.singleMode==='exclusive'?`Singles wait ${options.doubleMs} ms after release confirmation. Doubles emit once.`:'Singles fire on release confirmation. A second pulse also emits double; the first single is not undone.';
  $('result').textContent='Ready when you are';$('detail').textContent='Settings applied. Pending gestures cleared.';
  $('restore').disabled=!comparison;
@@ -80,6 +84,7 @@ function apply(){
 }
 $('preset').onchange=()=>{if(presets[$('preset').value]){currentTune=gesturePresets[$('preset').value];options={...presets[$('preset').value]};apply();}};
 $('singleMode').onchange=()=>{options.singleMode=$('singleMode').value;apply();};
+$('standaloneTilt').onchange=()=>{options.standaloneTilt=$('standaloneTilt').checked;apply();};
 $('pressMode').onchange=()=>{options.pressMode=$('pressMode').value;apply();};
 $('save').onclick=()=>{comparison={...options};$('restore').disabled=false;try{localStorage.setItem('puck-gesture-comparison',JSON.stringify(comparison));$('saved').textContent='Comparison A saved in this browser.';}catch{$('saved').textContent='Comparison A saved for this session.';}};
 $('restore').onclick=()=>{options={...comparison};apply();$('saved').textContent='Comparison A restored.';};
@@ -95,13 +100,13 @@ $('connect').onclick=async()=>{
 };
 let lastGraph=0;
 function graphTune(){
- const data=currentTune.toJSON(),p=data.pressTilt??defaultGestureTune.pressTilt;return createGestureTune({...data,pressTilt:{...p,force:{...p.force,activation:options.tiltActivation,release:options.tiltRelease},minMs:options.tiltMinMs,armMs:options.tiltArmMs,relaxMs:options.tiltRelaxMs},rotation:{...data.rotation,activation:options.twistActivation,release:options.twistRelease},push:{...data.push,activation:options.pushActivation,release:options.pushRelease},pull:{...data.pull,activation:options.pullActivation,release:options.pullRelease},timing:{minPulseMs:options.minPulseMs,maxPulseMs:options.maxPulseMs,neutralMs:options.neutralMs,doubleMs:options.doubleMs}});
+ const data=currentTune.toJSON(),p=data.pressTilt??defaultGestureTune.pressTilt;const st=data.standaloneTilt??defaultGestureTune.standaloneTilt;return createGestureTune({...data,standaloneTilt:{...st,rx:{...st.rx,activation:options.tiltXActivation,release:options.tiltXRelease},ry:{...st.ry,activation:options.tiltYActivation,release:options.tiltYRelease},timing:{...st.timing,doubleMs:options.standaloneDoubleMs}},pressTilt:{...p,force:{...p.force,activation:options.tiltActivation,release:options.tiltRelease},minMs:options.tiltMinMs,armMs:options.tiltArmMs,relaxMs:options.tiltRelaxMs},rotation:{...data.rotation,activation:options.twistActivation,release:options.twistRelease},push:{...data.push,activation:options.pushActivation,release:options.pushRelease},pull:{...data.pull,activation:options.pullActivation,release:options.pullRelease},timing:{minPulseMs:options.minPulseMs,maxPulseMs:options.maxPulseMs,neutralMs:options.neutralMs,doubleMs:options.doubleMs}});
 }
 function frame(){
  const t=performance.now();recorder.advance(t);received(recognizer.advance(t));samples.push({t,input:{...input}});while(samples.length&&samples[0].t<t-4000)samples.shift();
- if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg((options.pressMode&&options.pressMode!=='simple'?createPressTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
+ if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg((options.pressMode&&options.pressMode!=='simple'?createPressTiltGraph:options.standaloneTilt?createTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
  const state=recognizer.state;$('phase').textContent=state.phase==='blocked'?'Release to arm':state.direction?`${names[state.direction]} · ${state.phase}`:state.pending?`${names[state.pending]} · waiting`:'Neutral';
- $('values').textContent=`Blue = input. Cross green to start; return below gray to release. Twist ${input.rz.toFixed(2)} · vertical ${input.z.toFixed(2)}.`;
+ $('values').textContent=`Blue = input. Cross green to start; return below gray to release. Twist ${input.rz.toFixed(2)} · vertical ${input.z.toFixed(2)} · rx ${input.rx.toFixed(2)} · ry ${input.ry.toFixed(2)}.`;
  requestAnimationFrame(frame);
 }
 apply();if(comparison)$('saved').textContent='Comparison A available from this browser.';requestAnimationFrame(frame);

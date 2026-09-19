@@ -2,26 +2,24 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
-## Unreleased
+## 0.3.0 — 2026-09-19
 
-- Added experimental [push/pull + tilt recognition](docs/press-tilt.md), with
-  simple/tilt/automatic modes, pressure relaxation, preserved ordinary doubles,
-  editable tilt tune data, freeform combined calibration and six-lane graphs.
-  Timing treats reference captures as the slower end of normal. Existing default
-  recognition stays in simple mode. These APIs are on main, not published yet.
-- Added [standalone tilt capture](docs/lab.md#combined-gesture-research) for the
-  next gesture family; standalone recognition awaits physical capture analysis.
+- Added opt-in [standalone rx/ry singles and doubles and push/pull + tilt](docs/press-tilt.md).
+  Combined modes support pressure relaxation and preserve ordinary doubles.
+  Faster execution is accepted; timing allowances are upper bounds.
+- Added `calibrateTilts`, `calibratePressTilts`, matching graph constructors,
+  and immutable, serializable tuning fields. Each family needs three examples
+  of its eight action types; freeform order and multiple captures are supported.
+- Updated the lab with automatic family detection, an explicit analysis selector,
+  standalone controls, per-action inspection and reusable tune export.
+- Fixed empty/disconnected captures being accepted as usable recordings. Partial
+  captures survive disconnect; simulator capture requires explicit test mode.
+- Defined [1.0 readiness criteria](docs/roadmap.md). APIs remain experimental.
 
-- Fixed the lab accepting disconnected, empty captures as successful recordings.
-  Device recording now requires a received movement report, shows live report
-  counts, rejects captures without movement, and preserves partial recordings on
-  disconnect. Simulator recording requires explicit test mode.
-
-- Added a [freeform combined-gesture capture mode](docs/lab.md#combined-gesture-research)
-  to the source lab. It preserves natural pressure relaxation and excludes these
-  recordings from the existing simple-gesture tuner. No new npm API is released.
-- Defined [1.0 readiness criteria](docs/roadmap.md), including stable contracts,
-  real gesture evidence, calibration coverage and verified consumer releases.
+Existing gesture behavior is unchanged unless enabled. The TypeScript direction
+union expands and combined events have an optional tilt field; see the
+[upgrade guide](docs/upgrading.md#from-02-to-03). Tune/recording format stays 1,
+and old tune JSON is supported. [Compare versions](https://github.com/clankagent/puck/compare/v0.2.0...v0.3.0).
 
 ## 0.2.0 — 2026-09-19
 

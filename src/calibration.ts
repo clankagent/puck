@@ -1,4 +1,4 @@
-import type { GestureDirection } from './gestures.js';
+import type { PulseDirection as GestureDirection } from './gestures.js';
 import { createGestureTune } from './tune.js';
 import type { ForceBand, GestureTune } from './tune.js';
 import { validateGestureRecording } from './recording.js';
@@ -15,7 +15,7 @@ export interface GestureCalibration {
   stats:Partial<Record<GestureDirection,CalibrationStats>>;issues:string[];
 }
 const quantile=(values:number[],p:number)=>{const a=[...values].sort((x,y)=>x-y);const at=(a.length-1)*p,lo=Math.floor(at),hi=Math.ceil(at);return a[lo]+(a[hi]-a[lo])*(at-lo);};
-const mean=(values:number[])=>values.reduce((a,b)=>a+b,0)/values.length;
+const mean=(values:number[])=>values[0]+values.reduce((a,b)=>a+(b-values[0]),0)/values.length;
 const clamp=(v:number,min:number,max:number)=>Math.max(min,Math.min(max,v));
 interface Point {t:number;v:number;other:number;tilt:number}
 /** Infer actions from raw shape and timing, independent of event labels and action order.

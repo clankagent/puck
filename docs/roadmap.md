@@ -6,13 +6,14 @@
 for applications to adopt without chasing API changes. It does not mean every
 SpaceMouse model or every possible gesture is supported.
 
-## Next: combined press and movement
+## 0.3: tilt families, still experimental
 
-Add opt-in push-move and pull-move gestures, with explicit arbitration between
-simple and directional presses. Preserve ordinary doubles and existing motion
-defaults. Document event timing, cancellation, rearming and application input
-ownership. Validate the state machine with synthetic sequences, then evaluate
-real freeform recordings before describing the defaults as physically tuned.
+0.3 adds push/pull + rx/ry tilt and standalone tilt singles/doubles, with
+explicit arbitration and ordinary doubles preserved. Defaults use freeform
+physical evidence, supplemented by synthetic boundary tests. This is enough
+for an experimental release, not for 1.0: next evaluate unintended activations
+during ordinary pan/zoom, repeat sessions, and real application adoption.
+The contracts and calibration heuristics remain open to refinement.
 
 ## Requirements for 1.0
 

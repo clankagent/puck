@@ -1,9 +1,8 @@
-# Combined push/pull and tilt — unreleased
+# Standalone and combined tilts (0.3.0)
 
 [Documentation](../README.md) · [Roadmap](roadmap.md)
 
-This API is under development on main for the next release. It is not in npm
-0.2.0. Standalone tilt singles/doubles are awaiting separate recording analysis.
+These experimental APIs are opt-in. Existing simple gestures remain the default.
 
 ```js
 import {createGestures, defaultGestureTune} from '@clankagent/puck';
@@ -36,7 +35,7 @@ combination. Neutral, interruption and maximum duration prevent repeated holds.
 The reference input is treated as the slower end of normal. Faster movements
 are accepted; the upper allowances are not mandatory waits. Combined events
 emit on full release plus neutral dwell, without waiting for a plain double.
-Repeated combinations are separate single actions; this draft does not pair
+Repeated combinations are separate single actions; the recognizer does not pair
 them into combined doubles. Ordinary doubles retain completion-to-completion
 timing. With an unusually short `doubleMs`, plain singles wait at least
 `tiltRelaxMs + tiltMinMs` to leave time for a possible combination.
@@ -69,3 +68,64 @@ entire minute at once.
 The session example accepts `options:{pressMode:'auto'}` and records the exact
 configuration. Lifecycle reset still cancels all pending actions. Apps retain
 ownership of camera arbitration, recording storage, clocks and rendering.
+
+## Standalone directional singles and doubles
+
+Enable `standaloneTilt:true` to recognize rx+/rx−/ry+/ry− without a deliberate
+push, pull or twist. Events use `direction:'rx+'` (or another tilt direction)
+and `kind:'single'|'double'`, with no `tilt` field. Signs are device axes, not
+screen directions. Map them in the consuming app.
+
+```js
+const gestures = createGestures({
+  ...defaultGestureTune.toOptions(),
+  standaloneTilt: true,
+  pressMode: 'auto', // optional: also recognize pressure-first combinations
+});
+```
+
+The first qualifying motion owns the excursion: pressure-first can become a
+combination; tilt-first remains standalone even if incidental pressure follows.
+Neutral rx/ry completes a standalone pulse. Reversals without neutral cancel.
+A double pairs completions within its own double window. Exclusive singles
+wait; immediate singles are additive, as with ordinary presses. Combined modes
+still require exclusive singles. Long holds and lifecycle resets do not emit taps.
+
+| Standalone option | Default |
+|---|---|
+| `tiltXActivation`, `tiltXRelease` | .13, .104 |
+| `tiltYActivation`, `tiltYRelease` | .28, .16 |
+| `standaloneMinPulseMs`, `standaloneMaxPulseMs` | 25, 650 |
+| `standaloneNeutralMs`, `standaloneDoubleMs` | 10, 400 |
+
+Tune version 1 also accepts optional `standaloneTilt:{rx,ry,timing}`. Each axis
+has a force band shared by its positive/negative directions; timing contains
+`minPulseMs,maxPulseMs,neutralMs,doubleMs`. Old JSON remains valid. Presets and
+immutable edits include these bands; `toOptions()` supplies thresholds without
+enabling recognition. Store your mode choices alongside the tune.
+
+```js
+import {calibrateTilts, createGestureTune} from '@clankagent/puck';
+import {createTiltGraph, renderGestureGraphSvg} from '@clankagent/puck/graph';
+const result = calibrateTilts(recordings, {baseTune: defaultGestureTune});
+if (result.tune) {
+  const saved = JSON.stringify(result.tune);
+  const restored = createGestureTune(JSON.parse(saved));
+  const gestures = createGestures({...restored.toOptions(), standaloneTilt:true});
+}
+// Display result.status, counts, missing and issues even when tune is null.
+const model = createTiltGraph(recordings[0], result.tune ?? defaultGestureTune,
+  {actions:result.actions, recordingIndex:0});
+const svg = renderGestureGraphSvg(model);
+```
+
+`calibrateTilts(recordingOrArray,{baseTune?,minimumPerAction?})` requires three
+singles and three doubles per direction (eight action types), in any order.
+It accepts 1–20 captures, preserves capture/reset boundaries, and ignores
+pressure-first excursions. The result includes status, tune, counts, missing,
+actions, stats and issues. Other gesture families retain their base settings.
+Use one copy of each capture; duplicates are not new evidence. The parser uses
+.06 exploratory neutral/detection and .15 early-pressure separation; review
+unusual motion manually. Closely spaced singles may be inferred as doubles.
+The graph shows four signed tilt lanes, force bands and inferred action spans.
+These inferred labels are useful tuning evidence, not measured recognition accuracy.

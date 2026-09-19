@@ -7,7 +7,7 @@ export function createRecorder({snapshot,begin,onSaved=()=>{}}){
   $('recordTitle').textContent='Record standalone tilts';
   $('recordTitle').closest('.section-head').nextElementSibling.textContent='Tilt naturally in each of the four directions, without deliberately pushing down, pulling up or twisting. Aim for at least three singles and three doubles per direction. Any order; groups are fine. Use your normal speed and leave a pause between separate actions.';
   $('recordStatus').textContent='Freeform capture for standalone tilt analysis. Connect and move the cap once, then record.';
-  $('calibrationStatus').textContent='Standalone tilt timing and thresholds will be analyzed from this recording in chat.';
+  $('calibrationStatus').textContent='Save to analyze standalone tilt coverage and timing below.';
  }
  if(pressMove){
   $('recordTitle').textContent='Record push-move & pull-move';
@@ -40,7 +40,7 @@ export function createRecorder({snapshot,begin,onSaved=()=>{}}){
    const session=await fetch('/api/session');if(!session.ok)throw Error('Session unavailable');const {token}=await session.json();
    const response=await fetch('/api/recordings',{method:'POST',headers:{'Content-Type':'application/json','X-Puck-Token':token},body:JSON.stringify(last)});
    const result=await response.json();if(!response.ok)throw Error(result.error||'Save failed');
-   status(`Saved ${result.id.slice(0,8)} · ${last.source} · ${reports} input reports. ${stopReason?stopReason+'. ':''}${pressMove||tiltOnly?'Tell me “analyze my latest recording” in chat; no upload needed.':'Automatic analysis appears below; I can also read it directly.'}`);$('recordRetry').hidden=true;await history();onSaved(last,result);
+   status(`Saved ${result.id.slice(0,8)} · ${last.source} · ${reports} input reports. ${stopReason?stopReason+'. ':''}Automatic analysis appears below; I can also read it directly.`);$('recordRetry').hidden=true;await history();onSaved(last,result);
   }catch(error){status(`Not saved: ${error.message}. Your capture is still here. Retry or download a backup before leaving.`);$('recordRetry').hidden=false;}
   finally{saving=false;readiness();$('recordRetry').disabled=false;}
  }

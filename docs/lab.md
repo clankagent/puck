@@ -42,8 +42,10 @@ See the [combined gesture guide](press-tilt.md) and [1.0 criteria](roadmap.md).
 For standalone tilt research, use `?capture=tilt`. Record at least three
 singles and three doubles for each of the four rx/ry directions, without
 deliberate push/pull or twist. Any order is fine. These captures are marked
-separately and await standalone analysis rather than entering the combined
-gesture tuner.
+separately and analyzed with the standalone tuner. Choose the Analyze selector
+to override automatic family detection. Enable Combine with loaded recordings
+before loading another partial capture. Use this tune enables the matching
+family. The standalone toggle and push/pull mode can also be set independently.
 
 ## Verify capture before starting
 

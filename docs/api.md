@@ -8,9 +8,9 @@ This reference describes 0.2.0, including its experimental gesture APIs. Emitted
 
 | Entry point | Runtime exports |
 |---|---|
-| `@clankagent/puck` | `decodeCombinedReport`, `neutralInput`, `createPanZoom`, `createGestures`, `createGestureTune`, `defaultGestureTune`, `gesturePresets`, `createGestureRecorder`, `validateGestureRecording`, `calibrateGestures`, `gestureDirections` |
+| `@clankagent/puck` | `decodeCombinedReport`, `neutralInput`, `createPanZoom`, `createGestures`, `createGestureTune`, `defaultGestureTune`, `gesturePresets`, `createGestureRecorder`, `validateGestureRecording`, `calibrateGestures`, `gestureDirections`, `calibratePressTilts`, `calibrateTilts`, `tiltDirections` |
 | `@clankagent/puck/webhid` | `connectWebHid`, `combinedProfile` |
-| `@clankagent/puck/graph` | `createGestureGraph`, `renderGestureGraphSvg` |
+| `@clankagent/puck/graph` | `createGestureGraph`, `createPressTiltGraph`, `createTiltGraph`, `renderGestureGraphSvg` |
 
 `InputState` has six finite normalized axes: `x,y,z,rx,ry,rz`, each in [-1,1]. They represent deflection, not angles. For the verified profile, positive `rz` is clockwise and positive `z` is push down; negative values are counterclockwise and pull up. Force bands use positive magnitudes [0,1]. Times are milliseconds. Recorder and calibration times are relative to capture start; live recognizer event times use the supplied clock.
 
@@ -46,6 +46,13 @@ Timing defaults: `minPulseMs:35`, `maxPulseMs:650`, `neutralMs:25`, `doubleMs:40
 `singleMode:'exclusive'` (default) waits before emitting a single so a double can replace it. `'immediate'` emits a single first and later an additive double; no undo is emitted. Prefer exclusive when actions must not both fire.
 
 Low-level gates are `activation/release`, `pressActivation/pressRelease`, `twistActivation/twistRelease`, and `clockwiseActivation/clockwiseRelease` (likewise `counterclockwise`, `push`, `pull`). Precedence: direction → axis → shared → default tune. `createGestures({})` matches the no-argument form. Gates require `0 <= release < activation <= 1`; invalid options throw `RangeError`.
+
+For opt-in standalone rx/ry and combined pressure/tilt options, event shapes,
+timing, calibration results and graph constructors, see the [tilt API](press-tilt.md).
+`PulseDirection` names the original four; `TiltDirection` names rx+/rx-/ry+/ry-;
+`GestureDirection` is their union. `GestureEvent.tilt` is optional and only present
+for a combined single. `PressMode` is simple/auto/tilt. Exported tune types include
+`PressTiltTune` and `StandaloneTiltTune`.
 
 ## Tunes
 

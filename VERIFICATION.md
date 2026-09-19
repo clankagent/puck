@@ -76,3 +76,17 @@
   reusable examples ship, while the lab server and raw recordings stay excluded.
 - Gesture APIs remain experimental and are not yet an npm release. Source delivery
   includes the gesture lab; captured device recordings remain outside the repository.
+
+## 0.3 gesture scope
+
+Synthetic tests cover four standalone directions, singles/doubles, brief neutral
+valleys, pressure-first vs tilt-first ownership, reversals, holds, lifecycle
+resets, multi-capture calibration and graph overlays. Combined recognition was
+replayed against physical freeform input at original, 2× and 3× timestamps;
+39 inferred combinations and four plain actions were preserved. The original
+35-action simple reference remained unchanged with both families enabled.
+Two standalone captures supply at least three inferred singles and doubles per
+direction; interrupted/outlying excursions are excluded. Inferred labels are
+not ground truth or an accuracy score. No new hardware compatibility is claimed.
+Ordinary pan/zoom false-positive rates and multi-session robustness remain
+1.0 validation work. Raw captures and user metadata are not distributed.
