@@ -22,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Check release version
         env:
@@ -30,8 +29,6 @@ jobs:
         run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.RELEASE_TAG !== 'v'+p.version) throw Error('Tag must match package version');"
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      # pnpm 10 delegates publishing to an npm CLI without reliable OIDC support.
-      # Keep dependency management on pinned pnpm; pin a current npm publisher.
+      # Keep dependency management on pinned pnpm; pin an OIDC-capable publisher.
+      # Do not configure registry-url: setup-node's dummy auth token blocks OIDC.
       - run: pnpm dlx npm@11.15.0 publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ''
