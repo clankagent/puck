@@ -1,4 +1,5 @@
 import { createGestures, neutralInput, defaultGestureTune, gesturePresets, createGestureTune } from '../../dist/index.js';
+import { presetOptions, applyFamilyTune } from './settings.js';
 import { connectWebHid } from '../../dist/webhid.js';
 import { createRecorder } from './recorder.js';
 import { createCalibrationPanel } from './calibration-panel.js';
@@ -29,9 +30,10 @@ const specs = [
   ['tiltRelaxMs','Pressure relaxation allowance',0,300,10,' ms','Brief full release may still belong to the same combination.'],
 ];
 const names = {clockwise:'Clockwise',counterclockwise:'Counterclockwise',push:'Push down',pull:'Pull up','rx+':'Tilt rx+','rx-':'Tilt rx−','ry+':'Tilt ry+','ry-':'Tilt ry−'};
-let options = {...presets.default}, recognizer = createGestures(options), input = {...neutralInput};
+let options = presetOptions(defaultGestureTune), recognizer = createGestures(options), input = {...neutralInput};
 let connection = null, held = null, log = [], samples = [], comparison = null;
-const calibration=createCalibrationPanel({applyTune(tune,family){currentTune=tune;options={...defaultGestureTune.toOptions(),...tune.toOptions(),pressMode:family==='combined'?'auto':'simple',standaloneTilt:family==='standalone'};apply();}});
+let reportCount=0,lastReportAt=null;
+const calibration=createCalibrationPanel({applyTune(tune,family){const next=applyFamilyTune(currentTune,tune,family,options);currentTune=next.tune;options=next.options;apply();}});
 const recorder=createRecorder({onSaved:calibration.show,snapshot:()=>({source:connection?'device':'simulator',options}),begin(){recognizer.reset();}});
 try { const saved = JSON.parse(localStorage.getItem('puck-gesture-comparison')); if(saved){createGestures(saved);comparison=saved;} } catch {}
 for (const [id,label,min,max,step,unit,hint] of specs) {
@@ -57,7 +59,7 @@ function received(events){recorder.events(events);
  }
  if(events.length){log=log.slice(0,40);$('events').replaceChildren();for(const e of log){const row=document.createElement('tr');for(const value of [names[e.direction]+(e.tilt?' + '+e.tilt:''),e.kind,`${Math.round(e.durationMs)} ms`,`${Math.round(e.delay)} ms`]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('events').append(row);}}
 }
-function feed(value,physical=false){const t=performance.now();input={...value};recorder.input(input,t,physical);received(recognizer.update(input,t));}
+function feed(value,physical=false){const t=performance.now();input={...value};if(physical){reportCount++;lastReportAt=t;}recorder.input(input,t,physical);received(recognizer.update(input,t));}
 function clearInput(){recorder.reset(performance.now());held=null;input={...neutralInput};recognizer.reset();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
 function start(direction){if(connection||held)return;held=direction;const v={...neutralInput};if(direction==='push')v.z=.75;if(direction==='pull')v.z=-.75;if(direction==='clockwise')v.rz=.75;if(direction==='counterclockwise')v.rz=-.75;feed(v);document.querySelector(`[data-direction="${direction}"]`).classList.add('held');}
 function stop(){if(!held)return;held=null;feed(neutralInput);document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
@@ -76,13 +78,14 @@ function apply(){
  for(const [id,,,,,unit] of specs){$(id).value=options[id];$(id+'Value').textContent=Number(options[id].toFixed(3))+unit;}
  for(const axis of Object.keys(directionAxes))$(axis+'Release').max=(options[axis+'Activation']-.01).toFixed(2);$('standaloneTilt').checked=Boolean(options.standaloneTilt);$('singleMode').value=options.singleMode;$('pressMode').value=options.pressMode??'simple';$('singleMode').disabled=Boolean(options.pressMode&&options.pressMode!=='simple');
  $('modeHelp').textContent=options.singleMode==='exclusive'?`Singles wait ${options.doubleMs} ms after release confirmation. Doubles emit once.`:'Singles fire on release confirmation. A second pulse also emits double; the first single is not undone.';
+ $('activeModes').textContent=`Enabled: twist and plain doubles · push/pull ${options.pressMode??'simple'} · standalone tilt ${options.standaloneTilt?'on':'off'}. Combined push/lift + tilt emits a single on release.`;
  $('result').textContent='Ready when you are';$('detail').textContent='Settings applied. Pending gestures cleared.';
  $('restore').disabled=!comparison;
  const match=Object.entries(presets).find(([,value])=>Object.entries(value).every(([key,v])=>options[key]===v)&&Object.keys(directionAxes).every(axis=>(value[axis+'Activation']??value[directionAxes[axis]+'Activation']??value.activation)===options[axis+'Activation']&&(value[axis+'Release']??value[directionAxes[axis]+'Release']??value.release)===options[axis+'Release']));
  if(!match&&!$('preset').querySelector('[value="custom"]'))$('preset').add(new Option('Custom','custom'));
  $('preset').value=match?.[0]??'custom';
 }
-$('preset').onchange=()=>{if(presets[$('preset').value]){currentTune=gesturePresets[$('preset').value];options={...presets[$('preset').value]};apply();}};
+$('preset').onchange=()=>{if(presets[$('preset').value]){currentTune=gesturePresets[$('preset').value];options=presetOptions(currentTune,options);apply();}};
 $('singleMode').onchange=()=>{options.singleMode=$('singleMode').value;apply();};
 $('standaloneTilt').onchange=()=>{options.standaloneTilt=$('standaloneTilt').checked;apply();};
 $('pressMode').onchange=()=>{options.pressMode=$('pressMode').value;apply();};
@@ -95,7 +98,7 @@ $('connect').onclick=async()=>{
  $('connect').disabled=true;
  try{
   if(connection){const closing=connection;connection=null;await closing.close();$('connection').textContent='Disconnected. Simulator ready.';}
-  else{clearInput();connection=await connectWebHid({onInput(value){if(value===neutralInput)clearInput();else feed(value,true);},onReset:clearInput,onDisconnect(){connection=null;clearInput();connectionUI();$('connection').textContent='Device disconnected. Simulator ready.';}});$('connection').textContent=connection?'Live input. Release the cap to neutral to arm the recognizer.':'No device selected. Simulator ready.';if(connection)recognizer.reset();}
+  else{reportCount=0;lastReportAt=null;clearInput();connection=await connectWebHid({onInput(value){if(value===neutralInput)clearInput();else feed(value,true);},onReset:clearInput,onDisconnect(){connection=null;clearInput();connectionUI();$('connection').textContent='Device disconnected. Simulator ready.';}});$('connection').textContent=connection?'Live input. Release the cap to neutral to arm the recognizer.':'No device selected. Simulator ready.';if(connection)recognizer.reset();}
  }catch(error){$('connection').textContent=error.message;}finally{$('connect').disabled=false;connectionUI();}
 };
 let lastGraph=0;
@@ -105,6 +108,7 @@ function graphTune(){
 function frame(){
  const t=performance.now();recorder.advance(t);received(recognizer.advance(t));samples.push({t,input:{...input}});while(samples.length&&samples[0].t<t-4000)samples.shift();
  if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg((options.pressMode&&options.pressMode!=='simple'?createPressTiltGraph:options.standaloneTilt?createTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
+ $('inputStatus').textContent=!connection?'Simulator — connect the device for live input.':document.hidden||!document.hasFocus()?'Device paused: focus this page to receive input.':lastReportAt===null?'Connected; no movement report received yet. Move the cap.':`${reportCount} device reports · last ${Math.max(0,Math.round((t-lastReportAt)/1000))}s ago · lift ${Math.max(0,-input.z).toFixed(2)} · tilt rx ${input.rx.toFixed(2)} / ry ${input.ry.toFixed(2)}`;
  const state=recognizer.state;$('phase').textContent=state.phase==='blocked'?'Release to arm':state.direction?`${names[state.direction]} · ${state.phase}`:state.pending?`${names[state.pending]} · waiting`:'Neutral';
  $('values').textContent=`Blue = input. Cross green to start; return below gray to release. Twist ${input.rz.toFixed(2)} · vertical ${input.z.toFixed(2)} · rx ${input.rx.toFixed(2)} · ry ${input.ry.toFixed(2)}.`;
  requestAnimationFrame(frame);

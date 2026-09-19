@@ -60,3 +60,15 @@ Simulator recording is only enabled explicitly with `?source=simulator` (or
 `&source=simulator` after an existing query). It is labeled as simulator input
 and is not physical calibration evidence. Reload after lab updates; a reload
 requires reconnecting the device.
+
+## Live recognition
+
+The source lab enables combined and standalone tilts on startup. Presets preserve
+mode choices; applying calibration updates only that gesture family. Library
+defaults remain opt-in. The status beside Last recognized shows enabled modes,
+report count, time since the last physical report and whether focus has paused
+input. Reports may stop while the cap is still; move it to check reception.
+After updating the source lab, reload and reconnect the device.
+
+Plain lift and standalone tilts support singles and doubles. Lift + tilt is a
+combined single on release; repeating it produces separate combined singles.

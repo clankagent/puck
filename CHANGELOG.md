@@ -2,6 +2,12 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
+## Source lab fixes (after 0.3.0)
+
+- Enable combined and standalone tilt recognition on lab startup. Preserve selected modes across preset changes, and preserve other gesture families when applying a learned tune.
+- Show active gesture modes and device-report/focus status beside the live result. [Lab usage](docs/lab.md).
+- These are source-lab changes; the lab is not shipped in npm. The library remains 0.3.0 with opt-in defaults.
+
 ## 0.3.0 — 2026-09-19
 
 - Added opt-in [standalone rx/ry singles and doubles and push/pull + tilt](docs/press-tilt.md).
