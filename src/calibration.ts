@@ -17,7 +17,7 @@ export interface GestureCalibration {
 const quantile=(values:number[],p:number)=>{const a=[...values].sort((x,y)=>x-y);const at=(a.length-1)*p,lo=Math.floor(at),hi=Math.ceil(at);return a[lo]+(a[hi]-a[lo])*(at-lo);};
 const mean=(values:number[])=>values.reduce((a,b)=>a+b,0)/values.length;
 const clamp=(v:number,min:number,max:number)=>Math.max(min,Math.min(max,v));
-interface Point {t:number;v:number;other:number}
+interface Point {t:number;v:number;other:number;tilt:number}
 /** Infer actions from raw shape and timing, independent of event labels and action order.
  * Closely spaced singles can be indistinguishable from doubles: inferred counts are not ground truth.
  */
@@ -29,6 +29,7 @@ export function calibrateGestures(input:GestureRecording|readonly GestureRecordi
   const pulses:CalibrationPulse[]=[],issues:string[]=[];
   function episode(points:Point[],direction:GestureDirection,recording:number,segment:number){
     if(points.length<3||points[0].v>floor||points[points.length-1].v>floor)return;
+    if((direction==='push'||direction==='pull')&&points.some(p=>p.tilt>=.25)){issues.push('Excluded a press with tilt; use calibratePressTilts for combined gestures.');return;}
     const peaks:number[]=[];
     for(let i=1;i<points.length-1;i++)if(points[i].v>=Math.max(.06,floor*2.5)&&points[i].v>=points[i-1].v&&points[i].v>points[i+1].v)peaks.push(i);
     const selected:number[]=[];
@@ -55,7 +56,7 @@ export function calibrateGestures(input:GestureRecording|readonly GestureRecordi
       for(const row of recording.timeline){
         if(row.type==='reset'){run=[];previous=undefined;segment++;continue;}
         if(row.type!=='input')continue;
-        const point={t:row.t,v:Math.max(0,sign*(vertical?row.input.z:row.input.rz)),other:Math.abs(vertical?row.input.rz:row.input.z)};
+        const point={t:row.t,v:Math.max(0,sign*(vertical?row.input.z:row.input.rz)),other:Math.abs(vertical?row.input.rz:row.input.z),tilt:Math.max(Math.abs(row.input.rx),Math.abs(row.input.ry))};
         if(point.v>floor){if(!run.length)run=previous?[{...previous,t:point.t}]:[];run.push(point);}
         else if(run.length){run.push(point);episode(run,direction,index,segment);run=[];}
         previous=point;

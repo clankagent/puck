@@ -24,5 +24,6 @@ Documentation targets 0.2.0, including experimental gesture/tune/recording/calib
 - [Repository agent instructions](AGENTS.md)
 - [Local gesture lab](docs/lab.md)
 - [Next release and 1.0 criteria](docs/roadmap.md)
+- [Unreleased combined press-tilt API](docs/press-tilt.md)
 
 Exact build signatures are in dist/index.d.ts, dist/webhid.d.ts and dist/graph.d.ts. Import from @clankagent/puck, @clankagent/puck/webhid and @clankagent/puck/graph only.

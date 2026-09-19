@@ -2,8 +2,9 @@ import { createGestures, createGestureRecorder, defaultGestureTune, neutralInput
 import { connectWebHid } from '@clankagent/puck/webhid';
 
 /** Call from a click handler. Returns null when the chooser is cancelled. */
-export async function connectGestureSession({ tune = defaultGestureTune, onEvents = console.log, onDisconnect = () => {} } = {}) {
-  const gestures = createGestures(tune);
+export async function connectGestureSession({ tune = defaultGestureTune, options = {}, onEvents = console.log, onDisconnect = () => {} } = {}) {
+  const configuration = {...tune.toOptions(),...options};
+  const gestures = createGestures(configuration);
   let recorder = null;
   let frameId;
   let stopped = false;
@@ -35,7 +36,7 @@ export async function connectGestureSession({ tune = defaultGestureTune, onEvent
       if (stopped) throw new Error('Session has ended.');
       if (recorder) throw new Error('Stop the current recording first.');
       gestures.reset();
-      recorder = createGestureRecorder({ startTimeMs: performance.now(), tune, source: 'device' });
+      recorder = createGestureRecorder({ startTimeMs: performance.now(), options:configuration, source: 'device' });
     },
     stopRecording() {
       if (!recorder) return null;

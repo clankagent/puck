@@ -14,6 +14,7 @@
 <details><summary>Reusable tune object</summary><pre id="tuneJson">A complete calibration produces a portable JSON object.</pre></details>
 </section><div class="layout"><aside><p class="eyebrow">01 / Tune</p><h1>Find the feel.</h1><p class="muted">One pulse or two. Four directions. Adjust the boundary between intention and noise.</p>
 <label>Starting point<select id="preset"><option value="default">Default tune</option><option value="soft">Softer · 20%</option><option value="hard">Harder · 20%</option></select></label>
+<label>Push / pull behavior<select id="pressMode"><option value="simple">Simple presses</option><option value="auto">Press or tilt · automatic</option><option value="tilt">Tilt + plain double presses</option></select></label>
 <label>Single gesture behavior<select id="singleMode"><option value="exclusive">Wait for double · exclusive</option><option value="immediate">Immediate single + double</option></select></label><p class="hint" id="modeHelp"></p><div id="controls"></div>
 <button id="save">Save comparison A</button><button id="restore" disabled>Restore A</button><p id="saved" class="hint">Save a setting to compare it with your next adjustment.</p><button id="export">Copy settings</button><p id="feedback" role="status" class="hint"></p>
 </aside><main><section><div class="section-head"><div><p class="eyebrow">02 / Try</p><h2>Make a gesture</h2></div><span id="source" class="tag">Simulator</span></div><p id="connection" class="muted" role="status">Connect your device in Chrome or Edge, or try the simulator below.</p>

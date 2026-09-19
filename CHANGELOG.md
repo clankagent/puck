@@ -4,6 +4,14 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 
 ## Unreleased
 
+- Added experimental [push/pull + tilt recognition](docs/press-tilt.md), with
+  simple/tilt/automatic modes, pressure relaxation, preserved ordinary doubles,
+  editable tilt tune data, freeform combined calibration and six-lane graphs.
+  Timing treats reference captures as the slower end of normal. Existing default
+  recognition stays in simple mode. These APIs are on main, not published yet.
+- Added [standalone tilt capture](docs/lab.md#combined-gesture-research) for the
+  next gesture family; standalone recognition awaits physical capture analysis.
+
 - Fixed the lab accepting disconnected, empty captures as successful recordings.
   Device recording now requires a received movement report, shows live report
   counts, rejects captures without movement, and preserves partial recordings on
@@ -11,8 +19,7 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 
 - Added a [freeform combined-gesture capture mode](docs/lab.md#combined-gesture-research)
   to the source lab. It preserves natural pressure relaxation and excludes these
-  recordings from the existing simple-gesture tuner. Push-move/pull-move
-  recognition is pending physical recording analysis; no new npm API is released.
+  recordings from the existing simple-gesture tuner. No new npm API is released.
 - Defined [1.0 readiness criteria](docs/roadmap.md), including stable contracts,
   real gesture evidence, calibration coverage and verified consumer releases.
 

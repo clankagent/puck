@@ -7,7 +7,7 @@ const directory=process.env.PUCK_RECORDINGS_DIR || join(process.env.LOCALAPPDATA
 const api=createRecordingApi(directory);
 const files = new Map([
  ['/',new URL('./index.html',import.meta.url)],['/style.css',new URL('./style.css',import.meta.url)],['/app.js',new URL('./app.js',import.meta.url)],['/recorder.js',new URL('./recorder.js',import.meta.url)],['/calibration-panel.js',new URL('./calibration-panel.js',import.meta.url)],
- ...['index','input','motion','gestures','webhid','tune','recording','calibration','graph'].map(name=>[`/dist/${name}.js`,new URL(`../../dist/${name}.js`,import.meta.url)])
+ ...['index','input','motion','gestures','webhid','tune','recording','calibration','press-tilt-calibration','graph'].map(name=>[`/dist/${name}.js`,new URL(`../../dist/${name}.js`,import.meta.url)])
 ]);
 const server=createServer(async(req,res)=>{
  const path=new URL(req.url,'http://localhost').pathname;
