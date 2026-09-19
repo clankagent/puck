@@ -2,6 +2,12 @@ name: Publish
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish or retry
+        required: true
+        type: string
 permissions:
   contents: read
   id-token: write
@@ -10,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
@@ -17,7 +25,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Check release version
-        run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.GITHUB_REF_NAME !== 'v'+p.version) throw Error('Tag must match package version');"
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.RELEASE_TAG !== 'v'+p.version) throw Error('Tag must match package version');"
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: pnpm publish --access public --ignore-scripts --no-git-checks
+      # pnpm 10 delegates publishing to an npm CLI without reliable OIDC support.
+      # Keep dependency management on pinned pnpm; pin a current npm publisher.
+      - run: pnpm dlx npm@11.15.0 publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ''
