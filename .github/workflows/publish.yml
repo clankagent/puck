@@ -1,18 +1,17 @@
-name: Publish
+name: Release package
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag to publish or retry
+        description: Existing release tag to build and verify
         required: true
         type: string
 permissions:
   contents: read
-  id-token: write
 jobs:
-  publish:
+  package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -29,6 +28,9 @@ jobs:
         run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.RELEASE_TAG !== 'v'+p.version) throw Error('Tag must match package version');"
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      # Keep dependency management on pinned pnpm; pin an OIDC-capable publisher.
-      # Do not configure registry-url: setup-node's dummy auth token blocks OIDC.
-      - run: pnpm dlx npm@11.15.0 publish --access public --ignore-scripts --loglevel verbose
+      - run: pnpm pack --pack-destination artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: artifacts/*.tgz
+          if-no-files-found: error

@@ -2,24 +2,34 @@
 
 Update package.json to the intended version, run pnpm check, and commit the
 change. Push main, then tag that commit as v<VERSION> and push the tag.
-The publish.yml workflow checks the tag against package.json, installs locked
-dependencies, builds, tests, and publishes through npm trusted publishing.
-No npm token or interactive passkey is required for that workflow once the
-package's trusted publisher is configured.
+The publish.yml workflow (displayed as Release package) checks the tag against
+package.json, installs locked dependencies, builds, tests, and uploads the
+tarball as the release-package artifact. CI does not publish to npm or hold
+npm credentials. Successful packaging is not a completed publication.
 
-npm configuration: GitHub Actions, owner clankagent, repository puck,
-workflow publish.yml, no environment, direct publishing enabled.
-Configuration and initial publication require account authentication.
+Publish from the CLI as clankagent. Check `pnpm whoami`; if authentication has
+expired, run `pnpm login --auth-type=web --registry=https://registry.npmjs.org`.
+Give the generated login link to the account owner to open on their other PC
+with their passkey. Keep the CLI process running while they approve. Do not
+require the passkey to be available on this VM or assume login bypasses 2FA.
 
 The core does not own animation or rendering. A release should preserve the
 measured motion defaults unless a deliberate behavior change is documented.
 
-Dependency installation and checks use the project's pinned pnpm. Publishing
-uses `pnpm dlx npm@11.15.0 publish` for OIDC support. Do not add setup-node's
-registry-url setting or a placeholder NODE_AUTH_TOKEN; these can prevent the
-OIDC path from activating. For a failed publication, dispatch publish.yml on
-main with the existing release tag as its tag input. This retries the tagged
-source without moving the tag or inventing another package version.
+Download the verified CI tarball, or pack the exact tagged source using pnpm.
+Run `pnpm publish /path/to/package.tgz --access public --ignore-scripts --no-git-checks`.
+If npm prints a separate publish-approval link, give that link to the account
+owner too and keep the process running. Never report success before npm confirms
+publication. Install the exact version from the registry in a clean consumer,
+verify all public entry points and packaged docs, and create GitHub release
+notes linking to the tagged changelog and upgrade guide.
+
+For a failed build, dispatch publish.yml on main with the existing tag input.
+For a failed publication, first check whether the version reached npm; retry
+only if absent. Do not move release tags or invent versions to repair auth.
+Trusted publishing was attempted but npm rejected the OIDC exchange; it is
+not configured as a working release path. Do not reintroduce it without an
+explicitly authorized setup and a successful end-to-end verification.
 
 ## Release notes and adoption guidance
 
