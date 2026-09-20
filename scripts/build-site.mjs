@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile, copyFile, readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 const root = new URL('../', import.meta.url), out = new URL('../site/', import.meta.url);
 await mkdir(new URL('lab/', out), { recursive: true });
 await mkdir(new URL('dist/', out), { recursive: true });
@@ -17,4 +18,16 @@ for (const file of ['index.html', 'style.css', 'app.js', 'settings.js', 'recorde
 }
 for (const file of await readdir(new URL('dist/', root))) if (file.endsWith('.js')) await copyFile(new URL('dist/' + file, root), new URL('dist/' + file, out));
 await writeFile(new URL('.nojekyll', out), '');
+// Version all module and stylesheet requests together so a deployed page cannot
+// combine new HTML with old JavaScript from the Pages/browser cache.
+const publicFiles = [];
+for (const folder of ['', 'lab/', 'dist/']) for (const file of await readdir(new URL(folder, out))) if (/\.(?:html|css|m?js)$/.test(file)) publicFiles.push(folder + file);
+const contents = new Map(await Promise.all(publicFiles.sort().map(async file => [file, await readFile(new URL(file, out), 'utf8')])));
+const version = createHash('sha256').update([...contents.values()].join('\n')).digest('hex').slice(0, 12);
+for (const [file, original] of contents) {
+  let content = original;
+  if (/\.m?js$/.test(file)) content = content.replace(/((?:from\s+|import\s*)['"])(\.{1,2}\/[^'"]+)(['"])/g, `$1$2?v=${version}$3`);
+  if (file.endsWith('.html')) content = content.replace(/((?:src|href)="\.\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`);
+  await writeFile(new URL(file, out), content);
+}
 console.log('Static Puck playground built in site/');
