@@ -29,6 +29,10 @@ const workspace = document.createElement('div'); workspace.className = 'movement
 const visual = document.createElement('div'); visual.className = 'movement-visual';
 $('viewport').before(workspace); workspace.append(settings, visual);
 visual.append($('zoomInput').closest('label'), $('viewport'), $('camera'), $('motionGraph'));
+// Keep the grid covering the viewport during arbitrarily long pans.
+const gridSurface = $('world').querySelector('rect');
+for (const [attr, value] of Object.entries({ x: 0, y: 0, width: 800, height: 300 })) gridSurface.setAttribute(attr, value);
+$('world').before(gridSurface);
 const spatialSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); spatialSvg.id = 'spatialViewport'; spatialSvg.setAttribute('viewBox', '0 0 800 300'); spatialSvg.setAttribute('role', 'img'); spatialSvg.setAttribute('aria-label', 'Six-axis object translation and rotation'); spatialSvg.hidden = true;
 spatialSvg.innerHTML = '<path d="M100 150H700 M400 20V280" stroke="#c6d0dc" stroke-dasharray="4 5"/><text x="16" y="25" font-size="14" fill="#54647a">Isometric view · x / y / z translation + rx / ry / rz rotation</text><g id="cube"></g>';
 $('viewport').after(spatialSvg);
@@ -193,6 +197,7 @@ function frame() {
   const vertices = projectCube(pose), faces = [[0,1,3,2],[4,5,7,6],[0,1,5,4],[2,3,7,6],[0,2,6,4],[1,3,7,5]];
   $('cube').innerHTML = faces.map((face, i) => `<polygon points="${face.map(v => vertices[v].join(',')).join(' ')}" fill="${['#2355cb22','#23754e22','#9b4b1322'][i % 3]}" stroke="${colors[i]}" stroke-width="2"/>`).join('') + `<text x="${vertices[7][0] + 8}" y="${vertices[7][1]}" font-size="14" fill="#35465f">+x +y +z</text>`;
   $('world').setAttribute('transform', `translate(${camera.x} ${camera.y}) scale(${camera.zoom})`);
+  $('grid').setAttribute('patternTransform', `translate(${camera.x} ${camera.y}) scale(${camera.zoom})`);
   $('camera').textContent = $('movementView').value === 'spatial' ? `Position x/y/z: ${pose.position.map(v => v.toFixed(1)).join(' / ')} · Rotation rx/ry/rz: ${pose.angles.map(v => v.toFixed(1) + '°').join(' / ')}` : `Zoom ${camera.zoom.toFixed(2)}× · offset ${camera.x.toFixed(0)}, ${camera.y.toFixed(0)} view units`;
   samples.push({ t, input: { ...input }, delta: { ...delta, logZoom: Math.log(delta.zoomFactor) } }); while (samples.length && samples[0].t < t - 8000) samples.shift();
   if (!frozen && t - lastDraw > 80) { draw(t); lastDraw = t; }
