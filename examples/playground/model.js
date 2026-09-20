@@ -1,13 +1,16 @@
 export const axes = ['x', 'y', 'z', 'rx', 'ry', 'rz'];
 export const labels = { clockwise: 'Clockwise', counterclockwise: 'Counterclockwise', push: 'Push', pull: 'Pull', 'rx+': 'Tilt rx+', 'rx-': 'Tilt rx−', 'ry+': 'Tilt ry+', 'ry-': 'Tilt ry−' };
 export const tilts = ['rx+', 'rx-', 'ry+', 'ry-'];
+export const rotations = ['clockwise', 'counterclockwise'];
 export const gestures = [
   ...Object.keys(labels).flatMap(direction => ['single', 'double'].map(kind => ({ direction, kind, group: tilts.includes(direction) ? 'Standalone tilt' : 'Twist & press' }))),
   ...['push', 'pull'].flatMap(direction => tilts.map(tilt => ({ direction, tilt, kind: 'single', group: 'Press + tilt' }))),
+  ...['push', 'pull'].flatMap(direction => rotations.flatMap(rotation => ['single', 'holdstart'].map(kind => ({direction, rotation, kind, group: 'Press + rotate'})))),
 ];
-export const key = event => `${event.direction}.${event.tilt ?? event.kind}`;
-export const title = event => `${labels[event.direction]}${event.tilt ? ' + ' + event.tilt.replace('-', '−') : ' · ' + event.kind}`;
+export const key = event => `${event.direction}.${event.rotation ? event.rotation + '.' + event.kind : event.tilt ?? event.kind}`;
+export const title = event => `${labels[event.direction]}${event.rotation ? ' + ' + labels[event.rotation] + ' · ' + ({holdstart:'hold',holdend:'hold ended',holdcancel:'hold cancelled'}[event.kind] ?? event.kind) : event.tilt ? ' + ' + event.tilt.replace('-', '−') : ' · ' + event.kind}`;
 export function enabledGesture(gesture, options) {
+  if (gesture.rotation) return options.pressRotate !== false;
   if (gesture.tilt) return options.pressMode === 'auto' || options.pressMode === 'tilt';
   if (tilts.includes(gesture.direction)) return Boolean(options.standaloneTilt);
   return !(options.pressMode === 'tilt' && ['push', 'pull'].includes(gesture.direction) && gesture.kind === 'single');
@@ -28,7 +31,8 @@ export function sequence(gesture, force = .75) {
   const neutral = deflection('x+', 0), value = deflection(gesture.direction, force);
   const rows = [{ t: 0, input: neutral }, { t: 60, input: value }];
   if (gesture.tilt) rows.push({ t: 140, input: { ...value, ...Object.fromEntries(Object.entries(deflection(gesture.tilt, force)).filter(([, v]) => v !== 0)) } });
-  rows.push({ t: gesture.tilt ? 260 : 180, input: neutral });
+  if (gesture.rotation) rows.push({ t: 140, input: { ...value, rz: force * (gesture.rotation === 'clockwise' ? 1 : -1) } });
+  rows.push({ t: gesture.rotation ? (gesture.kind === 'holdstart' ? 900 : 260) : gesture.tilt ? 260 : 180, input: neutral });
   if (gesture.kind === 'double') rows.push({ t: 300, input: value }, { t: 420, input: neutral });
   return rows;
 }

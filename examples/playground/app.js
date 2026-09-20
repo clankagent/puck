@@ -9,7 +9,7 @@ let samples = [], events = [], lastDraw = 0, camera = { x: 400, y: 150, zoom: 1 
 let motionOptions = { ...movementDefaults }, motion = createMovement(motionOptions), pose = initialPose();
 const totals = createCounts(), tiles = new Map();
 const gestureModes = document.createElement('div'); gestureModes.className = 'toolbar gesture-modes';
-gestureModes.innerHTML = '<label>Push / pull mode<select id="pressMode"><option value="auto">Press or tilt · library default</option><option value="simple">Simple · combined tilts disabled</option><option value="tilt">Tilt + plain doubles</option></select></label><label><input type="checkbox" id="standaloneTilt" checked> Standalone tilt · enabled by default</label><button id="resetGestureDefaults">Restore gesture defaults</button><p id="gestureDefaults" class="hint">Library defaults: all 24 gesture types enabled.</p>';
+gestureModes.innerHTML = '<label>Push / pull mode<select id="pressMode"><option value="auto">Press or tilt · library default</option><option value="simple">Simple · combined tilts disabled</option><option value="tilt">Tilt + plain doubles</option></select></label><label><input type="checkbox" id="standaloneTilt" checked> Standalone tilt · enabled by default</label><label><input type="checkbox" id="pressRotate" checked> Press + rotate · taps and holds</label><button id="resetGestureDefaults">Restore gesture defaults</button><p id="gestureDefaults" class="hint">Library defaults: all 32 gesture types enabled.</p>';
 $('tester').querySelector('.toolbar').after(gestureModes);
 // Movement is the first-class entry point; gesture counting remains independent below.
 $('tester').before($('motion'));
@@ -85,7 +85,7 @@ const observer = new IntersectionObserver(entries => { for (const entry of entri
 observer.observe($('tester')); observer.observe($('signals')); observer.observe($('motion'));
 const colors = ['#2355cb', '#9b4b13', '#23754e', '#814bad', '#ac3755', '#007481'];
 let reports = 0;
-for (const group of ['Twist & press', 'Standalone tilt', 'Press + tilt']) {
+for (const group of new Set(gestures.map(g => g.group))) {
   const heading = document.createElement('h3'); heading.textContent = group;
   const grid = document.createElement('div'); grid.className = 'tile-grid';
   for (const gesture of gestures.filter(g => g.group === group)) {
@@ -126,17 +126,18 @@ function receive(batch) {
 }
 function feed(value, t = performance.now()) { input = { ...value }; motion.setInput(input); receive(recognizer.update(input, t)); }
 function cancel() {
-  run = null; held = null; input = { ...neutralInput }; recognizer.reset(); motion.reset();
+  run = null; held = null; input = { ...neutralInput }; receive(recognizer.reset(performance.now())); motion.reset();
   if (!connection) feed(neutralInput);
   document.querySelectorAll('.running,.held').forEach(el => el.classList.remove('running', 'held'));
   for (const axis of axes) { $('held-' + axis).value = 0; $('heldValue-' + axis).textContent = '0.00'; }
 }
 function apply() {
-  const defaults = $('preset').value === 'default' && $('pressMode').value === 'auto' && $('standaloneTilt').checked;
-  options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: $('pressMode').value, standaloneTilt: $('standaloneTilt').checked };
+  if (recognizer) cancel();
+  const defaults = $('preset').value === 'default' && $('pressMode').value === 'auto' && $('standaloneTilt').checked && $('pressRotate').checked;
+  options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: $('pressMode').value, standaloneTilt: $('standaloneTilt').checked, pressRotate: $('pressRotate').checked };
   recognizer = defaults ? createGestures() : createGestures(options);
   cancel(); repaintCounts(); $('thresholds').textContent = JSON.stringify(options, null, 2);
-  $('gestureDefaults').textContent = defaults ? 'Using createGestures() with no overrides. All 24 gesture types enabled.' : 'Custom gesture configuration. Counts include only enabled types. Restore gesture defaults to match createGestures().';
+  $('gestureDefaults').textContent = defaults ? 'Using createGestures() with no overrides. All 32 gesture types enabled.' : 'Custom gesture configuration. Counts include only enabled types. Restore gesture defaults to match createGestures().';
 }
 function simulate(gesture) {
   if (connection || run || held) return;
@@ -147,7 +148,7 @@ function simulate(gesture) {
 function start(direction, modifier) {
   if (connection || run || held) return;
   held = direction; const value = deflection(direction, Number($('force').value));
-  if (modifier && direction.startsWith('r')) value.z = (modifier === 'pull' ? -1 : 1) * Number($('force').value);
+  if (modifier && (direction.startsWith('r') || ['clockwise','counterclockwise'].includes(direction))) value.z = (modifier === 'pull' ? -1 : 1) * Number($('force').value);
   feed(value); document.querySelector(`[data-direction="${direction}"]`)?.classList.add('held');
 }
 function stop() { if (!held) return; held = null; feed(neutralInput); document.querySelectorAll('.held').forEach(el => el.classList.remove('held')); }
@@ -163,8 +164,8 @@ window.addEventListener('keydown', e => { if (e.target.closest('input,select,tex
 window.addEventListener('keyup', e => { if ((keys[e.key] ?? keys[e.key.toLowerCase()]) === held) stop(); });
 window.addEventListener('blur', cancel); document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(); });
 $('preset').onchange = () => { apply(); $('testStatus').textContent = 'Profile changed; counts retained. Reset for a fresh comparison.'; };
-$('pressMode').onchange = apply; $('standaloneTilt').onchange = apply;
-$('resetGestureDefaults').onclick = () => { $('preset').value = 'default'; $('pressMode').value = 'auto'; $('standaloneTilt').checked = true; apply(); };
+$('pressMode').onchange = apply; $('standaloneTilt').onchange = apply; $('pressRotate').onchange = apply;
+$('resetGestureDefaults').onclick = () => { $('preset').value = 'default'; $('pressMode').value = 'auto'; $('standaloneTilt').checked = true; $('pressRotate').checked = true; apply(); };
 $('force').oninput = () => $('forceValue').textContent = Number($('force').value).toFixed(2);
 $('reset').onclick = () => { cancel(); totals.reset(); events = []; samples = []; frozen = false; $('freeze').textContent = 'Freeze graphs'; repaintCounts(); $('last').textContent = 'Ready when you are'; $('history').innerHTML = '<li>No events yet.</li>'; $('testStatus').textContent = 'All counters and traces reset. Release the cap to neutral to begin.'; };
 $('countSource').onchange = () => { $('reset').click(); $('testStatus').textContent = `Fresh test: counting ${$('countSource').value === 'device' ? 'device input only' : 'simulator input only'}.`; };
@@ -191,7 +192,7 @@ function path(points, getter, t, scale = 40, center = 50, width = 400) { return 
 function draw(t) {
   for (const axis of axes) { $('trace-' + axis).setAttribute('d', path(samples, s => s.input[axis], t)); $('value-' + axis).textContent = input[axis].toFixed(2); }
   const recent = events.filter(e => e.timestamp >= t - 8000);
-  $('eventGraph').innerHTML = `<svg viewBox="0 0 800 85" role="img" aria-label="Recognized single, double and combined event timeline"><text x="0" y="14" fill="#54647a" font-size="12">Recognition · last 8 seconds</text>${['single', 'double', 'combined'].map((name, i) => `<text x="0" y="${34 + i * 20}" fill="#54647a" font-size="11">${name}</text><path d="M85 ${30 + i * 20}H800" stroke="#d4dde7"/>`).join('')}${recent.map(e => `<circle cx="${85 + (e.timestamp - t + 8000) / 8000 * 715}" cy="${e.tilt ? 70 : e.kind === 'double' ? 50 : 30}" r="4" fill="${e.source === 'device' ? '#23754e' : '#2355cb'}"><title>${title(e)}</title></circle>`).join('')}</svg>`;
+  $('eventGraph').innerHTML = `<svg viewBox="0 0 800 125" role="img" aria-label="Recognized single, double and combined event timeline"><text x="0" y="14" fill="#54647a" font-size="12">Recognition · last 8 seconds</text>${['single', 'double', 'combined', 'hold start', 'hold stop'].map((name, i) => `<text x="0" y="${34 + i * 20}" fill="#54647a" font-size="11">${name}</text><path d="M85 ${30 + i * 20}H800" stroke="#d4dde7"/>`).join('')}${recent.map(e => `<circle cx="${85 + (e.timestamp - t + 8000) / 8000 * 715}" cy="${e.kind === 'holdstart' ? 90 : ['holdend','holdcancel'].includes(e.kind) ? 110 : e.tilt || e.rotation ? 70 : e.kind === 'double' ? 50 : 30}" r="4" fill="${e.source === 'device' ? '#23754e' : '#2355cb'}"><title>${title(e)}</title></circle>`).join('')}</svg>`;
   const spatial = $('movementView').value === 'spatial', cap = motionOptions.maxFrameMs / 1000;
   const channels = spatial ? axes.map((axis, i) => ({ name: axis, get: s => s.delta[i < 3 ? 'translation' : 'rotation'][i % 3], limit: (i < 3 ? motionOptions.translationSpeed : motionOptions.rotationSpeed) * cap })) : ['panX', 'panY', 'logZoom'].map((axis, i) => ({ name: axis, get: s => s.delta[axis], limit: (i === 2 ? motionOptions.zoomSpeed : motionOptions.panSpeed) * cap }));
   $('motionGraph').innerHTML = `<p class="hint">Processed movement / frame · ${channels.map(c => `${c.name} ±${c.limit.toFixed(2)}`).join(' · ')}. Scales follow your speed and frame cap.</p><svg viewBox="0 0 800 100" role="img" aria-label="Processed continuous movement output"><path d="M0 50H800" stroke="#c5cfdb"/>${channels.map((c, i) => `<path d="${path(samples, s => c.get(s) / (c.limit || 1), t, 40, 50, 800)}" fill="none" stroke="${colors[i]}" stroke-width="2"><title>${c.name}</title></path>`).join('')}</svg>`;
@@ -215,7 +216,10 @@ function frame() {
   $('camera').textContent = $('movementView').value === 'spatial' ? `Position x/y/z: ${pose.position.map(v => v.toFixed(1)).join(' / ')} · Rotation rx/ry/rz: ${pose.angles.map(v => v.toFixed(1) + '°').join(' / ')}` : `Zoom ${camera.zoom.toFixed(2)}× · offset ${camera.x.toFixed(0)}, ${camera.y.toFixed(0)} view units`;
   samples.push({ t, input: { ...input }, delta: { ...delta, logZoom: Math.log(delta.zoomFactor) } }); while (samples.length && samples[0].t < t - 8000) samples.shift();
   if (!frozen && t - lastDraw > 80) { draw(t); lastDraw = t; }
-  const state = recognizer.state; $('phase').textContent = `${state.pending ? 'Waiting for double' : state.phase === 'blocked' ? 'Release to arm' : state.phase}${connection ? ' · ' + reports + ' reports' : ''}`;
+  const state = recognizer.state;
+  $('rotateHold').textContent = state.hold ? `${labels[state.hold.direction]} + ${labels[state.hold.rotation]} · HOLD ACTIVE · ${((t - state.hold.startedAt) / 1000).toFixed(1)} s · twist ${Math.round(state.hold.strength * 100)}% · pressure ${Math.round(state.hold.pressure * 100)}%` : 'Press + rotate hold: idle';
+  $('rotateHold').classList.toggle('hold-active', Boolean(state.hold));
+  $('phase').textContent = `${state.pending ? 'Waiting for double' : state.phase === 'blocked' ? 'Release to arm' : state.phase}${connection ? ' · ' + reports + ' reports' : ''}`;
   requestAnimationFrame(frame);
 }
 apply(); repaintCounts(); connectedUI(); requestAnimationFrame(frame);

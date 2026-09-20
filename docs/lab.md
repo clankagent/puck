@@ -77,3 +77,9 @@ After updating the source lab, reload and reconnect the device.
 
 Plain lift and standalone tilts support singles and doubles. Lift + tilt is a
 combined single on release; repeating it produces separate combined singles.
+
+Press + rotate taps and holds are enabled by default too. The simulator includes
+all 32 outcomes, and the lab exposes hold delay and noise filtering controls.
+Event history preserves rotation and hold lifecycle events. The existing
+calibration algorithms still cover twist/press, standalone tilt and press/tilt;
+they do not learn press/rotate hold timing. See [press/rotate](press-rotate.md).

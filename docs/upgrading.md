@@ -9,13 +9,28 @@ Read the changelog for the version you are adopting, then use docs from that sam
 Gesture, tune, recording, calibration and graph APIs are included in 0.2.0. In your consuming app:
 
 ```sh
-pnpm add @clankagent/puck@0.4.0
+pnpm add @clankagent/puck@0.5.0
 pnpm list @clankagent/puck
 ```
 
-Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.4.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
+Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.5.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
 
 To test future unreleased source, build a chosen revision with `pnpm install --frozen-lockfile`, `pnpm check` and `pnpm pack --pack-destination artifacts`, then install the generated tarball into your app with `pnpm add /path/to/package.tgz`. Record the source commit alongside it; a working-tree package version alone does not identify unreleased changes.
+
+## From 0.4 to 0.5
+
+Push/pull + clockwise/counterclockwise rotation is now enabled by default.
+Handle the optional `rotation` field before ordinary pressure events. Update
+exhaustive event-kind switches for `holdstart`, `holdend` and `holdcancel`.
+A hold never also emits a tap. Forward events returned by `reset(now)` on blur,
+pause, disconnect and close; `state.hold` is cleared immediately.
+
+Use `{pressRotate:false}` to preserve 0.4 recognition. This option is independent
+of tilt modes. Force thresholds reuse the current pressure/twist tune; hold timing
+lives in options, not tune JSON. Recordings preserve the new event fields; older
+recording readers may reject them despite the unchanged version-1 container.
+Motion defaults and existing tilt calibration are unchanged. New rotation holds
+are not automatically calibrated. See [integration and examples](press-rotate.md).
 
 ## From 0.3 to 0.4
 

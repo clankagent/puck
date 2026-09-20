@@ -10,6 +10,8 @@ const presets=Object.fromEntries(Object.entries(gesturePresets).map(([key,tune])
 let currentTune=defaultGestureTune;
 const directionAxes={twist:'twist',push:'press',pull:'press'};
 const specs = [
+  ['rotateHoldMs','Press + rotate hold delay',50,1000,25,' ms','A combined twist becomes a hold after this delay; release either axis to stop.'],
+  ['rotateMinMs','Press + rotate noise filter',0,50,5,' ms','Minimum duration for a combined tap.'],
   ['twistActivation','Rotation activation',.08,.8,.01,'','Same gate for clockwise and counterclockwise.'],
   ['pushActivation','Push activation',.06,.7,.01,'','Downward force needed to begin a pulse.'],
   ['pullActivation','Pull activation',.06,.7,.01,'','Upward force needed to begin a pulse.'],
@@ -61,14 +63,14 @@ for(const [direction,symbol] of [['counterclockwise','↶'],['clockwise','↷'],
 }
 function received(events){recorder.events(events);
  for(const e of events){
-  $('result').textContent=`${names[e.direction]}${e.tilt?' + '+e.tilt:''} · ${e.kind}`;
+  $('result').textContent=`${names[e.direction]}${e.rotation?' + '+e.rotation:e.tilt?' + '+e.tilt:''} · ${e.kind}`;
   $('detail').textContent=`${Math.round(e.durationMs)} ms pulse · ${options.singleMode==='exclusive'?'exclusive':'additive'} behavior`;
   log.unshift({...e,delay:Math.max(0,performance.now()-e.timestamp)});
  }
- if(events.length){log=log.slice(0,40);$('events').replaceChildren();for(const e of log){const row=document.createElement('tr');for(const value of [names[e.direction]+(e.tilt?' + '+e.tilt:''),e.kind,`${Math.round(e.durationMs)} ms`,`${Math.round(e.delay)} ms`]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('events').append(row);}}
+ if(events.length){log=log.slice(0,40);$('events').replaceChildren();for(const e of log){const row=document.createElement('tr');for(const value of [names[e.direction]+(e.rotation?' + '+e.rotation:e.tilt?' + '+e.tilt:''),e.kind,`${Math.round(e.durationMs)} ms`,`${Math.round(e.delay)} ms`]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('events').append(row);}}
 }
 function feed(value,physical=false){const t=performance.now();input={...value};if(physical){reportCount++;lastReportAt=t;}recorder.input(input,t,physical);received(recognizer.update(input,t));}
-function clearInput(){simulation=null;$('simulate').disabled=Boolean(connection);recorder.reset(performance.now());held=null;input={...neutralInput};recognizer.reset();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
+function clearInput(){simulation=null;$('simulate').disabled=Boolean(connection);recorder.reset(performance.now());held=null;input={...neutralInput};received(recognizer.reset(performance.now()));document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
 function start(direction){if(connection||held||simulation)return;held=direction;const v={...neutralInput};if(direction==='push')v.z=.75;if(direction==='pull')v.z=-.75;if(direction==='clockwise')v.rz=.75;if(direction==='counterclockwise')v.rz=-.75;feed(v);document.querySelector(`[data-direction="${direction}"]`).classList.add('held');}
 function stop(){if(!held)return;held=null;feed(neutralInput);document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
 const keyMap={ArrowLeft:'counterclockwise',ArrowRight:'clockwise',ArrowDown:'push',ArrowUp:'pull'};
@@ -76,17 +78,17 @@ window.addEventListener('keydown',e=>{if(!keyMap[e.key]||e.target.closest('input
 window.addEventListener('keyup',e=>{if(keyMap[e.key]===held){e.preventDefault();stop();}});
 window.addEventListener('blur',clearInput);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
 function apply(){
- options={...defaultGestureTune.toOptions(),...options};
+ options={rotateHoldMs:250,rotateMinMs:25,...defaultGestureTune.toOptions(),...options};
  for(const axis of ['X','Y'])options['tilt'+axis+'Release']=Math.min(options['tilt'+axis+'Release'],options['tilt'+axis+'Activation']-.01);
  options.tiltRelease=Math.min(options.tiltRelease,options.tiltActivation-.01);
  options.tiltRelaxMs=Math.min(options.tiltRelaxMs,options.tiltArmMs);
  if(options.pressMode&&options.pressMode!=='simple')options.singleMode='exclusive';
  for(const axis of Object.keys(directionAxes)){options[axis+'Activation']??=options[directionAxes[axis]+'Activation']??options.activation;options[axis+'Release']??=options[directionAxes[axis]+'Release']??options.release;}
- recognizer=createGestures(options);clearInput();
+ received(recognizer.reset(performance.now()));recognizer=createGestures(options);clearInput();
  for(const [id,,,,,unit] of specs){$(id).value=options[id];$(id+'Value').textContent=Number(options[id].toFixed(3))+unit;}
  for(const axis of Object.keys(directionAxes))$(axis+'Release').max=(options[axis+'Activation']-.01).toFixed(2);$('standaloneTilt').checked=Boolean(options.standaloneTilt);$('singleMode').value=options.singleMode;$('pressMode').value=options.pressMode??'simple';$('singleMode').disabled=Boolean(options.pressMode&&options.pressMode!=='simple');
  $('modeHelp').textContent=options.singleMode==='exclusive'?`Singles wait ${options.doubleMs} ms after release confirmation. Doubles emit once.`:'Singles fire on release confirmation. A second pulse also emits double; the first single is not undone.';
- $('activeModes').textContent=`Enabled: twist and plain doubles · push/pull ${options.pressMode??'simple'} · standalone tilt ${options.standaloneTilt?'on':'off'}. Combined push/lift + tilt emits a single on release.`;
+ $('activeModes').textContent=`Enabled: twist and plain doubles · push/pull ${options.pressMode??'simple'} · standalone tilt ${options.standaloneTilt?'on':'off'}. Combined push/lift + tilt emits a single on release. Press + rotate supports taps and holds by default.`;
  $('result').textContent='Ready when you are';$('detail').textContent='Settings applied. Pending gestures cleared.';
  $('restore').disabled=!comparison;
  const match=Object.entries(presets).find(([,value])=>Object.entries(value).every(([key,v])=>options[key]===v)&&Object.keys(directionAxes).every(axis=>(value[axis+'Activation']??value[directionAxes[axis]+'Activation']??value.activation)===options[axis+'Activation']&&(value[axis+'Release']??value[directionAxes[axis]+'Release']??value.release)===options[axis+'Release']));
@@ -118,7 +120,7 @@ function frame(){
  const t=performance.now();recorder.advance(t);received(recognizer.advance(t));samples.push({t,input:{...input}});while(samples.length&&samples[0].t<t-4000)samples.shift();
  if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg(($('graphFamily').value==='combined'?createPressTiltGraph:$('graphFamily').value==='standalone'?createTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
  $('inputStatus').textContent=!connection?'Simulator — connect the device for live input.':document.hidden||!document.hasFocus()?'Device paused: focus this page to receive input.':lastReportAt===null?'Connected; no movement report received yet. Move the cap.':`${reportCount} device reports · last ${Math.max(0,Math.round((t-lastReportAt)/1000))}s ago · lift ${Math.max(0,-input.z).toFixed(2)} · tilt rx ${input.rx.toFixed(2)} / ry ${input.ry.toFixed(2)}`;
- const state=recognizer.state;$('phase').textContent=state.phase==='blocked'?'Release to arm':state.direction?`${names[state.direction]} · ${state.phase}`:state.pending?`${names[state.pending]} · waiting`:'Neutral';
+ const state=recognizer.state;$('phase').textContent=state.hold?`${names[state.hold.direction]} + ${state.hold.rotation} · HOLD · ${Math.round(state.hold.strength*100)}%`:state.phase==='blocked'?'Release to arm':state.direction?`${names[state.direction]} · ${state.phase}`:state.pending?`${names[state.pending]} · waiting`:'Neutral';
  $('values').textContent=`Blue = input. Cross green to start; return below gray to release. Twist ${input.rz.toFixed(2)} · vertical ${input.z.toFixed(2)} · rx ${input.rx.toFixed(2)} · ry ${input.ry.toFixed(2)}.`;
  requestAnimationFrame(frame);
 }

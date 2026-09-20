@@ -11,8 +11,8 @@ uses `createPanZoom()` defaults, and the tester uses `createGestures()` without
 overrides. Regression tests compare the demo output and displayed motion defaults
 with unconfigured SDK instances. Speed/profile changes are explicit overrides.
 
-Default gesture mode enables all 24 types, including standalone tilt and combined
-press/tilt, just as in the library. Explicitly disabled tiles say why;
+Default gesture mode enables all 32 types, including standalone tilt and combined
+press/tilt and press/rotate taps and holds, just as in the library. Explicitly disabled tiles say why;
 the coverage denominator counts the currently enabled types. Restore gesture
 defaults returns to unconfigured SDK behavior. The public calibration lab also
 starts with the same all-family defaults as the local lab and library.
@@ -23,8 +23,9 @@ setup needed in a consuming project, with only the changed SDK options.
 
 ## Gesture tester
 
-The board covers 24 emitted gesture types: eight twist/press singles and doubles,
-eight standalone tilt singles and doubles, and eight push/pull + tilt singles.
+The board covers 32 emitted gesture types: eight twist/press singles and doubles,
+eight standalone tilt singles and doubles, eight push/pull + tilt singles, and
+eight push/pull + rotation tap/hold outcomes.
 Each starts gray at zero. The first recognized event turns it green and marks
 it Detected; subsequent events increment the count. Reset clears the counters,
 event history, live traces and pending recognition. Counts last for this page
@@ -107,3 +108,13 @@ links. The build copies an explicit set of public assets into ignored `site/`;
 server code and private recordings are excluded. The Pages workflow tests,
 builds and deploys main. The site uses the repository's built SDK. The website
 and lab server are not shipped in the npm package.
+
+## Press + rotate
+
+The four pressure/rotation combinations each have a tap tile and a hold tile.
+A hold increments its counter once at holdstart; holdend/holdcancel appear in the
+event history and timeline without another count. The live hold indicator shows
+elapsed time, twist strength and pressure. Use Shift with a manual twist button
+or arrow key for push; Alt for pull. Keep it held, then release. Continuous
+movement still uses the motion SDK; gesture recognition does not move the camera.
+See [hold lifecycle](press-rotate.md).

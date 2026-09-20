@@ -9,7 +9,7 @@ export async function connectGestureSession({ tune = defaultGestureTune, options
   let frameId;
   let stopped = false;
   function emit(events) { recorder?.events(events); if (events.length) onEvents(events); }
-  function reset() { gestures.reset(); recorder?.reset(performance.now()); }
+  function reset() { const now = performance.now(); emit(gestures.reset(now)); recorder?.reset(now); }
   const connection = await connectWebHid({
     onInput(input) {
       // Lifecycle sentinel is followed by onReset, not a physical release.
@@ -35,7 +35,7 @@ export async function connectGestureSession({ tune = defaultGestureTune, options
     startRecording() {
       if (stopped) throw new Error('Session has ended.');
       if (recorder) throw new Error('Stop the current recording first.');
-      gestures.reset();
+      reset();
       recorder = createGestureRecorder({ startTimeMs: performance.now(), options:configuration, source: 'device' });
     },
     stopRecording() {

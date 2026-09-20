@@ -1,6 +1,6 @@
 {
   "name": "@clankagent/puck",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Frame-independent six-axis input, pan/zoom and tunable gestures",
   "type": "module",
   "sideEffects": false,

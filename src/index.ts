@@ -3,7 +3,7 @@ export type { InputState } from './input.js';
 export { createPanZoom } from './motion.js';
 export type { PanZoomController, PanZoomOptions, MotionDelta, ZoomInput } from './motion.js';
 export { createGestures } from './gestures.js';
-export type { GestureDirection, PulseDirection, TiltDirection, PressMode, GestureOptions, GestureEvent, GestureRecognizer } from './gestures.js';
+export type { PressRotateHold, GestureDirection, PulseDirection, TiltDirection, PressMode, GestureOptions, GestureEvent, GestureRecognizer } from './gestures.js';
 export { createGestureTune, defaultGestureTune, gesturePresets } from './tune.js';
 export type { GestureTune, GestureTuneData, ForceBand, PressTiltTune, StandaloneTiltTune } from './tune.js';
 export { createGestureRecorder, validateGestureRecording } from './recording.js';

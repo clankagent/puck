@@ -1,3 +1,4 @@
+import { withPressRotate } from './press-rotate.js';
 import type { InputState } from './input.js';
 import { defaultGestureTune } from './tune.js';
 import type { GestureTune } from './tune.js';
@@ -7,6 +8,12 @@ export type TiltDirection = 'rx+' | 'rx-' | 'ry+' | 'ry-';
 export type GestureDirection = PulseDirection | TiltDirection;
 export type PressMode = 'simple' | 'tilt' | 'auto';
 export interface GestureOptions {
+  /** Push/pull + twist, including holds, is enabled by default. */
+  pressRotate?: boolean;
+  /** Minimum combined tap duration (default 25 ms). */
+  rotateMinMs?: number;
+  /** Delay before holdstart (default 250 ms). Holds have no maximum duration. */
+  rotateHoldMs?: number;
   /** Enabled by default. Set false to disable standalone rx/ry gestures. */
   standaloneTilt?: boolean;
   tiltXActivation?: number;
@@ -52,11 +59,17 @@ export interface GestureOptions {
   /** Strongest axis must exceed the other by this ratio. */
   dominance?: number;
 }
+export interface PressRotateHold {
+  direction: 'push' | 'pull'; rotation: 'clockwise' | 'counterclockwise';
+  startedAt: number; pressure: number; strength: number;
+}
 export interface GestureEvent {
+  /** Present for push/pull + twist taps or hold lifecycle events. */
+  rotation?: 'clockwise' | 'counterclockwise';
   direction: GestureDirection;
   /** Present for a combined push/pull + tilt. Such events have kind single. */
   tilt?: TiltDirection;
-  kind: 'single' | 'double';
+  kind: 'single' | 'double' | 'holdstart' | 'holdend' | 'holdcancel';
   timestamp: number;
   durationMs: number;
 }
@@ -65,13 +78,17 @@ export interface GestureRecognizer {
   update(input: Readonly<InputState>, timestampMs: number): GestureEvent[];
   /** Advance pending single/release deadlines, even when no reports arrive. */
   advance(timestampMs: number): GestureEvent[];
-  /** Cancel everything. Fresh neutral input is required before rearming. */
-  reset(): void;
-  readonly state: { phase: 'neutral' | 'active' | 'releasing' | 'blocked'; direction: GestureDirection | null; pending: GestureDirection | null };
+  /** Cancel everything and return holdcancel when held. Pass current time; omitted uses last processed time. Fresh neutral is required. */
+  reset(timestampMs?: number): GestureEvent[];
+  readonly state: { hold: PressRotateHold | null; phase: 'neutral' | 'active' | 'releasing' | 'blocked'; direction: GestureDirection | null; pending: GestureDirection | null };
 }
 
-/** Experimental pulse recognizer. No timers, DOM, transport, or motion side effects. */
+/** Experimental gesture recognizer. No timers, DOM, transport, or motion side effects. */
 export function createGestures(configuration: GestureOptions | GestureTune = defaultGestureTune): GestureRecognizer {
+  const options = 'toOptions' in configuration ? configuration.toOptions() : configuration;
+  return withPressRotate(createPulseGestures(configuration), options);
+}
+function createPulseGestures(configuration: GestureOptions | GestureTune): GestureRecognizer & { cancelExcursion(): void } {
   const options = 'toOptions' in configuration ? configuration.toOptions() : configuration;
   const activation = options.activation ?? .35;
   const release = options.release ?? .12;
@@ -188,8 +205,9 @@ export function createGestures(configuration: GestureOptions | GestureTune = def
     return events;
   }
   return {
-    get state() { return { phase, direction: active?.direction ?? null, pending: pending?.direction ?? null }; },
-    reset() { last = -Infinity; z = rz = rx = ry = 0; active = pending = null; releasedAt = null; phase = 'blocked'; },
+    cancelExcursion() { active = null; releasedAt = null; phase = 'blocked'; },
+    get state() { return { hold: null, phase, direction: active?.direction ?? null, pending: pending?.direction ?? null }; },
+    reset() { last = -Infinity; z = rz = rx = ry = 0; active = pending = null; releasedAt = null; phase = 'blocked'; return []; },
     advance(t) { clock(t); return tick(t); },
     update(input, t) {
       if (![input.z,input.rz,...(tiltEnabled?[input.rx,input.ry]:[])].every(Number.isFinite)) throw new RangeError('Gesture axes must be finite.');

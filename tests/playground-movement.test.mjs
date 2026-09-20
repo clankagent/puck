@@ -14,13 +14,13 @@ test('default playground motion is identical to a consumer using createPanZoom()
 });
 test('default gesture tile availability and events match the SDK consumer defaults', () => {
   const options = { ...gesturePresets.default.toOptions(), pressMode: 'auto', standaloneTilt: true };
-  assert.equal(gestures.filter(g => enabledGesture(g, options)).length, 24);
+  assert.equal(gestures.filter(g => enabledGesture(g, options)).length, 32);
   for (const g of gestures) {
     const implicit = createGestures(), explicit = createGestures(options);
     for (const row of sequence(g)) assert.deepEqual(implicit.update(row.input, row.t), explicit.update(row.input, row.t));
     assert.deepEqual(implicit.advance(1200), explicit.advance(1200));
   }
-  assert.equal(gestures.filter(g => enabledGesture(g, { pressMode: 'simple', standaloneTilt: false })).length, 8);
+  assert.equal(gestures.filter(g => enabledGesture(g, { pressMode: 'simple', standaloneTilt: false, pressRotate: false })).length, 8);
 });
 function integrate(options, input) {
   const m = createMovement({ responseMs: 0, ...options }), pose = initialPose(); let pan = 0, zoom = 1;

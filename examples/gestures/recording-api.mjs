@@ -14,7 +14,7 @@ export function validateRecording(data) {
  requireValue(Array.isArray(data.timeline) && data.timeline.length<=60000);
  requireValue(Array.isArray(data.events) && data.events.length<=10000);
  requireValue(data.options && typeof data.options==='object' && !Array.isArray(data.options));
- const allowed=['activation','release','clockwiseActivation','clockwiseRelease','counterclockwiseActivation','counterclockwiseRelease','pushActivation','pushRelease','pullActivation','pullRelease','pressActivation','pressRelease','twistActivation','twistRelease','minPulseMs','maxPulseMs','neutralMs','doubleMs','singleMode','dominance','pressMode','pushMode','pullMode','tiltActivation','tiltRelease','tiltMinMs','tiltArmMs','tiltRelaxMs','tiltMaxMs','tiltDominance','standaloneTilt','tiltXActivation','tiltXRelease','tiltYActivation','tiltYRelease','standaloneMinPulseMs','standaloneMaxPulseMs','standaloneNeutralMs','standaloneDoubleMs'];
+ const allowed=['pressRotate','rotateMinMs','rotateHoldMs','activation','release','clockwiseActivation','clockwiseRelease','counterclockwiseActivation','counterclockwiseRelease','pushActivation','pushRelease','pullActivation','pullRelease','pressActivation','pressRelease','twistActivation','twistRelease','minPulseMs','maxPulseMs','neutralMs','doubleMs','singleMode','dominance','pressMode','pushMode','pullMode','tiltActivation','tiltRelease','tiltMinMs','tiltArmMs','tiltRelaxMs','tiltMaxMs','tiltDominance','standaloneTilt','tiltXActivation','tiltXRelease','tiltYActivation','tiltYRelease','standaloneMinPulseMs','standaloneMaxPulseMs','standaloneNeutralMs','standaloneDoubleMs'];
  requireValue(Object.keys(data.options).every(key=>allowed.includes(key)));
  createGestures(data.options);
  let previous=0;
@@ -23,11 +23,11 @@ export function validateRecording(data) {
   requireValue(['input','advance','reset'].includes(row.type));
   if(row.type==='input')requireValue(row.input && axes.every(axis=>number(row.input[axis],-1,1)));
  }
- for(const event of data.events)requireValue(directions.includes(event.direction) && ['single','double'].includes(event.kind) && number(event.timestamp,0,data.durationMs) && number(event.durationMs,0,MAX_DURATION) && (event.tilt===undefined||(['push','pull'].includes(event.direction)&&event.kind==='single'&&['rx+','rx-','ry+','ry-'].includes(event.tilt))));
+ for(const event of data.events)requireValue(directions.includes(event.direction) && ['single','double','holdstart','holdend','holdcancel'].includes(event.kind) && number(event.timestamp,0,data.durationMs) && number(event.durationMs,0,MAX_DURATION) && (event.rotation===undefined ? ['single','double'].includes(event.kind) : ['push','pull'].includes(event.direction) && ['clockwise','counterclockwise'].includes(event.rotation) && event.kind!=='double' && event.tilt===undefined) && (event.tilt===undefined||(['push','pull'].includes(event.direction)&&event.kind==='single'&&['rx+','rx-','ry+','ry-'].includes(event.tilt))));
  // Construct only the documented schema; never persist arbitrary extra fields.
  return {version:1,source:data.source,note:data.note,durationMs:data.durationMs,options:data.options,
   timeline:data.timeline.map(r=>r.type==='input'?{t:r.t,type:r.type,input:Object.fromEntries(axes.map(a=>[a,r.input[a]]))}:{t:r.t,type:r.type}),
-  events:data.events.map(e=>({direction:e.direction,kind:e.kind,timestamp:e.timestamp,durationMs:e.durationMs,...(e.tilt?{tilt:e.tilt}:{})}))};
+  events:data.events.map(e=>({direction:e.direction,kind:e.kind,timestamp:e.timestamp,durationMs:e.durationMs,...(e.tilt?{tilt:e.tilt}:{}),...(e.rotation?{rotation:e.rotation}:{})}))};
 }
 export function createRecordingApi(directory) {
  const token=randomBytes(32).toString('hex');

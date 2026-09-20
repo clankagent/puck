@@ -15,11 +15,12 @@ test('documented session records lifecycle resets, cancels pending actions and c
   hid.requestDevice = async () => [device];
   const values = [{ hid }, { now: () => now }, callback => { frame = callback; scheduled = true; return 1; }, () => { scheduled = false; }];
   names.forEach((name, i) => Object.defineProperty(globalThis, name, { value: values[i], configurable: true }));
-  function report(z) {
+  function report(z, rz = 0) {
     const event = new Event('inputreport');
     event.reportId = 1;
     event.data = new DataView(new ArrayBuffer(12));
     event.data.setInt16(4, z, true);
+    event.data.setInt16(10, rz, true);
     device.dispatchEvent(event);
   }
   try {
@@ -38,7 +39,16 @@ test('documented session records lifecycle resets, cancels pending actions and c
     assert.equal(capture.timeline.filter(row => row.type === 'reset').length, 1);
     assert.equal(capture.timeline.filter(row => row.type === 'input').length, 3);
     assert.equal(session.stopRecording(), null);
+    session.resume(); now = 1010; report(0);
+    now = 1020; report(250, 250); now = 1300; frame();
+    assert.equal(events.at(-1).kind, 'holdstart');
+    now = 1310; session.pause();
+    assert.equal(events.at(-1).kind, 'holdcancel');
+    session.resume(); now = 1320; report(0); now = 1330; report(250, 250);
+    now = 1600; frame(); assert.equal(events.at(-1).kind, 'holdstart');
+    now = 1610;
     await session.close();
+    assert.equal(events.at(-1).kind, 'holdcancel');
     assert.equal(scheduled, false);
     assert.equal(device.opened, false);
     assert.throws(() => session.startRecording(), /ended/);

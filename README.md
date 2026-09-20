@@ -2,7 +2,7 @@
 
 Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.
 
-**Version note:** these docs target 0.4.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
+**Version note:** these docs target 0.5.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
 
 ## Start here
 
@@ -57,3 +57,5 @@ The verified device profile is vendor `0x256f`, product `0xc63a`, Bluetooth on W
 ## Development
 
 Use Node 24 and the pnpm version pinned in `package.json`. `pnpm check` builds and runs tests. Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing an API or device profile; [AGENTS.md](AGENTS.md) describes repository development constraints. [DESIGN.md](DESIGN.md) explains architecture and [VERIFICATION.md](VERIFICATION.md) records validation. MIT licensed.
+
+Push/pull + rotation supports taps and continuous holds by default. See [press and rotate](docs/press-rotate.md) for lifecycle events and application integration.

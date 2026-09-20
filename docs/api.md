@@ -91,3 +91,11 @@ The parser infers actions from raw shape, independent of order and recognized ev
 A clear calls `onInput(neutralInput)` then `onReset()`. For gestures, ignore that exact sentinel in onInput and reset the recognizer in onReset, so a lifecycle change cannot finish a press. Real zero reports are separate objects. Custom decoders should return fresh input objects for physical reports. Motion can consume the sentinel directly. Close removes listeners; your app must cancel its own frame loop.
 
 `DeviceProfile` contains vendorId, productId, optional usagePage/usage, and `decode(reportId,data)`. An injected `hid` implements `HidAccess` for tests/custom transport integration. The default `combinedProfile` uses the verified IDs from the README. Do not infer additional device support from vendor ID alone.
+
+## Press and rotate holds
+
+Enabled by default. Combined events have `rotation` and a push/pull `direction`.
+`kind` additionally supports `holdstart`, `holdend`, and `holdcancel`.
+`state.hold` exposes the current combination and force while held.
+`reset(timestampMs?)` returns cancellation events; deliver them to your consumer.
+See [press and rotate](press-rotate.md) for timing, arbitration and examples.

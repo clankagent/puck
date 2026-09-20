@@ -2,6 +2,24 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
+## 0.5.0 — 2026-09-20
+
+- Enable push/pull + clockwise/counterclockwise rotation by default, supporting
+  short taps and unlimited holds. A held combination emits holdstart and then
+  holdend on release or holdcancel on reversal/reset, never an extra tap.
+- Expose live hold state and strength; reuse pressure/twist thresholds and add
+  configurable noise/hold delays. Keep motion processing independent.
+- Extend reset to return cancellation events; update the WebHID session example
+  to deliver them on lifecycle interruptions. Preserve rotation events in recordings.
+- Extend the playground to 32 resettable outcomes with hold status and lifecycle
+  timeline, plus lab simulation and timing controls. Default settings match the SDK.
+- Event kinds expand. Existing readers should update or use `pressRotate:false`.
+  See [upgrade guide](docs/upgrading.md#from-04-to-05) and
+  [hold integration](docs/press-rotate.md). Synthetic tests cover all combinations,
+  frame-rate independence, long holds and interruption; physical feel is unverified.
+
+[Compare versions](https://github.com/clankagent/puck/compare/v0.4.0...v0.5.0).
+
 ## 0.4.0 — 2026-09-20
 
 - Enable combined press/tilt and standalone rx/ry singles and doubles by default
