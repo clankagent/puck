@@ -4,6 +4,12 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 
 ## Source lab fixes (after 0.3.0)
 
+- Align public playground and calibration-lab gesture startup with SDK defaults:
+  simple presses and opt-in tilts. Default movement now delegates directly to
+  SDK defaults; tests compare demo/default output. Display the SDK version and
+  export actual consumer setup code. Verified the site's 11 SDK modules against
+  a clean npm 0.3.0 installation; no SDK behavior changed.
+
 - Put continuous movement first in the playground, with live pan/zoom speeds,
   deadzones, acceleration response, frame cap, settings export and reset.
   Added a six-axis object movement example with translation/rotation speeds,

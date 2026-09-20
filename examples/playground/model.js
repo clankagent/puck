@@ -7,6 +7,11 @@ export const gestures = [
 ];
 export const key = event => `${event.direction}.${event.tilt ?? event.kind}`;
 export const title = event => `${labels[event.direction]}${event.tilt ? ' + ' + event.tilt.replace('-', '−') : ' · ' + event.kind}`;
+export function enabledGesture(gesture, options) {
+  if (gesture.tilt) return options.pressMode === 'auto' || options.pressMode === 'tilt';
+  if (tilts.includes(gesture.direction)) return Boolean(options.standaloneTilt);
+  return !(options.pressMode === 'tilt' && ['push', 'pull'].includes(gesture.direction) && gesture.kind === 'single');
+}
 export function createCounts() {
   const counts = Object.fromEntries(gestures.map(g => [key(g), 0]));
   return { counts, add(events) { for (const event of events) if (Object.hasOwn(counts, key(event))) counts[key(event)]++; }, reset() { for (const k of Object.keys(counts)) counts[k] = 0; } };

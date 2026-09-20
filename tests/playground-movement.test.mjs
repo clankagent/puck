@@ -1,7 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { neutralInput } from '../dist/index.js';
-import { createMovement, initialPose, advancePose, projectCube } from '../examples/playground/movement.js';
+import { neutralInput, createPanZoom, createGestures, gesturePresets } from '../dist/index.js';
+import { createMovement, initialPose, advancePose, projectCube, movementDefaults, panZoomOverrides } from '../examples/playground/movement.js';
+import { gestures, sequence, enabledGesture } from '../examples/playground/model.js';
+test('default playground motion is identical to a consumer using createPanZoom()', () => {
+  assert.deepEqual(panZoomOverrides(movementDefaults), {});
+  const demo = createMovement(), consumer = createPanZoom(), displayedDefaults = createPanZoom(movementDefaults);
+  const steps = [[0, {}], [10, { x: -.7, y: .4, z: .8, rz: .5 }], [60, { x: -.7, y: .4, rz: .5 }], [75, { x: .02, y: .04, rz: .08 }], [160, { x: 1, y: -1, rz: -1 }], [180, {}]];
+  for (const [t, axes] of steps) {
+    const input = { ...neutralInput, ...axes }; demo.setInput(input); consumer.setInput(input); displayedDefaults.setInput(input);
+    const { translation, rotation, ...actual } = demo.step(t); assert.deepEqual(actual, consumer.step(t)); assert.deepEqual(actual, displayedDefaults.step(t));
+  }
+});
+test('default gesture tile availability and events match the SDK consumer defaults', () => {
+  const options = { ...gesturePresets.default.toOptions(), pressMode: 'simple', standaloneTilt: false };
+  assert.equal(gestures.filter(g => enabledGesture(g, options)).length, 8);
+  for (const g of gestures) {
+    const implicit = createGestures(), explicit = createGestures(options);
+    for (const row of sequence(g)) assert.deepEqual(implicit.update(row.input, row.t), explicit.update(row.input, row.t));
+    assert.deepEqual(implicit.advance(1200), explicit.advance(1200));
+  }
+  assert.equal(gestures.filter(g => enabledGesture(g, { pressMode: 'auto', standaloneTilt: true })).length, 24);
+});
 function integrate(options, input) {
   const m = createMovement({ responseMs: 0, ...options }), pose = initialPose(); let pan = 0, zoom = 1;
   m.setInput({ ...neutralInput, ...input });

@@ -1,13 +1,16 @@
 import { createGestures, gesturePresets, neutralInput } from '../../dist/index.js';
-import { movementDefaults, movementFields, createMovement, initialPose, advancePose, projectCube } from './movement.js';
+import { movementDefaults, movementFields, createMovement, initialPose, advancePose, projectCube, panZoomOverrides } from './movement.js';
 import { connectWebHid } from '../../dist/webhid.js';
 import { applyMotion } from '../camera.mjs';
-import { axes, gestures, labels, key, title, createCounts, deflection, sequence } from './model.js';
+import { axes, gestures, labels, key, title, createCounts, deflection, sequence, enabledGesture } from './model.js';
 const $ = id => document.getElementById(id);
 let options, recognizer, connection = null, input = { ...neutralInput }, frozen = false;
 let samples = [], events = [], lastDraw = 0, camera = { x: 400, y: 150, zoom: 1 }, run = null, held = null;
 let motionOptions = { ...movementDefaults }, motion = createMovement(motionOptions), pose = initialPose();
 const totals = createCounts(), tiles = new Map();
+const gestureModes = document.createElement('div'); gestureModes.className = 'toolbar gesture-modes';
+gestureModes.innerHTML = '<label>Push / pull mode<select id="pressMode"><option value="simple">Simple · library default</option><option value="auto">Press or tilt · opt in</option><option value="tilt">Tilt + plain doubles · opt in</option></select></label><label><input type="checkbox" id="standaloneTilt"> Enable standalone tilt · opt in</label><button id="resetGestureDefaults">Restore gesture defaults</button><p id="gestureDefaults" class="hint">Library defaults: simple presses, standalone tilt off. Enable optional modes to test their tiles.</p>';
+$('tester').querySelector('.toolbar').after(gestureModes);
 // Movement is the first-class entry point; gesture counting remains independent below.
 $('tester').before($('motion'));
 $('motion').querySelector('.overline').textContent = '01 / Continuous movement';
@@ -24,7 +27,7 @@ nav.querySelector('[href="#tester"]').before(movementLink);
 nav.querySelector('[href="#tester"]').textContent = '02   Gesture tester';
 nav.querySelector('[href="#signals"]').textContent = '03   Signal monitor';
 const settings = document.createElement('div'); settings.className = 'movement-settings';
-settings.innerHTML = '<label>View<select id="movementView"><option value="planar">2D pan / zoom</option><option value="spatial">3D · all six axes</option></select></label><p class="hint">2D: slide to pan, twist or press to zoom. 3D: slide, push/pull and tilt/twist to move and rotate the object.</p><div id="movementFields"></div><div class="manual"><button id="resetMovement">Restore movement defaults</button><button id="copyMovement">Copy movement settings</button></div><p id="movementStatus" role="status">Changes apply immediately. Gesture force profiles do not affect movement.</p>';
+settings.innerHTML = '<label>View<select id="movementView"><option value="planar">2D pan / zoom</option><option value="spatial">3D · all six axes</option></select></label><p class="hint">2D: slide to pan, twist or press to zoom. 3D: slide, push/pull and tilt/twist to move and rotate the object.</p><div id="movementFields"></div><div class="manual"><button id="resetMovement">Restore movement defaults</button><button id="copyMovement">Copy SDK setup</button></div><p id="movementStatus" role="status">Using createPanZoom() defaults. Changes apply immediately; gesture force profiles do not affect movement.</p>';
 const workspace = document.createElement('div'); workspace.className = 'movement-workspace';
 const visual = document.createElement('div'); visual.className = 'movement-visual';
 $('viewport').before(workspace); workspace.append(settings, visual);
@@ -60,7 +63,7 @@ function setView() {
 }
 $('movementView').onchange = setView;
 $('resetMovement').onclick = () => { motionOptions = { ...movementDefaults }; for (const [id] of movementFields) { $('motion-' + id).value = motionOptions[id]; $('number-' + id).value = motionOptions[id]; $('number-' + id).removeAttribute('aria-invalid'); } $('zoomInput').value = motionOptions.zoomInput; updateMovement('Movement defaults restored. View position retained.'); };
-$('copyMovement').onclick = async () => { const text = JSON.stringify(motionOptions, null, 2); try { await navigator.clipboard.writeText(text); $('movementStatus').textContent = 'Movement settings copied.'; } catch { $('movementStatus').textContent = text; } };
+$('copyMovement').onclick = async () => { const text = `import { createPanZoom } from '@clankagent/puck';\n\nconst motion = createPanZoom(${Object.keys(panZoomOverrides(motionOptions)).length ? JSON.stringify(panZoomOverrides(motionOptions), null, 2) : ''});`; try { await navigator.clipboard.writeText(text); $('movementStatus').textContent = 'SDK pan/zoom setup copied. 3D object settings belong to the demo.'; } catch { $('movementStatus').textContent = text; } };
 const panControls = document.createElement('div'); panControls.className = 'manual';
 for (const [direction, label] of [['x+', 'Test left'], ['x-', 'Test right'], ['y+', 'Test up'], ['y-', 'Test down'], ['zoom+', 'Test zoom in'], ['zoom-', 'Test zoom out'], ['rx+', 'Test rx rotation'], ['ry+', 'Test ry rotation'], ['rz+', 'Test rz rotation']]) {
   const b = document.createElement('button'); b.textContent = label; b.dataset.pan = direction; b.dataset.label = label;
@@ -98,14 +101,17 @@ for (const [i, axis] of axes.entries()) {
   $('axisGraphs').append(panel);
 }
 function repaintCounts() {
-  let detected = 0;
+  let detected = 0, enabled = 0;
   for (const [id, tile] of tiles) {
-    const n = totals.counts[id]; if (n) detected++;
+    const gesture = gestures.find(g => key(g) === id), available = enabledGesture(gesture, options);
+    const n = totals.counts[id]; if (available) { enabled++; if (n) detected++; }
     tile.classList.toggle('detected', n > 0); tile.querySelector('.number').textContent = n;
-    tile.querySelector('.state').textContent = n ? 'Detected' : 'Not detected';
-    tile.setAttribute('aria-label', `${title(gestures.find(g => key(g) === id))}, ${n} detections${connection ? '' : '. Simulate'}`);
+    tile.disabled = Boolean(connection) || !available;
+    tile.classList.toggle('mode-disabled', !available);
+    tile.querySelector('.state').textContent = available ? (n ? 'Detected' : 'Not detected') : 'Off in selected mode';
+    tile.setAttribute('aria-label', `${title(gesture)}, ${n} detections${!available ? '. Off in selected mode' : connection ? '' : '. Simulate'}`);
   }
-  $('coverage').textContent = `${detected} / ${gestures.length}`;
+  $('coverage').textContent = `${detected} / ${enabled}`;
 }
 function receive(batch) {
   if (!batch.length) return;
@@ -125,7 +131,13 @@ function cancel() {
   document.querySelectorAll('.running,.held').forEach(el => el.classList.remove('running', 'held'));
   for (const axis of axes) { $('held-' + axis).value = 0; $('heldValue-' + axis).textContent = '0.00'; }
 }
-function apply() { options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: 'auto', standaloneTilt: true }; recognizer = createGestures(options); cancel(); $('thresholds').textContent = JSON.stringify(options, null, 2); }
+function apply() {
+  const defaults = $('preset').value === 'default' && $('pressMode').value === 'simple' && !$('standaloneTilt').checked;
+  options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: $('pressMode').value, standaloneTilt: $('standaloneTilt').checked };
+  recognizer = defaults ? createGestures() : createGestures(options);
+  cancel(); repaintCounts(); $('thresholds').textContent = JSON.stringify(options, null, 2);
+  $('gestureDefaults').textContent = defaults ? 'Using createGestures() with no overrides. Eight default gesture types enabled; optional tilt modes are off.' : 'Custom gesture configuration. Counts include only enabled types. Restore gesture defaults to match createGestures().';
+}
 function simulate(gesture) {
   if (connection || run || held) return;
   cancel(); const t = performance.now();
@@ -151,6 +163,8 @@ window.addEventListener('keydown', e => { if (e.target.closest('input,select,tex
 window.addEventListener('keyup', e => { if ((keys[e.key] ?? keys[e.key.toLowerCase()]) === held) stop(); });
 window.addEventListener('blur', cancel); document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(); });
 $('preset').onchange = () => { apply(); $('testStatus').textContent = 'Profile changed; counts retained. Reset for a fresh comparison.'; };
+$('pressMode').onchange = apply; $('standaloneTilt').onchange = apply;
+$('resetGestureDefaults').onclick = () => { $('preset').value = 'default'; $('pressMode').value = 'simple'; $('standaloneTilt').checked = false; apply(); };
 $('force').oninput = () => $('forceValue').textContent = Number($('force').value).toFixed(2);
 $('reset').onclick = () => { cancel(); totals.reset(); events = []; samples = []; frozen = false; $('freeze').textContent = 'Freeze graphs'; repaintCounts(); $('last').textContent = 'Ready when you are'; $('history').innerHTML = '<li>No events yet.</li>'; $('testStatus').textContent = 'All counters and traces reset. Release the cap to neutral to begin.'; };
 $('countSource').onchange = () => { $('reset').click(); $('testStatus').textContent = `Fresh test: counting ${$('countSource').value === 'device' ? 'device input only' : 'simulator input only'}.`; };
@@ -161,7 +175,7 @@ $('download').onclick = () => {
   const blob = new Blob([JSON.stringify({ version: 1, source: $('countSource').value, counts: totals.counts, options, recentEvents: events, note: 'Counts persist for this page session; recentEvents is limited to the latest 200 events.' }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'puck-test-results.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
-function connectedUI() { $('connect').textContent = connection ? 'Disconnect' : 'Connect SpaceMouse'; $('source').textContent = connection ? 'Live device' : 'Simulator'; document.querySelectorAll('.gesture,#manual button,#force,[data-pan],#heldAxes input').forEach(el => el.disabled = Boolean(connection)); }
+function connectedUI() { $('connect').textContent = connection ? 'Disconnect' : 'Connect SpaceMouse'; $('source').textContent = connection ? 'Live device' : 'Simulator'; document.querySelectorAll('#manual button,#force,[data-pan],#heldAxes input').forEach(el => el.disabled = Boolean(connection)); repaintCounts(); }
 $('connect').onclick = async () => {
   $('connect').disabled = true; cancel();
   try {

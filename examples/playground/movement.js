@@ -1,6 +1,8 @@
 import { createPanZoom } from '../../dist/index.js';
 
 export const movementDefaults = Object.freeze({ panSpeed: 1320, zoomSpeed: 1.5, panDeadzone: .05, zoomDeadzone: .1, responseMs: 25, maxFrameMs: 50, zoomInput: 'twist', translationSpeed: 200, rotationSpeed: 90, rotationDeadzone: .05 });
+export const panZoomKeys = ['panSpeed', 'zoomSpeed', 'panDeadzone', 'zoomDeadzone', 'responseMs', 'maxFrameMs', 'zoomInput'];
+export function panZoomOverrides(config) { return Object.fromEntries(panZoomKeys.filter(key => config[key] !== movementDefaults[key]).map(key => [key, config[key]])); }
 export const movementFields = [
   ['panSpeed', 'Pan speed', 0, 5000, 10, 'px/s', 'Full-deflection speed in the 2D view.'],
   ['zoomSpeed', 'Zoom speed', 0, 5, .05, 'log units/s', '1.5 gives approximately 4.48× zoom per second at full force.'],
@@ -17,7 +19,8 @@ export const movementFields = [
 // Treat the third logarithmic channel as an integrated scalar for z / rz.
 export function createMovement(options = movementDefaults) {
   const config = { ...movementDefaults, ...options };
-  const panZoom = createPanZoom(config);
+  // A fresh/default demo uses the SDK's own defaults, not demo overrides.
+  const panZoom = createPanZoom(panZoomOverrides(config));
   const translation = createPanZoom({ ...config, panSpeed: config.translationSpeed, zoomSpeed: config.translationSpeed, zoomInput: 'press', zoomDeadzone: config.panDeadzone });
   const rotation = createPanZoom({ ...config, panSpeed: config.rotationSpeed, zoomSpeed: config.rotationSpeed, zoomInput: 'twist', panDeadzone: config.rotationDeadzone, zoomDeadzone: config.rotationDeadzone });
   return {
