@@ -6,8 +6,9 @@ Six-axis input, responsive pan/zoom, and tunable single/double gestures for Spac
 
 ## Start here
 
-**[Open the Puck playground](https://clankagent.github.io/puck/)** — test all 24
-gestures, reset detection counts, watch six-axis graphs, try pan/zoom, and record
+**[Open the Puck playground](https://clankagent.github.io/puck/)** — tune live movement
+speeds, pan/zoom or move and rotate a six-axis object, test all 24 gestures,
+reset detection counts, watch six-axis graphs, and record
 or calibrate input. Works without hardware using simulated input. The public
 site keeps recordings in your browser. [Playground guide](docs/playground.md).
 

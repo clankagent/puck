@@ -3,7 +3,7 @@ const root = new URL('../', import.meta.url), out = new URL('../site/', import.m
 await mkdir(new URL('lab/', out), { recursive: true });
 await mkdir(new URL('dist/', out), { recursive: true });
 // Explicit asset lists keep server code, recordings and local files out of publication.
-for (const file of ['index.html', 'style.css', 'app.js', 'model.js']) {
+for (const file of ['index.html', 'style.css', 'app.js', 'model.js', 'movement.js']) {
   let text = await readFile(new URL('examples/playground/' + file, root), 'utf8');
   text = text.replaceAll('../../dist/', './dist/').replaceAll('../camera.mjs', './camera.mjs');
   await writeFile(new URL(file, out), text);

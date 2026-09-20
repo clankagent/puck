@@ -1,5 +1,11 @@
 # Public playground
 
+Movement revision: continuous movement is now the entry point. Put editable speed,
+deadzone and response controls beside a sticky live view, with a single-column
+phone layout. Separate motion settings from gesture force profiles. Provide 2D
+pan/zoom and an all-axis object view, held input, visible units and immediate
+neutral stopping. Keep the gray/green gesture board as a separate section below.
+
 Audience: anyone checking recognition and developers exploring the SDK. Main action:
 perform a gesture, see its count, reset and repeat. Continue the lab's Manual
 direction: quiet chapter rail, white workspace, blue-gray supporting surfaces,

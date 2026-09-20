@@ -27,7 +27,31 @@ to a tilt; Alt adds pull where the browser/OS does not reserve that shortcut.
 Focus loss clears input and cancels pending recognition. Keyboard Enter or Space
 also activates gesture tiles. Combined gestures emit singles, not doubles.
 
-## Signals and motion
+## Continuous movement
+
+Movement opens first, with live settings beside the view. Set pan speed (px/s),
+zoom speed (log units/s), movement/zoom deadzones, acceleration response and the
+maximum integrated frame interval. The numeric inputs and sliders control the
+same values. Changes apply immediately to held input, without resetting the view.
+Zero speed disables that movement. Restore movement defaults resets settings;
+Reset view recenters the view. Copy movement settings exports the configuration.
+Gesture force profiles and movement settings are independent.
+
+Switch between **2D pan / zoom** and **3D · all six axes**. The 2D view uses
+the public SDK pan/zoom controller. The 3D view is a consuming-app example built
+with the SDK integrators: x/y/z move an isometrically projected object and rx/ry/rz
+rotate it about fixed axes. It is not an added 3D camera API. The 3D view has
+separate translation (units/s), rotation (degrees/s) and rotation-deadzone settings.
+Neutral stops immediately in both views, even with a long acceleration response.
+
+Test buttons send one second of simulated input. Under **Hold manual input /
+combine axes**, six sliders can hold and mix continuous deflections. Release all
+zeros them, and focus loss cancels them. These simulator controls disable while
+hardware is connected; movement settings remain editable. Output graphs scale
+to the selected speeds and frame cap. Raw input graphs below remain independent
+of speeds, deadzones and recognition.
+
+## Signals and motion graphs
 
 All six raw axes have signed traces. A separate event timeline shows singles,
 doubles and combined gestures. Freeze pauses graph rendering while recognition

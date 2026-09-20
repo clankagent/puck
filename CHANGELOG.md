@@ -4,6 +4,12 @@ User-facing changes, compatibility impact, and links for adopting them. **Unrele
 
 ## Source lab fixes (after 0.3.0)
 
+- Put continuous movement first in the playground, with live pan/zoom speeds,
+  deadzones, acceleration response, frame cap, settings export and reset.
+  Added a six-axis object movement example with translation/rotation speeds,
+  combined held-axis simulation and graphs that follow the selected settings.
+  These are consuming-app examples; SDK defaults and exports are unchanged.
+
 - Added the [public playground](https://clankagent.github.io/puck/) with 24 resettable
   gesture counters, real-recognizer simulation, device-only counting, six raw-axis
   graphs, recognition timeline, motion output graphs and a pan/zoom example.

@@ -1,18 +1,78 @@
-import { createGestures, createPanZoom, gesturePresets, neutralInput } from '../../dist/index.js';
+import { createGestures, gesturePresets, neutralInput } from '../../dist/index.js';
+import { movementDefaults, movementFields, createMovement, initialPose, advancePose, projectCube } from './movement.js';
 import { connectWebHid } from '../../dist/webhid.js';
 import { applyMotion } from '../camera.mjs';
 import { axes, gestures, labels, key, title, createCounts, deflection, sequence } from './model.js';
 const $ = id => document.getElementById(id);
 let options, recognizer, connection = null, input = { ...neutralInput }, frozen = false;
 let samples = [], events = [], lastDraw = 0, camera = { x: 400, y: 150, zoom: 1 }, run = null, held = null;
-const motion = createPanZoom(), totals = createCounts(), tiles = new Map();
+let motionOptions = { ...movementDefaults }, motion = createMovement(motionOptions), pose = initialPose();
+const totals = createCounts(), tiles = new Map();
+// Movement is the first-class entry point; gesture counting remains independent below.
+$('tester').before($('motion'));
+$('motion').querySelector('.overline').textContent = '01 / Continuous movement';
+$('tester').querySelector('.overline').textContent = '02 / Gesture tester';
+$('signals').querySelector('.overline').textContent = '03 / Signal monitor';
+$('motion').querySelector('h2').textContent = 'Find your movement speed.';
+$('motion').querySelector('h2').outerHTML = '<h1>Find your movement speed.</h1>';
+$('tester').querySelector('h1').outerHTML = '<h2>Test every gesture.</h2>';
+$('motion').querySelector('.hint').textContent = 'Slide, push, pull, tilt and twist. Adjust speed and response while moving. Use 2D pan / zoom or the six-axis 3D movement view.';
+$('motion').querySelector('.section-title').after($('connection'));
+const nav = document.querySelector('nav');
+const movementLink = nav.querySelector('[href="#motion"]'); movementLink.textContent = '01   Continuous movement';
+nav.querySelector('[href="#tester"]').before(movementLink);
+nav.querySelector('[href="#tester"]').textContent = '02   Gesture tester';
+nav.querySelector('[href="#signals"]').textContent = '03   Signal monitor';
+const settings = document.createElement('div'); settings.className = 'movement-settings';
+settings.innerHTML = '<label>View<select id="movementView"><option value="planar">2D pan / zoom</option><option value="spatial">3D · all six axes</option></select></label><p class="hint">2D: slide to pan, twist or press to zoom. 3D: slide, push/pull and tilt/twist to move and rotate the object.</p><div id="movementFields"></div><div class="manual"><button id="resetMovement">Restore movement defaults</button><button id="copyMovement">Copy movement settings</button></div><p id="movementStatus" role="status">Changes apply immediately. Gesture force profiles do not affect movement.</p>';
+const workspace = document.createElement('div'); workspace.className = 'movement-workspace';
+const visual = document.createElement('div'); visual.className = 'movement-visual';
+$('viewport').before(workspace); workspace.append(settings, visual);
+visual.append($('zoomInput').closest('label'), $('viewport'), $('camera'), $('motionGraph'));
+const spatialSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); spatialSvg.id = 'spatialViewport'; spatialSvg.setAttribute('viewBox', '0 0 800 300'); spatialSvg.setAttribute('role', 'img'); spatialSvg.setAttribute('aria-label', 'Six-axis object translation and rotation'); spatialSvg.hidden = true;
+spatialSvg.innerHTML = '<path d="M100 150H700 M400 20V280" stroke="#c6d0dc" stroke-dasharray="4 5"/><text x="16" y="25" font-size="14" fill="#54647a">Isometric view · x / y / z translation + rx / ry / rz rotation</text><g id="cube"></g>';
+$('viewport').after(spatialSvg);
+for (const [id, label, min, max, step, unit, hint] of movementFields) {
+  const field = document.createElement('div'); field.className = 'movement-field';
+  field.dataset.mode = id.startsWith('rotation') || id === 'translationSpeed' ? 'spatial' : ['panSpeed', 'zoomSpeed', 'zoomDeadzone'].includes(id) ? 'planar' : 'both';
+  field.innerHTML = `<label for="motion-${id}">${label} <span>${unit}</span></label><div class="movement-value"><input type="range" id="motion-${id}" min="${min}" max="${max}" step="${step}" value="${motionOptions[id]}"><input type="number" id="number-${id}" aria-label="${label} value" min="${min}" max="${max}" step="${step}" value="${motionOptions[id]}"></div><p class="hint">${hint}</p>`;
+  $('movementFields').append(field);
+  const change = e => {
+    const value = e.target.valueAsNumber;
+    if (!Number.isFinite(value) || value < min || value > max) { e.target.setAttribute('aria-invalid', 'true'); $('movementStatus').textContent = `${label} must be between ${min} and ${max}. Previous setting remains active.`; return; }
+    e.target.removeAttribute('aria-invalid'); motionOptions[id] = value;
+    $('motion-' + id).value = value; $('number-' + id).value = value;
+    updateMovement(`${label}: ${value} ${unit}. Applied to live input.`);
+  };
+  $('motion-' + id).oninput = change; $('number-' + id).oninput = change;
+}
+function updateMovement(message) { motion = createMovement(motionOptions); motion.setInput(input); samples = []; $('movementStatus').textContent = message; }
+function setView() {
+  const spatial = $('movementView').value === 'spatial';
+  $('viewport').style.display = spatial ? 'none' : 'block'; spatialSvg.style.display = spatial ? 'block' : 'none';
+  $('zoomInput').closest('label').hidden = spatial;
+  document.querySelectorAll('.movement-field').forEach(field => field.hidden = field.dataset.mode !== 'both' && field.dataset.mode !== $('movementView').value);
+  document.querySelectorAll('[data-pan]').forEach(b => { b.textContent = b.dataset.pan.startsWith('zoom') ? (spatial ? (b.dataset.pan === 'zoom+' ? 'Test forward' : 'Test back') : (b.dataset.pan === 'zoom+' ? 'Test zoom in' : 'Test zoom out')) : b.dataset.label; b.hidden = !spatial && ['rx+', 'ry+', 'rz+'].includes(b.dataset.pan); });
+}
+$('movementView').onchange = setView;
+$('resetMovement').onclick = () => { motionOptions = { ...movementDefaults }; for (const [id] of movementFields) { $('motion-' + id).value = motionOptions[id]; $('number-' + id).value = motionOptions[id]; $('number-' + id).removeAttribute('aria-invalid'); } $('zoomInput').value = motionOptions.zoomInput; updateMovement('Movement defaults restored. View position retained.'); };
+$('copyMovement').onclick = async () => { const text = JSON.stringify(motionOptions, null, 2); try { await navigator.clipboard.writeText(text); $('movementStatus').textContent = 'Movement settings copied.'; } catch { $('movementStatus').textContent = text; } };
 const panControls = document.createElement('div'); panControls.className = 'manual';
-for (const [direction, label] of [['x+', 'Pan left'], ['x-', 'Pan right'], ['y+', 'Pan up'], ['y-', 'Pan down']]) {
-  const b = document.createElement('button'); b.textContent = label; b.dataset.pan = direction;
-  b.onclick = () => { if (connection || run || held) return; cancel(); run = { start: performance.now(), index: 0, end: performance.now() + 800, rows: [{ t: 0, input: neutralInput }, { t: 60, input: deflection(direction) }, { t: 560, input: neutralInput }] }; };
+for (const [direction, label] of [['x+', 'Test left'], ['x-', 'Test right'], ['y+', 'Test up'], ['y-', 'Test down'], ['zoom+', 'Test zoom in'], ['zoom-', 'Test zoom out'], ['rx+', 'Test rx rotation'], ['ry+', 'Test ry rotation'], ['rz+', 'Test rz rotation']]) {
+  const b = document.createElement('button'); b.textContent = label; b.dataset.pan = direction; b.dataset.label = label;
+  b.onclick = () => { if (connection || run || held) return; cancel(); const mapped = direction.startsWith('zoom') ? ($('movementView').value === 'spatial' || motionOptions.zoomInput === 'press' ? (direction === 'zoom+' ? 'push' : 'pull') : (direction === 'zoom+' ? 'clockwise' : 'counterclockwise')) : direction; run = { start: performance.now(), index: 0, end: performance.now() + 1200, rows: [{ t: 0, input: neutralInput }, { t: 60, input: deflection(mapped, Number($('force').value)) }, { t: 1060, input: neutralInput }] }; b.classList.add('running'); };
   panControls.append(b);
 }
-$('viewport').before(panControls);
+visual.append(panControls);
+const movementManual = document.createElement('details'); movementManual.innerHTML = '<summary>Hold manual input / combine axes</summary><p class="hint">These sliders hold a continuous simulated deflection. Combine axes freely; press Release all to stop. They reset on focus loss and are disabled while a device is connected.</p><div id="heldAxes"></div><button id="releaseAxes">Release all</button>';
+visual.append(movementManual);
+for (const axis of axes) {
+  const label = document.createElement('label'); label.innerHTML = `${axis}<output id="heldValue-${axis}">0.00</output><input type="range" id="held-${axis}" aria-label="Hold ${axis} deflection" min="-1" max="1" step="0.01" value="0">`;
+  $('heldAxes').append(label);
+  $('held-' + axis).oninput = () => { if (connection) return; run = null; document.querySelectorAll('.running').forEach(el => el.classList.remove('running')); const value = Object.fromEntries(axes.map(a => [a, Number($('held-' + a).value)])); feed(value); $('heldValue-' + axis).textContent = value[axis].toFixed(2); };
+}
+$('releaseAxes').onclick = cancel;
+setView();
 const chapters = [...document.querySelectorAll('nav a[href^="#"]')];
 const observer = new IntersectionObserver(entries => { for (const entry of entries) if (entry.isIntersecting) for (const link of chapters) { if (link.hash === '#' + entry.target.id) link.setAttribute('aria-current', 'location'); else link.removeAttribute('aria-current'); } }, { rootMargin: '-5% 0px -65% 0px' });
 observer.observe($('tester')); observer.observe($('signals')); observer.observe($('motion'));
@@ -59,6 +119,7 @@ function cancel() {
   run = null; held = null; input = { ...neutralInput }; recognizer.reset(); motion.reset();
   if (!connection) feed(neutralInput);
   document.querySelectorAll('.running,.held').forEach(el => el.classList.remove('running', 'held'));
+  for (const axis of axes) { $('held-' + axis).value = 0; $('heldValue-' + axis).textContent = '0.00'; }
 }
 function apply() { options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: 'auto', standaloneTilt: true }; recognizer = createGestures(options); cancel(); $('thresholds').textContent = JSON.stringify(options, null, 2); }
 function simulate(gesture) {
@@ -90,13 +151,13 @@ $('force').oninput = () => $('forceValue').textContent = Number($('force').value
 $('reset').onclick = () => { cancel(); totals.reset(); events = []; samples = []; frozen = false; $('freeze').textContent = 'Freeze graphs'; repaintCounts(); $('last').textContent = 'Ready when you are'; $('history').innerHTML = '<li>No events yet.</li>'; $('testStatus').textContent = 'All counters and traces reset. Release the cap to neutral to begin.'; };
 $('countSource').onchange = () => { $('reset').click(); $('testStatus').textContent = `Fresh test: counting ${$('countSource').value === 'device' ? 'device input only' : 'simulator input only'}.`; };
 $('freeze').onclick = () => { frozen = !frozen; $('freeze').textContent = frozen ? 'Resume graphs' : 'Freeze graphs'; };
-$('resetCamera').onclick = () => { camera = { x: 400, y: 150, zoom: 1 }; motion.reset(); motion.setInput(input); };
-$('zoomInput').onchange = () => motion.setZoomInput($('zoomInput').value);
+$('resetCamera').onclick = () => { camera = { x: 400, y: 150, zoom: 1 }; pose = initialPose(); motion.reset(); motion.setInput(input); };
+$('zoomInput').onchange = () => { motionOptions.zoomInput = $('zoomInput').value; updateMovement('Zoom input changed. Applied to live input.'); };
 $('download').onclick = () => {
   const blob = new Blob([JSON.stringify({ version: 1, source: $('countSource').value, counts: totals.counts, options, recentEvents: events, note: 'Counts persist for this page session; recentEvents is limited to the latest 200 events.' }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'puck-test-results.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
-function connectedUI() { $('connect').textContent = connection ? 'Disconnect' : 'Connect SpaceMouse'; $('source').textContent = connection ? 'Live device' : 'Simulator'; document.querySelectorAll('.gesture,#manual button,#force,[data-pan]').forEach(el => el.disabled = Boolean(connection)); }
+function connectedUI() { $('connect').textContent = connection ? 'Disconnect' : 'Connect SpaceMouse'; $('source').textContent = connection ? 'Live device' : 'Simulator'; document.querySelectorAll('.gesture,#manual button,#force,[data-pan],#heldAxes input').forEach(el => el.disabled = Boolean(connection)); }
 $('connect').onclick = async () => {
   $('connect').disabled = true; cancel();
   try {
@@ -113,19 +174,26 @@ function draw(t) {
   for (const axis of axes) { $('trace-' + axis).setAttribute('d', path(samples, s => s.input[axis], t)); $('value-' + axis).textContent = input[axis].toFixed(2); }
   const recent = events.filter(e => e.timestamp >= t - 8000);
   $('eventGraph').innerHTML = `<svg viewBox="0 0 800 85" role="img" aria-label="Recognized single, double and combined event timeline"><text x="0" y="14" fill="#54647a" font-size="12">Recognition · last 8 seconds</text>${['single', 'double', 'combined'].map((name, i) => `<text x="0" y="${34 + i * 20}" fill="#54647a" font-size="11">${name}</text><path d="M85 ${30 + i * 20}H800" stroke="#d4dde7"/>`).join('')}${recent.map(e => `<circle cx="${85 + (e.timestamp - t + 8000) / 8000 * 715}" cy="${e.tilt ? 70 : e.kind === 'double' ? 50 : 30}" r="4" fill="${e.source === 'device' ? '#23754e' : '#2355cb'}"><title>${title(e)}</title></circle>`).join('')}</svg>`;
-  $('motionGraph').innerHTML = `<svg viewBox="0 0 800 115" role="img" aria-label="Pan X and Y pixels per frame and logarithmic zoom per frame"><text x="0" y="14" fill="#54647a" font-size="12">Motion output / frame · X blue, Y brown (±66 px) · log zoom green (±0.075)</text><path d="M0 65H800" stroke="#c5cfdb"/>${['panX', 'panY', 'logZoom'].map((axis, i) => `<path d="${path(samples, s => s.delta[axis] / (i === 2 ? .075 : 66), t, 40, 65, 800)}" fill="none" stroke="${colors[i]}" stroke-width="2"/>`).join('')}</svg>`;
+  const spatial = $('movementView').value === 'spatial', cap = motionOptions.maxFrameMs / 1000;
+  const channels = spatial ? axes.map((axis, i) => ({ name: axis, get: s => s.delta[i < 3 ? 'translation' : 'rotation'][i % 3], limit: (i < 3 ? motionOptions.translationSpeed : motionOptions.rotationSpeed) * cap })) : ['panX', 'panY', 'logZoom'].map((axis, i) => ({ name: axis, get: s => s.delta[axis], limit: (i === 2 ? motionOptions.zoomSpeed : motionOptions.panSpeed) * cap }));
+  $('motionGraph').innerHTML = `<p class="hint">Processed movement / frame · ${channels.map(c => `${c.name} ±${c.limit.toFixed(2)}`).join(' · ')}. Scales follow your speed and frame cap.</p><svg viewBox="0 0 800 100" role="img" aria-label="Processed continuous movement output"><path d="M0 50H800" stroke="#c5cfdb"/>${channels.map((c, i) => `<path d="${path(samples, s => c.get(s) / (c.limit || 1), t, 40, 50, 800)}" fill="none" stroke="${colors[i]}" stroke-width="2"><title>${c.name}</title></path>`).join('')}</svg>`;
 }
 function frame() {
   const t = performance.now();
+  $('source').textContent = connection ? (document.hidden || !document.hasFocus() ? 'Device paused · focus this page' : `Live device · ${reports} reports`) : 'Simulator';
   // Use actual dispatch time; stalled/background frames must not manufacture successful gestures.
   if (run) {
     if (t - run.start > 1500) cancel();
     else if (run.index < run.rows.length && t >= run.start + run.rows[run.index].t) { feed(run.rows[run.index++].input, t); }
     if (run && t >= run.end && run.index === run.rows.length) { run = null; document.querySelectorAll('.running').forEach(el => el.classList.remove('running')); }
   }
-  receive(recognizer.advance(t)); const delta = motion.step(t); camera = applyMotion(camera, delta, { x: 400, y: 150 });
+  receive(recognizer.advance(t)); const delta = motion.step(t);
+  if ($('movementView').value === 'spatial') advancePose(pose, delta);
+  else { const scale = 800 / ($('viewport').clientWidth || 800); camera = applyMotion(camera, { ...delta, panX: delta.panX * scale, panY: delta.panY * scale }, { x: 400, y: 150 }); }
+  const vertices = projectCube(pose), faces = [[0,1,3,2],[4,5,7,6],[0,1,5,4],[2,3,7,6],[0,2,6,4],[1,3,7,5]];
+  $('cube').innerHTML = faces.map((face, i) => `<polygon points="${face.map(v => vertices[v].join(',')).join(' ')}" fill="${['#2355cb22','#23754e22','#9b4b1322'][i % 3]}" stroke="${colors[i]}" stroke-width="2"/>`).join('') + `<text x="${vertices[7][0] + 8}" y="${vertices[7][1]}" font-size="14" fill="#35465f">+x +y +z</text>`;
   $('world').setAttribute('transform', `translate(${camera.x} ${camera.y}) scale(${camera.zoom})`);
-  $('camera').textContent = `Zoom ${camera.zoom.toFixed(2)}× · offset ${camera.x.toFixed(0)}, ${camera.y.toFixed(0)} px`;
+  $('camera').textContent = $('movementView').value === 'spatial' ? `Position x/y/z: ${pose.position.map(v => v.toFixed(1)).join(' / ')} · Rotation rx/ry/rz: ${pose.angles.map(v => v.toFixed(1) + '°').join(' / ')}` : `Zoom ${camera.zoom.toFixed(2)}× · offset ${camera.x.toFixed(0)}, ${camera.y.toFixed(0)} view units`;
   samples.push({ t, input: { ...input }, delta: { ...delta, logZoom: Math.log(delta.zoomFactor) } }); while (samples.length && samples[0].t < t - 8000) samples.shift();
   if (!frozen && t - lastDraw > 80) { draw(t); lastDraw = t; }
   const state = recognizer.state; $('phase').textContent = `${state.pending ? 'Waiting for double' : state.phase === 'blocked' ? 'Release to arm' : state.phase}${connection ? ' · ' + reports + ' reports' : ''}`;
