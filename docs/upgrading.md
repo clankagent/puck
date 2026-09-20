@@ -9,13 +9,30 @@ Read the changelog for the version you are adopting, then use docs from that sam
 Gesture, tune, recording, calibration and graph APIs are included in 0.2.0. In your consuming app:
 
 ```sh
-pnpm add @clankagent/puck@0.3.0
+pnpm add @clankagent/puck@0.4.0
 pnpm list @clankagent/puck
 ```
 
-Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.3.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
+Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.4.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
 
 To test future unreleased source, build a chosen revision with `pnpm install --frozen-lockfile`, `pnpm check` and `pnpm pack --pack-destination artifacts`, then install the generated tarball into your app with `pnpm add /path/to/package.tgz`. Record the source commit alongside it; a working-tree package version alone does not identify unreleased changes.
+
+## From 0.3 to 0.4
+
+Combined press/tilt and standalone rx/ry gestures are now enabled by default,
+including with no options, an empty options object, or a restored tune. The demo
+uses these same defaults. Existing consumers may receive additional gesture types;
+route events with a `tilt` field before plain pressure actions. Pressure-first
+movement can become combined; tilt-first movement stays standalone.
+
+To retain the previous family selection, use
+`createGestures({pressMode:'simple', standaloneTilt:false})`. Add those options
+after spreading any tune options. Explicit per-direction modes still override
+`pressMode`. Additive `singleMode:'immediate'` requires combined modes to be
+disabled with `pressMode:'simple'` (or both per-direction modes set to simple).
+
+Motion and WebHID defaults are unchanged. Tune and recording JSON remain version 1.
+See [gesture modes](press-tilt.md) and the [changelog](../CHANGELOG.md).
 
 ## From 0.2 to 0.3
 

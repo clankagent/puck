@@ -5,7 +5,7 @@ import { gestures, key, sequence, createCounts } from '../examples/playground/mo
 for (const preset of Object.keys(gesturePresets)) test(`playground sequences exercise all 24 gestures with ${preset} tune`, () => {
   const counts = createCounts();
   for (const gesture of gestures) {
-    const recognizer = createGestures({ ...gesturePresets[preset].toOptions(), pressMode: 'auto', standaloneTilt: true });
+    const recognizer = createGestures(gesturePresets[preset]);
     const rows = sequence(gesture); const events = []; let index = 0;
     for (let t = 0; t <= 1100; t += 10) { while (index < rows.length && rows[index].t <= t) events.push(...recognizer.update(rows[index++].input, t)); events.push(...recognizer.advance(t)); }
     assert.deepEqual(events.map(key), [key(gesture)]); counts.add(events);

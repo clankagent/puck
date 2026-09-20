@@ -70,7 +70,7 @@ requires reconnecting the device.
 
 The source lab enables combined and standalone tilts on startup. Presets preserve
 mode choices; applying calibration updates only that gesture family. Library
-defaults remain opt-in. The status beside Last recognized shows enabled modes,
+defaults enable these families too. The status beside Last recognized shows enabled modes,
 report count, time since the last physical report and whether focus has paused
 input. Reports may stop while the cap is still; move it to check reception.
 After updating the source lab, reload and reconnect the device.

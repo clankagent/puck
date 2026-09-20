@@ -4,13 +4,13 @@ import {createGestures,calibrateTilts,createGestureTune,defaultGestureTune,neutr
 import {createTiltGraph} from '../dist/graph.js';
 const dirs=['rx+','rx-','ry+','ry-'];
 const sample=(d,force=.6)=>({...n,[d.slice(0,2)]:d.endsWith('+')?force:-force});
-function run(rows,opts={}){const g=createGestures({standaloneTilt:true,...opts});const out=[];for(const [t,input]of rows)out.push(...g.update(input,t));return out.concat(g.advance(2000));}
-for(const d of dirs)test(`${d} standalone single/double; opt-in only`,()=>{
+function run(rows,opts={}){const g=createGestures(opts);const out=[];for(const [t,input]of rows)out.push(...g.update(input,t));return out.concat(g.advance(2000));}
+for(const d of dirs)test(`${d} standalone single/double; enabled by default with explicit opt-out`,()=>{
  const rows=[[0,n],[10,sample(d)],[60,n]];
  assert.deepEqual(run(rows).map(e=>[e.direction,e.kind,e.tilt]),[[d,'single',undefined]]);
  assert.deepEqual(run(rows.concat([[200,sample(d)],[250,n]])).map(e=>e.kind),['double']);
  assert.deepEqual(run(rows,{standaloneTilt:false}),[]);
- assert.deepEqual(run(rows.concat([[200,sample(d)],[250,n]]),{singleMode:'immediate'}).map(e=>e.kind),['single','double']);
+ assert.deepEqual(run(rows.concat([[200,sample(d)],[250,n]]),{singleMode:'immediate',pressMode:'simple'}).map(e=>e.kind),['single','double']);
 });
 test('tilt-first keeps incidental pressure out of combined and plain press actions',()=>{
  const rows=[[0,n],[10,sample('rx+')],[40,{...sample('rx+'),z:-.2}],[100,{...n,z:-.1}],[130,n]];

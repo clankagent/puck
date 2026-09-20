@@ -6,17 +6,16 @@ The public demo runs entirely in the browser, served from GitHub Pages. No
 account, installation or device is required to try simulated input.
 
 The public site runs the same SDK as the package version shown in its header.
-The current 0.3.0 build was checked byte-for-byte against all 11 JavaScript
-modules in a fresh registry installation. The initial 2D movement configuration
+The initial 2D movement configuration
 uses `createPanZoom()` defaults, and the tester uses `createGestures()` without
 overrides. Regression tests compare the demo output and displayed motion defaults
 with unconfigured SDK instances. Speed/profile changes are explicit overrides.
 
-Default gesture mode enables eight twist/press types. Standalone tilt and combined
-press/tilt are opt-in controls, just as in the library. Disabled tiles say why;
+Default gesture mode enables all 24 types, including standalone tilt and combined
+press/tilt, just as in the library. Explicitly disabled tiles say why;
 the coverage denominator counts the currently enabled types. Restore gesture
 defaults returns to unconfigured SDK behavior. The public calibration lab also
-starts with library modes; the local research lab retains its all-family setup.
+starts with the same all-family defaults as the local lab and library.
 
 The 3D object renderer and camera limits are example-application behavior, not
 additional SDK defaults. Copy movement settings produces the actual `createPanZoom`

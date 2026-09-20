@@ -9,7 +9,7 @@ let samples = [], events = [], lastDraw = 0, camera = { x: 400, y: 150, zoom: 1 
 let motionOptions = { ...movementDefaults }, motion = createMovement(motionOptions), pose = initialPose();
 const totals = createCounts(), tiles = new Map();
 const gestureModes = document.createElement('div'); gestureModes.className = 'toolbar gesture-modes';
-gestureModes.innerHTML = '<label>Push / pull mode<select id="pressMode"><option value="simple">Simple · library default</option><option value="auto">Press or tilt · opt in</option><option value="tilt">Tilt + plain doubles · opt in</option></select></label><label><input type="checkbox" id="standaloneTilt"> Enable standalone tilt · opt in</label><button id="resetGestureDefaults">Restore gesture defaults</button><p id="gestureDefaults" class="hint">Library defaults: simple presses, standalone tilt off. Enable optional modes to test their tiles.</p>';
+gestureModes.innerHTML = '<label>Push / pull mode<select id="pressMode"><option value="auto">Press or tilt · library default</option><option value="simple">Simple · combined tilts disabled</option><option value="tilt">Tilt + plain doubles</option></select></label><label><input type="checkbox" id="standaloneTilt" checked> Standalone tilt · enabled by default</label><button id="resetGestureDefaults">Restore gesture defaults</button><p id="gestureDefaults" class="hint">Library defaults: all 24 gesture types enabled.</p>';
 $('tester').querySelector('.toolbar').after(gestureModes);
 // Movement is the first-class entry point; gesture counting remains independent below.
 $('tester').before($('motion'));
@@ -132,11 +132,11 @@ function cancel() {
   for (const axis of axes) { $('held-' + axis).value = 0; $('heldValue-' + axis).textContent = '0.00'; }
 }
 function apply() {
-  const defaults = $('preset').value === 'default' && $('pressMode').value === 'simple' && !$('standaloneTilt').checked;
+  const defaults = $('preset').value === 'default' && $('pressMode').value === 'auto' && $('standaloneTilt').checked;
   options = { ...gesturePresets[$('preset').value].toOptions(), pressMode: $('pressMode').value, standaloneTilt: $('standaloneTilt').checked };
   recognizer = defaults ? createGestures() : createGestures(options);
   cancel(); repaintCounts(); $('thresholds').textContent = JSON.stringify(options, null, 2);
-  $('gestureDefaults').textContent = defaults ? 'Using createGestures() with no overrides. Eight default gesture types enabled; optional tilt modes are off.' : 'Custom gesture configuration. Counts include only enabled types. Restore gesture defaults to match createGestures().';
+  $('gestureDefaults').textContent = defaults ? 'Using createGestures() with no overrides. All 24 gesture types enabled.' : 'Custom gesture configuration. Counts include only enabled types. Restore gesture defaults to match createGestures().';
 }
 function simulate(gesture) {
   if (connection || run || held) return;
@@ -164,7 +164,7 @@ window.addEventListener('keyup', e => { if ((keys[e.key] ?? keys[e.key.toLowerCa
 window.addEventListener('blur', cancel); document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(); });
 $('preset').onchange = () => { apply(); $('testStatus').textContent = 'Profile changed; counts retained. Reset for a fresh comparison.'; };
 $('pressMode').onchange = apply; $('standaloneTilt').onchange = apply;
-$('resetGestureDefaults').onclick = () => { $('preset').value = 'default'; $('pressMode').value = 'simple'; $('standaloneTilt').checked = false; apply(); };
+$('resetGestureDefaults').onclick = () => { $('preset').value = 'default'; $('pressMode').value = 'auto'; $('standaloneTilt').checked = true; apply(); };
 $('force').oninput = () => $('forceValue').textContent = Number($('force').value).toFixed(2);
 $('reset').onclick = () => { cancel(); totals.reset(); events = []; samples = []; frozen = false; $('freeze').textContent = 'Freeze graphs'; repaintCounts(); $('last').textContent = 'Ready when you are'; $('history').innerHTML = '<li>No events yet.</li>'; $('testStatus').textContent = 'All counters and traces reset. Release the cap to neutral to begin.'; };
 $('countSource').onchange = () => { $('reset').click(); $('testStatus').textContent = `Fresh test: counting ${$('countSource').value === 'device' ? 'device input only' : 'simulator input only'}.`; };

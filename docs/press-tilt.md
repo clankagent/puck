@@ -1,16 +1,16 @@
-# Standalone and combined tilts (0.3.0)
+# Standalone and combined tilts (0.4.0)
 
 [Documentation](../README.md) · [Roadmap](roadmap.md)
 
-These experimental APIs are opt-in. Existing simple gestures remain the default.
+These experimental APIs are enabled by default. `createGestures()` recognizes plain, standalone tilt and combined press/tilt gestures. Disable them explicitly with `{pressMode:'simple', standaloneTilt:false}`.
 
 ```js
 import {createGestures, defaultGestureTune} from '@clankagent/puck';
-const gestures = createGestures({...defaultGestureTune.toOptions(), pressMode:'auto'});
+const gestures = createGestures();
 // A combined event: {direction:'push', tilt:'rx+', kind:'single', timestamp, durationMs}
 ```
 
-`pressMode` is `simple` (existing default), `auto` (choose plain or combined), or
+`pressMode` is `simple` (disable combined), `auto` (default; choose plain or combined), or
 `tilt` (combined actions plus plain doubles; suppress plain singles). `pushMode`
 and `pullMode` override it independently. Combined modes require
 `singleMode:'exclusive'`. The `rx+`, `rx-`, `ry+`, `ry-` labels are device-axis
@@ -44,8 +44,8 @@ timing. With an unusually short `doubleMs`, plain singles wait at least
 
 Tune JSON version 1 accepts optional `pressTilt` containing `force` (a standard
 force band), `minMs`, `armMs`, `relaxMs`, `maxMs`, and `dominance`. Old tunes
-remain restorable. The default tune includes these settings, but does not
-enable combined recognition. Immutable force edits also edit the tilt band;
+remain restorable. The default tune includes these settings; recognition enables all families
+unless mode options explicitly disable them. Immutable force edits also edit the tilt band;
 timings stay unchanged. Save the mode separately from the tune.
 
 `calibratePressTilts(recordingOrArray, {baseTune?, minimumPerAction?})` derives
@@ -71,7 +71,7 @@ ownership of camera arbitration, recording storage, clocks and rendering.
 
 ## Standalone directional singles and doubles
 
-Enable `standaloneTilt:true` to recognize rx+/rx−/ry+/ry− without a deliberate
+The default `standaloneTilt:true` recognizes rx+/rx−/ry+/ry− without a deliberate
 push, pull or twist. Events use `direction:'rx+'` (or another tilt direction)
 and `kind:'single'|'double'`, with no `tilt` field. Signs are device axes, not
 screen directions. Map them in the consuming app.
@@ -80,7 +80,7 @@ screen directions. Map them in the consuming app.
 const gestures = createGestures({
   ...defaultGestureTune.toOptions(),
   standaloneTilt: true,
-  pressMode: 'auto', // optional: also recognize pressure-first combinations
+  pressMode: 'auto', // default: also recognize pressure-first combinations
 });
 ```
 

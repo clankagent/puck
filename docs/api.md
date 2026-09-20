@@ -43,11 +43,11 @@ An event is `{direction, kind, timestamp, durationMs}`. Direction is `clockwise|
 
 Timing defaults: `minPulseMs:35`, `maxPulseMs:650`, `neutralMs:25`, `doubleMs:400`; `dominance:1.4`. The double window is completion-to-completion. Both gesture axes must return below their release levels for neutral dwell.
 
-`singleMode:'exclusive'` (default) waits before emitting a single so a double can replace it. `'immediate'` emits a single first and later an additive double; no undo is emitted. Prefer exclusive when actions must not both fire.
+`singleMode:'exclusive'` (default) waits before emitting a single so a double can replace it. `'immediate'` requires `pressMode:'simple'` and emits a single first and later an additive double; no undo is emitted. Prefer exclusive when actions must not both fire.
 
 Low-level gates are `activation/release`, `pressActivation/pressRelease`, `twistActivation/twistRelease`, and `clockwiseActivation/clockwiseRelease` (likewise `counterclockwise`, `push`, `pull`). Precedence: direction → axis → shared → default tune. `createGestures({})` matches the no-argument form. Gates require `0 <= release < activation <= 1`; invalid options throw `RangeError`.
 
-For opt-in standalone rx/ry and combined pressure/tilt options, event shapes,
+For default-enabled standalone rx/ry and combined pressure/tilt options, event shapes,
 timing, calibration results and graph constructors, see the [tilt API](press-tilt.md).
 `PulseDirection` names the original four; `TiltDirection` names rx+/rx-/ry+/ry-;
 `GestureDirection` is their union. `GestureEvent.tilt` is optional and only present

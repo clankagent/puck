@@ -2,31 +2,25 @@
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
 
-## Source lab fixes (after 0.3.0)
+## 0.4.0 — 2026-09-20
 
-- Align public playground and calibration-lab gesture startup with SDK defaults:
-  simple presses and opt-in tilts. Default movement now delegates directly to
-  SDK defaults; tests compare demo/default output. Display the SDK version and
-  export actual consumer setup code. Verified the site's 11 SDK modules against
-  a clean npm 0.3.0 installation; no SDK behavior changed.
+- Enable combined press/tilt and standalone rx/ry singles and doubles by default
+  in the library, public playground and calibration lab. All 24 gesture types
+  work with `createGestures()`; no demo-only recognition overrides are needed.
+- Keep explicit opt-outs: `{pressMode:'simple', standaloneTilt:false}` restores
+  the old family selection. Immediate singles require simple press modes.
+  See the [upgrade guide](docs/upgrading.md#from-03-to-04).
+- Add the [public playground](https://clankagent.github.io/puck/) with resettable
+  gesture counters, real-recognizer simulation, six-axis graphs, event history,
+  continuous movement speed/settings controls, and 2D/3D movement examples.
+  Motion defaults still come directly from the SDK.
+- Publish the browser calibration lab with local recordings, download backups,
+  all-gesture simulation and selectable threshold graphs. Preserve selected
+  modes across preset changes and other gesture families during calibration.
+- Tune/recording formats and motion/WebHID behavior are unchanged. Recognition
+  APIs remain experimental. [Playground guide](docs/playground.md).
 
-- Put continuous movement first in the playground, with live pan/zoom speeds,
-  deadzones, acceleration response, frame cap, settings export and reset.
-  Added a six-axis object movement example with translation/rotation speeds,
-  combined held-axis simulation and graphs that follow the selected settings.
-  These are consuming-app examples; SDK defaults and exports are unchanged.
-
-- Added the [public playground](https://clankagent.github.io/puck/) with 24 resettable
-  gesture counters, real-recognizer simulation, device-only counting, six raw-axis
-  graphs, recognition timeline, motion output graphs and a pan/zoom example.
-- Published the calibration lab as static browser code, with browser-local
-  recordings, download backups, all-gesture simulation and selectable threshold
-  graph families. Existing local-server recording storage is preserved.
-- No SDK API or runtime behavior changes. See the [playground guide](docs/playground.md).
-
-- Enable combined and standalone tilt recognition on lab startup. Preserve selected modes across preset changes, and preserve other gesture families when applying a learned tune.
-- Show active gesture modes and device-report/focus status beside the live result. [Lab usage](docs/lab.md).
-- These are source-lab changes; the lab is not shipped in npm. The library remains 0.3.0 with opt-in defaults.
+[Compare versions](https://github.com/clankagent/puck/compare/v0.3.0...v0.4.0).
 
 ## 0.3.0 — 2026-09-19
 

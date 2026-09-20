@@ -9,7 +9,7 @@ for(const direction of Object.keys(axis)){
   g=createGestures({activation:.35,release:.12,neutralMs:35,doubleMs:320});g.update(n,0);pulse(g,direction,10);assert.deepEqual(pulse(g,direction,200).map(e=>[e.kind,e.direction]),[['double',direction]]);assert.deepEqual(g.advance(1000),[]);
  });
 }
-test('immediate is explicitly additive; triple produces double then single',()=>{const g=createGestures({singleMode:'immediate'});g.update(n,0);assert.equal(pulse(g,'push',10)[0].kind,'single');assert.equal(pulse(g,'push',200)[0].kind,'double');assert.equal(pulse(g,'push',390)[0].kind,'single');});
+test('immediate is explicitly additive; triple produces double then single',()=>{const g=createGestures({singleMode:'immediate',pressMode:'simple'});g.update(n,0);assert.equal(pulse(g,'push',10)[0].kind,'single');assert.equal(pulse(g,'push',200)[0].kind,'double');assert.equal(pulse(g,'push',390)[0].kind,'single');});
 test('noise, long holds, neutral dwell chatter and direct reversals do not count',()=>{
  const g=createGestures({activation:.35,release:.12,neutralMs:35,doubleMs:320});g.update(n,0);g.update({...n,z:.2},10);g.update(n,20);assert.deepEqual(g.advance(500),[]);
  assert.deepEqual(pulse(g,'push',510,10),[]);assert.deepEqual(g.advance(1000),[]);
@@ -49,7 +49,7 @@ test('axis-specific gates reject invalid bounds and preserve reversal cancellati
 });
 
 test('each signed direction can use its own gate',()=>{
- const g=createGestures({clockwiseActivation:.4,counterclockwiseActivation:.25,pushActivation:.2,pullActivation:.12,pullRelease:.06,release:.08,singleMode:'immediate'});
+ const g=createGestures({clockwiseActivation:.4,counterclockwiseActivation:.25,pushActivation:.2,pullActivation:.12,pullRelease:.06,release:.08,singleMode:'immediate',pressMode:'simple'});
  g.update(n,0);g.update({...n,rz:.3},10);g.update(n,100);assert.deepEqual(g.advance(135),[]);
  g.update({...n,rz:-.3},200);g.update(n,300);assert.equal(g.advance(335)[0].direction,'counterclockwise');
  g.update({...n,z:.15},700);g.update(n,800);assert.deepEqual(g.advance(835),[]);

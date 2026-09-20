@@ -7,6 +7,7 @@ export type TiltDirection = 'rx+' | 'rx-' | 'ry+' | 'ry-';
 export type GestureDirection = PulseDirection | TiltDirection;
 export type PressMode = 'simple' | 'tilt' | 'auto';
 export interface GestureOptions {
+  /** Enabled by default. Set false to disable standalone rx/ry gestures. */
   standaloneTilt?: boolean;
   tiltXActivation?: number;
   tiltXRelease?: number;
@@ -16,7 +17,7 @@ export interface GestureOptions {
   standaloneMaxPulseMs?: number;
   standaloneNeutralMs?: number;
   standaloneDoubleMs?: number;
-  /** Simple preserves 0.2 behavior; tilt suppresses plain singles; auto chooses. Plain doubles work in all modes. */
+  /** Default auto chooses plain or combined; simple disables combined tilts; tilt suppresses plain singles. Plain doubles work in all modes. */
   pressMode?: PressMode;
   pushMode?: PressMode;
   pullMode?: PressMode;
@@ -78,7 +79,7 @@ export function createGestures(configuration: GestureOptions | GestureTune = def
   const pressRelease = options.pressRelease ?? options.release;
   const twistActivation = options.twistActivation ?? options.activation ?? defaultGestureTune.rotation.activation;
   const twistRelease = options.twistRelease ?? options.release ?? defaultGestureTune.rotation.release;
-  const standalone=options.standaloneTilt??false;
+  const standalone=options.standaloneTilt??true;
   const st=defaultGestureTune.standaloneTilt!;
   const tx={activation:options.tiltXActivation??st.rx.activation,release:options.tiltXRelease??st.rx.release};
   const ty={activation:options.tiltYActivation??st.ry.activation,release:options.tiltYRelease??st.ry.release};
@@ -101,7 +102,7 @@ export function createGestures(configuration: GestureOptions | GestureTune = def
   const dwell=(d:GestureDirection)=>isTilt(d)?standaloneNeutral:neutralMs;
   const doubleWindow=(d:GestureDirection)=>isTilt(d)?standaloneDouble:doubleMs;
   const dominance = options.dominance ?? 1.4;
-  const modes = {push: options.pushMode ?? options.pressMode ?? 'simple', pull: options.pullMode ?? options.pressMode ?? 'simple'};
+  const modes = {push: options.pushMode ?? options.pressMode ?? 'auto', pull: options.pullMode ?? options.pressMode ?? 'auto'};
   const tiltActivation = options.tiltActivation ?? defaultGestureTune.pressTilt!.force.activation, tiltRelease = options.tiltRelease ?? defaultGestureTune.pressTilt!.force.release;
   const tiltMinMs = options.tiltMinMs ?? 25, tiltArmMs = options.tiltArmMs ?? 450;
   const tiltRelaxMs = options.tiltRelaxMs ?? 180, tiltMaxMs = options.tiltMaxMs ?? 1000;

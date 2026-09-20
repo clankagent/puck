@@ -1,5 +1,5 @@
 import { createGestureTune, defaultGestureTune } from '../../dist/index.js';
-// Lab defaults exercise every gesture family; library defaults remain opt-in.
+// Lab and library defaults enable every gesture family.
 export const labModes = Object.freeze({pressMode:'auto',standaloneTilt:true});
 export function presetOptions(tune, previous=labModes) {
  return {...tune.toOptions(),pressMode:previous.pressMode??'auto',standaloneTilt:previous.standaloneTilt??true};

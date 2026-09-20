@@ -5,7 +5,7 @@ import {createPressTiltGraph,renderGestureGraphSvg} from '../dist/graph.js';
 import {validateRecording} from '../examples/gestures/recording-api.mjs';
 const sides=['rx+','rx-','ry+','ry-'];
 const sample=(d,s,value=.6,z=.3)=>({...n,z:d==='push'?z:-z,...(s?{[s.slice(0,2)]:s.endsWith('+')?value:-value}:{})});
-function run(rows,options={pressMode:'auto'},hz=0){
+function run(rows,options={},hz=0){
  const g=createGestures(options),scheduled=rows.map(([t,input])=>({t,input}));
  if(hz)for(let t=0;t<=1200;t+=1000/hz)scheduled.push({t});
  scheduled.sort((a,b)=>a.t-b.t);const events=scheduled.flatMap(({t,input})=>input?g.update(input,t):g.advance(t));
@@ -28,7 +28,7 @@ test('full pressure relaxation can resume, but an expired arm cannot',()=>{
  const rows=[[0,n],[10,sample('push')],[90,n],[180,sample('push','ry+',.6,0)],[230,n]];
  const events=run(rows);assert.equal(events.length,1);assert.equal(events[0].tilt,'ry+');assert.equal(events[0].durationMs,220);
  const expired=run([[0,n],[10,sample('push')],[90,n],[400,sample('push','ry+',.6,0)],[450,n]]);
- assert.equal(expired.length,1);assert.equal(expired[0].tilt,undefined);
+ assert.equal(expired.length,2);assert.equal(expired[0].direction,'push');assert.equal(expired[0].tilt,undefined);assert.equal(expired[1].direction,'ry+');assert.equal(expired[1].tilt,undefined);
 });
 test('partial relaxation into a second pressure excursion consumes the pending single',()=>{
  const e=run([[0,n],[10,sample('push')],[90,n],[180,sample('push')],[195,sample('push','rx+')],[250,n]]);
