@@ -1,4 +1,5 @@
 import { createGestures, neutralInput, defaultGestureTune, gesturePresets, createGestureTune } from '../../dist/index.js';
+import { gestures, sequence, title } from '../playground/model.js';
 import { presetOptions, applyFamilyTune } from './settings.js';
 import { connectWebHid } from '../../dist/webhid.js';
 import { createRecorder } from './recorder.js';
@@ -33,6 +34,13 @@ const names = {clockwise:'Clockwise',counterclockwise:'Counterclockwise',push:'P
 let options = presetOptions(defaultGestureTune), recognizer = createGestures(options), input = {...neutralInput};
 let connection = null, held = null, log = [], samples = [], comparison = null;
 let reportCount=0,lastReportAt=null;
+let simulation=null;
+const simulatorPanel=document.createElement('div');simulatorPanel.className='record-actions';
+simulatorPanel.innerHTML='<label>Simulated gesture<select id="simulateGesture"></select></label><button id="simulate">Play input sequence</button><p class="hint">Synthetic input through the recognizer, using 75% force. Usable while recording in simulator mode.</p>';
+$('directions').before(simulatorPanel);
+gestures.forEach((g,i)=>$('simulateGesture').add(new Option(title(g),String(i))));
+$('simulate').onclick=()=>{if(connection||simulation||held)return;clearInput();simulation={start:performance.now(),index:0,rows:sequence(gestures[Number($('simulateGesture').value)]),end:1100};$('simulate').disabled=true;};
+const graphChoice=document.createElement('label');graphChoice.innerHTML='Graph family<select id="graphFamily"><option value="simple">Twist / push / pull</option><option value="combined">Pressure + tilt</option><option value="standalone">Standalone tilt</option></select>';$('liveGraph').before(graphChoice);
 const calibration=createCalibrationPanel({applyTune(tune,family){const next=applyFamilyTune(currentTune,tune,family,options);currentTune=next.tune;options=next.options;apply();}});
 const recorder=createRecorder({onSaved:calibration.show,snapshot:()=>({source:connection?'device':'simulator',options}),begin(){recognizer.reset();}});
 try { const saved = JSON.parse(localStorage.getItem('puck-gesture-comparison')); if(saved){createGestures(saved);comparison=saved;} } catch {}
@@ -60,8 +68,8 @@ function received(events){recorder.events(events);
  if(events.length){log=log.slice(0,40);$('events').replaceChildren();for(const e of log){const row=document.createElement('tr');for(const value of [names[e.direction]+(e.tilt?' + '+e.tilt:''),e.kind,`${Math.round(e.durationMs)} ms`,`${Math.round(e.delay)} ms`]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}$('events').append(row);}}
 }
 function feed(value,physical=false){const t=performance.now();input={...value};if(physical){reportCount++;lastReportAt=t;}recorder.input(input,t,physical);received(recognizer.update(input,t));}
-function clearInput(){recorder.reset(performance.now());held=null;input={...neutralInput};recognizer.reset();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
-function start(direction){if(connection||held)return;held=direction;const v={...neutralInput};if(direction==='push')v.z=.75;if(direction==='pull')v.z=-.75;if(direction==='clockwise')v.rz=.75;if(direction==='counterclockwise')v.rz=-.75;feed(v);document.querySelector(`[data-direction="${direction}"]`).classList.add('held');}
+function clearInput(){simulation=null;$('simulate').disabled=Boolean(connection);recorder.reset(performance.now());held=null;input={...neutralInput};recognizer.reset();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(!connection)feed(input);}
+function start(direction){if(connection||held||simulation)return;held=direction;const v={...neutralInput};if(direction==='push')v.z=.75;if(direction==='pull')v.z=-.75;if(direction==='clockwise')v.rz=.75;if(direction==='counterclockwise')v.rz=-.75;feed(v);document.querySelector(`[data-direction="${direction}"]`).classList.add('held');}
 function stop(){if(!held)return;held=null;feed(neutralInput);document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));}
 const keyMap={ArrowLeft:'counterclockwise',ArrowRight:'clockwise',ArrowDown:'push',ArrowUp:'pull'};
 window.addEventListener('keydown',e=>{if(!keyMap[e.key]||e.target.closest('input,select,textarea')||connection)return;e.preventDefault();if(!e.repeat)start(keyMap[e.key]);});
@@ -93,7 +101,7 @@ $('save').onclick=()=>{comparison={...options};$('restore').disabled=false;try{l
 $('restore').onclick=()=>{options={...comparison};apply();$('saved').textContent='Comparison A restored.';};
 $('export').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(options,null,2));$('feedback').textContent='Settings copied.';}catch{$('feedback').textContent=JSON.stringify(options);}};
 $('clear').onclick=()=>{log=[];$('events').innerHTML='<tr><td colspan="4" class="muted">History cleared. Try another gesture.</td></tr>';};
-function connectionUI(){const connected=Boolean(connection);recorder.connected(connected);$('connect').textContent=connected?'Disconnect':'Connect SpaceMouse';$('source').textContent=connected?'Live device':'Simulator';document.querySelectorAll('[data-direction]').forEach(b=>b.disabled=connected);}
+function connectionUI(){const connected=Boolean(connection);recorder.connected(connected);$('connect').textContent=connected?'Disconnect':'Connect SpaceMouse';$('source').textContent=connected?'Live device':'Simulator';$('simulate').disabled=connected;document.querySelectorAll('[data-direction]').forEach(b=>b.disabled=connected);}
 $('connect').onclick=async()=>{
  $('connect').disabled=true;
  try{
@@ -106,8 +114,9 @@ function graphTune(){
  const data=currentTune.toJSON(),p=data.pressTilt??defaultGestureTune.pressTilt;const st=data.standaloneTilt??defaultGestureTune.standaloneTilt;return createGestureTune({...data,standaloneTilt:{...st,rx:{...st.rx,activation:options.tiltXActivation,release:options.tiltXRelease},ry:{...st.ry,activation:options.tiltYActivation,release:options.tiltYRelease},timing:{...st.timing,doubleMs:options.standaloneDoubleMs}},pressTilt:{...p,force:{...p.force,activation:options.tiltActivation,release:options.tiltRelease},minMs:options.tiltMinMs,armMs:options.tiltArmMs,relaxMs:options.tiltRelaxMs},rotation:{...data.rotation,activation:options.twistActivation,release:options.twistRelease},push:{...data.push,activation:options.pushActivation,release:options.pushRelease},pull:{...data.pull,activation:options.pullActivation,release:options.pullRelease},timing:{minPulseMs:options.minPulseMs,maxPulseMs:options.maxPulseMs,neutralMs:options.neutralMs,doubleMs:options.doubleMs}});
 }
 function frame(){
+ const now=performance.now();if(simulation){if(now-simulation.start>1500)clearInput();else if(simulation.index<simulation.rows.length&&now>=simulation.start+simulation.rows[simulation.index].t)feed(simulation.rows[simulation.index++].input);if(simulation&&now>=simulation.start+simulation.end&&simulation.index===simulation.rows.length){simulation=null;$('simulate').disabled=Boolean(connection);}}
  const t=performance.now();recorder.advance(t);received(recognizer.advance(t));samples.push({t,input:{...input}});while(samples.length&&samples[0].t<t-4000)samples.shift();
- if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg((options.pressMode&&options.pressMode!=='simple'?createPressTiltGraph:options.standaloneTilt?createTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
+ if(t-lastGraph>125){lastGraph=t;const origin=Math.max(0,t-4000);const r={version:1,source:'simulator',note:'',durationMs:Math.min(4000,t),options,timeline:samples.map(s=>({type:'input',t:s.t-origin,input:s.input})),events:[]};$('liveGraph').innerHTML=renderGestureGraphSvg(($('graphFamily').value==='combined'?createPressTiltGraph:$('graphFamily').value==='standalone'?createTiltGraph:createGestureGraph)(r,graphTune()),{width:Math.max(280,$('liveGraph').clientWidth),title:'Live input by axis direction'});}
  $('inputStatus').textContent=!connection?'Simulator — connect the device for live input.':document.hidden||!document.hasFocus()?'Device paused: focus this page to receive input.':lastReportAt===null?'Connected; no movement report received yet. Move the cap.':`${reportCount} device reports · last ${Math.max(0,Math.round((t-lastReportAt)/1000))}s ago · lift ${Math.max(0,-input.z).toFixed(2)} · tilt rx ${input.rx.toFixed(2)} / ry ${input.ry.toFixed(2)}`;
  const state=recognizer.state;$('phase').textContent=state.phase==='blocked'?'Release to arm':state.direction?`${names[state.direction]} · ${state.phase}`:state.pending?`${names[state.pending]} · waiting`:'Neutral';
  $('values').textContent=`Blue = input. Cross green to start; return below gray to release. Twist ${input.rz.toFixed(2)} · vertical ${input.z.toFixed(2)} · rx ${input.rx.toFixed(2)} · ry ${input.ry.toFixed(2)}.`;

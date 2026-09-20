@@ -2,6 +2,11 @@
 
 [Documentation](../README.md)
 
+The [public playground](https://clankagent.github.io/puck/) includes a browser-only
+version of this lab plus gesture counters and live motion examples. Its
+recordings stay in the visitor's browser; the local server below still saves to
+local files. See the [playground guide](playground.md).
+
 Run from a source checkout; the lab server is not shipped in the npm package.
 
 ## Local gesture lab

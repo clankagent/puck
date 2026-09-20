@@ -1,3 +1,4 @@
+import { recordingFetch as fetch } from './storage.js';
 import { calibrateGestures, calibratePressTilts, calibrateTilts, createGestureTune, defaultGestureTune } from '../../dist/index.js';
 import { createGestureGraph, createPressTiltGraph, createTiltGraph, renderGestureGraphSvg } from '../../dist/graph.js';
 const $=id=>document.getElementById(id);

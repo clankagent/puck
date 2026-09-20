@@ -33,6 +33,8 @@
     }
   },
   "scripts": {
+    "site:build": "pnpm build && node scripts/build-site.mjs",
+    "site:serve": "node scripts/serve-site.mjs",
     "lab": "node examples/gestures/serve.mjs",
     "lab:analyze": "node examples/gestures/analyze-recording.mjs",
     "build": "tsc -p tsconfig.json",

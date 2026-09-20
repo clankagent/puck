@@ -1,3 +1,4 @@
+import { recordingFetch as fetch, browserStorage } from './storage.js';
 import { createGestureRecorder } from '../../dist/index.js';
 const $=id=>document.getElementById(id);
 export function createRecorder({snapshot,begin,onSaved=()=>{}}){
@@ -35,12 +36,12 @@ export function createRecorder({snapshot,begin,onSaved=()=>{}}){
   try{const response=await fetch('/api/recordings');if(!response.ok)throw Error();const rows=await response.json();$('recordings').replaceChildren();for(const r of rows){const li=document.createElement('li');li.textContent=`${new Date(r.savedAt).toLocaleString()} · ${r.source} · ${Math.round(r.durationMs/1000)}s · ${r.reports} reports · ${r.id.slice(0,8)}${r.note?' · '+r.note:''}`;$('recordings').append(li);}if(!rows.length)$('recordings').textContent='No saved recordings yet.';}catch{$('recordings').textContent='Saved recordings could not be loaded.';}
  }
  async function save(){
-  if(!last||saving)return;saving=true;$('recordStart').disabled=true;$('recordRetry').disabled=true;status('Saving recording to the VM…');
+  if(!last||saving)return;saving=true;$('recordStart').disabled=true;$('recordRetry').disabled=true;status(browserStorage?'Saving recording in this browser…':'Saving recording locally…');
   try{
    const session=await fetch('/api/session');if(!session.ok)throw Error('Session unavailable');const {token}=await session.json();
    const response=await fetch('/api/recordings',{method:'POST',headers:{'Content-Type':'application/json','X-Puck-Token':token},body:JSON.stringify(last)});
    const result=await response.json();if(!response.ok)throw Error(result.error||'Save failed');
-   status(`Saved ${result.id.slice(0,8)} · ${last.source} · ${reports} input reports. ${stopReason?stopReason+'. ':''}Automatic analysis appears below; I can also read it directly.`);$('recordRetry').hidden=true;await history();onSaved(last,result);
+   status(`Saved ${result.id.slice(0,8)} · ${last.source} · ${reports} input reports. ${stopReason?stopReason+'. ':''}Automatic analysis appears below.`);$('recordRetry').hidden=true;await history();onSaved(last,result);
   }catch(error){status(`Not saved: ${error.message}. Your capture is still here. Retry or download a backup before leaving.`);$('recordRetry').hidden=false;}
   finally{saving=false;readiness();$('recordRetry').disabled=false;}
  }
