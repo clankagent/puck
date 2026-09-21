@@ -29,3 +29,7 @@ Documentation targets 0.5.0, including experimental gesture/tune/recording/calib
 Exact build signatures are in dist/index.d.ts, dist/webhid.d.ts and dist/graph.d.ts. Import from @clankagent/puck, @clankagent/puck/webhid and @clankagent/puck/graph only.
 
 Push/pull + rotation supports taps and continuous holds by default. See [press and rotate](docs/press-rotate.md) for lifecycle events and application integration.
+
+Application API (1.0 candidate): docs/application-api.md
+Candidate verification and physical evaluation scope: docs/v1-verification.md
+Workbench: https://clankagent.github.io/puck/controls.html

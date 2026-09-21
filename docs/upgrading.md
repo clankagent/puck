@@ -1,5 +1,10 @@
 # Upgrading and adopting updates
 
+## From 0.5 to 1.0.0-rc.1
+
+The candidate adds the [application-facing API](application-api.md). Existing exports and defaults remain available; adoption is incremental. New application recordings/settings are distinct from legacy tune/recording formats. Continuous controls integrate actual report boundaries and use explicit velocity units; do not integrate raw deflection. The new runtime limits stalled-frame movement to the first configured interval while current velocity evolves through elapsed time. Declare overlapping ownership explicitly and forward lifecycle interruptions rather than synthetic releases. Install the `next` tag to evaluate the candidate.
+
+
 [Changelog](../CHANGELOG.md) · [Documentation](../README.md) · [API reference](api.md)
 
 ## Identify the version first

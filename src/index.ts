@@ -14,3 +14,8 @@ export { calibratePressTilts, tiltDirections } from './press-tilt-calibration.js
 export type { PressTiltCalibration, PressTiltAction, PressTiltActionName } from './press-tilt-calibration.js';
 export { calibrateTilts } from './tilt-calibration.js';
 export type { TiltCalibration, TiltCalibrationAction, TiltActionName } from './tilt-calibration.js';
+export { control } from './controls.js';
+export type { Axis, Source, Vec2, Vec3, SourceValue, Velocity, Interpretation, ContinuousValue, Ownership, ContinuousOptions, Activation, GestureInput, CommandOptions, CancelGesture, InteractionOptions, ContinuousControl, GestureControl, InteractionControl, Control, ControlGroup, ValueOf } from './controls.js';
+export { createPuck, replayPuck, EventOverflowError } from './puck.js';
+export type { Puck, PuckOptions, PuckFrame, PuckEvent, EventOf, StateOf, SettingsOf, InteractionState, InteractionEvent, CommandEvent, CancelReason, EventCursor, PuckSettings, PuckRecording, TimelineOperation } from './puck.js';
+export { recipes, motionDefaults } from './recipes.js';

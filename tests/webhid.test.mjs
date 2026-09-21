@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { connectWebHid } from '../dist/webhid.js';
-import { neutralInput } from '../dist/index.js';
+import { connectWebHid, connectPuck } from '../dist/webhid.js';
+import { neutralInput, createPuck, control } from '../dist/index.js';
 
 test('foreground lifecycle resets input and processor, and removes listeners on close', async () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -59,6 +59,12 @@ class Hid extends EventTarget {
   async requestDevice({ filters }) { this.filters = filters; return this.devices; }
   disconnect(device) { const event = new Event('disconnect'); event.device = device; this.dispatchEvent(event); }
 }
+test('application connector forwards explicit interruptions and owns deadline ticking without rendering',async()=>{
+  let time=0;const c=control.interaction({activation:'push',value:'tilt',holdMs:25}),p=createPuck({controls:{c},clock:()=>time}),events=p.events(),device=new Device();
+  const connection=await connectPuck(p,{hid:new Hid([device])});device.report(1,0);time=10;device.report(1,200);time=40;
+  await new Promise(resolve=>setTimeout(resolve,35));assert.equal(p.read(c).status,'active');time=50;connection.pause();assert.equal(events.drain().at(-1).reason,'pause');
+  time=60;await connection.close();p.dispose(60);
+});
 
 test('adapter can import without browser globals and chooser cancellation is ordinary', async () => {
   const hid = new Hid([]);

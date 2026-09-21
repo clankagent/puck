@@ -1,6 +1,6 @@
-import { createPanZoom } from '../../dist/index.js';
+import { createPuck, recipes, motionDefaults } from '../../dist/index.js';
 
-export const movementDefaults = Object.freeze({ panSpeed: 1320, zoomSpeed: 1.5, panDeadzone: .05, zoomDeadzone: .1, responseMs: 25, maxFrameMs: 50, zoomInput: 'twist', translationSpeed: 200, rotationSpeed: 90, rotationDeadzone: .05 });
+export const movementDefaults = Object.freeze({ ...motionDefaults, rotationSpeed: motionDefaults.rotationSpeed * 180 / Math.PI, zoomInput: 'twist' });
 export const panZoomKeys = ['panSpeed', 'zoomSpeed', 'panDeadzone', 'zoomDeadzone', 'responseMs', 'maxFrameMs', 'zoomInput'];
 export function panZoomOverrides(config) { return Object.fromEntries(panZoomKeys.filter(key => config[key] !== movementDefaults[key]).map(key => [key, config[key]])); }
 export const movementFields = [
@@ -15,20 +15,25 @@ export const movementFields = [
   ['rotationDeadzone', '3D rotation deadzone', 0, .5, .01, '', 'Ignore small rotational deflections.'],
 ];
 
-// A consuming-app example built from the existing SDK integrators, not a new SDK API.
-// Treat the third logarithmic channel as an integrated scalar for z / rz.
+// Rendering remains demo code; every motion channel uses public SDK recipes.
 export function createMovement(options = movementDefaults) {
   const config = { ...movementDefaults, ...options };
-  // A fresh/default demo uses the SDK's own defaults, not demo overrides.
-  const panZoom = createPanZoom(panZoomOverrides(config));
-  const translation = createPanZoom({ ...config, panSpeed: config.translationSpeed, zoomSpeed: config.translationSpeed, zoomInput: 'press', zoomDeadzone: config.panDeadzone });
-  const rotation = createPanZoom({ ...config, panSpeed: config.rotationSpeed, zoomSpeed: config.rotationSpeed, zoomInput: 'twist', panDeadzone: config.rotationDeadzone, zoomDeadzone: config.rotationDeadzone });
+  const controls = { ...recipes.panZoom(config), ...recipes.sixAxis({ ...config, rotationSpeed: config.rotationSpeed * Math.PI / 180 }) };
+  let runtime = createPuck({ controls, maxFrameMs: config.maxFrameMs, clock: () => 0 }), pending, previous, lastTime = 0;
   return {
-    setInput(input) { panZoom.setInput(input); translation.setInput(input); rotation.setInput({ ...input, x: -input.rx, y: -input.ry }); },
-    reset() { panZoom.reset(); translation.reset(); rotation.reset(); },
+    setInput(input, time) {
+      if (time === undefined) pending = { ...input };
+      else { runtime.feed(input, time); lastTime = time; pending = undefined; }
+    },
+    reset() { runtime.dispose(lastTime); runtime = createPuck({ controls, maxFrameMs: config.maxFrameMs, clock: () => 0 }); previous = undefined; pending = undefined; lastTime = 0; },
     step(t) {
-      const planar = panZoom.step(t), move = translation.step(t), turn = rotation.step(t);
-      return { ...planar, translation: [move.panX, move.panY, Math.log(move.zoomFactor)], rotation: [turn.panX, turn.panY, Math.log(turn.zoomFactor)] };
+      // Compatibility callers without report timestamps update at the previous frame.
+      // The playground supplies actual report times to setInput.
+      if (pending) { runtime.feed(pending, previous ?? t); pending = undefined; }
+      const frame = runtime.frame(t); previous = t; lastTime = t;
+      const [panX, panY] = frame.integrate(controls.pan), logZoom = frame.integrate(controls.zoom);
+      return { panX, panY, zoomFactor: Math.exp(logZoom), moving: panX !== 0 || panY !== 0 || logZoom !== 0,
+        translation: frame.integrate(controls.translation), rotation: frame.integrate(controls.rotation).map(v => v * 180 / Math.PI) };
     },
   };
 }

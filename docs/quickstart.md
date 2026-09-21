@@ -1,5 +1,10 @@
 # Browser quickstart
 
+## Recommended application integration
+
+Start with the [application API guide](application-api.md). Use `createPuck({controls})` and the optional `/webhid` `connectPuck` bridge. The low-level example below remains supported for existing integrations.
+
+
 [Documentation](../README.md) · [API reference](api.md)
 
 These examples target the source checkout described in the README. Use a browser with WebHID in a secure context and call connection from a user click. A cancelled chooser returns `null`; unsupported browsers and device errors reject the promise. Catch and display those errors in your UI.

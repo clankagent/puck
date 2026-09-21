@@ -27,7 +27,7 @@ nav.querySelector('[href="#tester"]').before(movementLink);
 nav.querySelector('[href="#tester"]').textContent = '02   Gesture tester';
 nav.querySelector('[href="#signals"]').textContent = '03   Signal monitor';
 const settings = document.createElement('div'); settings.className = 'movement-settings';
-settings.innerHTML = '<label>View<select id="movementView"><option value="planar">2D pan / zoom</option><option value="spatial">3D · all six axes</option></select></label><p class="hint">2D: slide to pan, twist or press to zoom. 3D: slide, push/pull and tilt/twist to move and rotate the object.</p><div id="movementFields"></div><div class="manual"><button id="resetMovement">Restore movement defaults</button><button id="copyMovement">Copy SDK setup</button></div><p id="movementStatus" role="status">Using createPanZoom() defaults. Changes apply immediately; gesture force profiles do not affect movement.</p>';
+settings.innerHTML = '<label>View<select id="movementView"><option value="planar">2D pan / zoom</option><option value="spatial">3D · all six axes</option></select></label><p class="hint">2D: slide to pan, twist or press to zoom. 3D: slide, push/pull and tilt/twist to move and rotate the object.</p><div id="movementFields"></div><div class="manual"><button id="resetMovement">Restore movement defaults</button><button id="copyMovement">Copy SDK setup</button></div><p id="movementStatus" role="status">Using public SDK motion recipe defaults. Changes apply immediately; gesture force profiles do not affect movement.</p>';
 const workspace = document.createElement('div'); workspace.className = 'movement-workspace';
 const visual = document.createElement('div'); visual.className = 'movement-visual';
 $('viewport').before(workspace); workspace.append(settings, visual);
@@ -63,7 +63,13 @@ function setView() {
 }
 $('movementView').onchange = setView;
 $('resetMovement').onclick = () => { motionOptions = { ...movementDefaults }; for (const [id] of movementFields) { $('motion-' + id).value = motionOptions[id]; $('number-' + id).value = motionOptions[id]; $('number-' + id).removeAttribute('aria-invalid'); } $('zoomInput').value = motionOptions.zoomInput; updateMovement('Movement defaults restored. View position retained.'); };
-$('copyMovement').onclick = async () => { const text = `import { createPanZoom } from '@clankagent/puck';\n\nconst motion = createPanZoom(${Object.keys(panZoomOverrides(motionOptions)).length ? JSON.stringify(panZoomOverrides(motionOptions), null, 2) : ''});`; try { await navigator.clipboard.writeText(text); $('movementStatus').textContent = 'SDK pan/zoom setup copied. 3D object settings belong to the demo.'; } catch { $('movementStatus').textContent = text; } };
+$('copyMovement').onclick = async () => {
+  const spatial = $('movementView').value === 'spatial';
+  const config = spatial ? { translationSpeed: motionOptions.translationSpeed, rotationSpeed: motionOptions.rotationSpeed * Math.PI / 180, panDeadzone: motionOptions.panDeadzone, rotationDeadzone: motionOptions.rotationDeadzone, responseMs: motionOptions.responseMs } : panZoomOverrides(motionOptions);
+  delete config.maxFrameMs;
+  const text = "import { createPuck, recipes } from '@clankagent/puck';\n\nconst controls = recipes." + (spatial ? 'sixAxis' : 'panZoom') + '(' + (Object.keys(config).length ? JSON.stringify(config, null, 2) : '') + ');\nconst puck = createPuck({ controls, maxFrameMs: ' + motionOptions.maxFrameMs + ' });\n// Feed every input report and call puck.frame(time).integrate(handle).';
+  try { await navigator.clipboard.writeText(text); $('movementStatus').textContent = 'Public SDK movement setup copied.'; } catch { $('movementStatus').textContent = text; }
+};
 const panControls = document.createElement('div'); panControls.className = 'manual';
 for (const [direction, label] of [['x+', 'Test left'], ['x-', 'Test right'], ['y+', 'Test up'], ['y-', 'Test down'], ['zoom+', 'Test zoom in'], ['zoom-', 'Test zoom out'], ['rx+', 'Test rx rotation'], ['ry+', 'Test ry rotation'], ['rz+', 'Test rz rotation']]) {
   const b = document.createElement('button'); b.textContent = label; b.dataset.pan = direction; b.dataset.label = label;
@@ -124,7 +130,7 @@ function receive(batch) {
   events = events.slice(-200); repaintCounts();
   $('history').replaceChildren(...events.slice(-40).reverse().map(e => { const li = document.createElement('li'); li.textContent = `${(e.timestamp / 1000).toFixed(2)}s · ${title(e)} · ${Math.round(e.durationMs)} ms · ${e.source}`; return li; }));
 }
-function feed(value, t = performance.now()) { input = { ...value }; motion.setInput(input); receive(recognizer.update(input, t)); }
+function feed(value, t = performance.now()) { input = { ...value }; motion.setInput(input, t); receive(recognizer.update(input, t)); }
 function cancel() {
   run = null; held = null; input = { ...neutralInput }; receive(recognizer.reset(performance.now())); motion.reset();
   if (!connection) feed(neutralInput);

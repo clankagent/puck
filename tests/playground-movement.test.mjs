@@ -1,17 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { neutralInput, createPanZoom, createGestures, gesturePresets } from '../dist/index.js';
+import { neutralInput, createPuck, recipes, createGestures, gesturePresets } from '../dist/index.js';
 import { createMovement, initialPose, advancePose, projectCube, movementDefaults, panZoomOverrides } from '../examples/playground/movement.js';
 import { gestures, sequence, enabledGesture } from '../examples/playground/model.js';
-test('default playground motion is identical to a consumer using createPanZoom()', () => {
+test('default playground motion equals the public SDK recipes with real report timestamps', () => {
   assert.deepEqual(panZoomOverrides(movementDefaults), {});
-  const demo = createMovement(), consumer = createPanZoom(), displayedDefaults = createPanZoom(movementDefaults);
-  const steps = [[0, {}], [10, { x: -.7, y: .4, z: .8, rz: .5 }], [60, { x: -.7, y: .4, rz: .5 }], [75, { x: .02, y: .04, rz: .08 }], [160, { x: 1, y: -1, rz: -1 }], [180, {}]];
-  for (const [t, axes] of steps) {
-    const input = { ...neutralInput, ...axes }; demo.setInput(input); consumer.setInput(input); displayedDefaults.setInput(input);
-    const { translation, rotation, ...actual } = demo.step(t); assert.deepEqual(actual, consumer.step(t)); assert.deepEqual(actual, displayedDefaults.step(t));
+  const demo = createMovement(), controls = { ...recipes.panZoom(), ...recipes.sixAxis() }, consumer = createPuck({ controls });
+  const rows = [[0, {}], [10, { x: -.7, y: .4, z: .8, rz: .5 }], [60, { x: -.7, y: .4, rz: .5 }], [75, { x: .02, y: .04, rz: .08 }], [160, { x: 1, y: -1, rz: -1 }], [180, {}]];
+  for (const [t, values] of rows) {
+    const input = { ...neutralInput, ...values }; demo.setInput(input, t); consumer.feed(input, t);
+    const actual = demo.step(t), frame = consumer.frame(t), pan = frame.integrate(controls.pan), zoom = Math.exp(frame.integrate(controls.zoom));
+    assert.deepEqual(actual, { panX: pan[0], panY: pan[1], zoomFactor: zoom, moving: pan[0] !== 0 || pan[1] !== 0 || zoom !== 1,
+      translation: frame.integrate(controls.translation), rotation: frame.integrate(controls.rotation).map(v => v * 180 / Math.PI) });
   }
 });
+
 test('default gesture tile availability and events match the SDK consumer defaults', () => {
   const options = { ...gesturePresets.default.toOptions(), pressMode: 'auto', standaloneTilt: true };
   assert.equal(gestures.filter(g => enabledGesture(g, options)).length, 32);

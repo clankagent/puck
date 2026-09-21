@@ -1,13 +1,20 @@
 # Puck
 
+## Application-facing SDK · 1.0 candidate
+
+The new API declares typed continuous controls, gestures and persistent interactions. Read current values, subscribe to occurrences, integrate motion per frame, and inspect ownership using the same handles. Push and pull have symmetric capabilities.
+
+Install with `pnpm add @clankagent/puck@next`. Stable 0.5 remains on `latest` during physical evaluation. Read the [application API](docs/application-api.md), [candidate verification](docs/v1-verification.md), or [try application controls](https://clankagent.github.io/puck/controls.html). Existing low-level APIs remain supported.
+
+
 Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.
 
-**Version note:** these docs target 0.5.0. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
+**Version note:** the low-level examples target the compatible 0.5 API. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
 
 ## Start here
 
 **[Open the Puck playground](https://clankagent.github.io/puck/)** — tune live movement
-speeds, pan/zoom or move and rotate a six-axis object, test all 24 gestures,
+speeds, pan/zoom or move and rotate a six-axis object, test all 32 gesture outcomes,
 reset detection counts, watch six-axis graphs, and record
 or calibrate input. Works without hardware using simulated input. The public
 site keeps recordings in your browser. [Playground guide](docs/playground.md).

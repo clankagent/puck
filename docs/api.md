@@ -1,8 +1,13 @@
 # API reference
 
+## Application-facing API
+
+For `createPuck`, `control.continuous`, `control.gesture`, `control.interaction`, recipes, settings, contexts, ownership and replay, see the [application API reference](application-api.md). The reference below covers retained low-level APIs.
+
+
 [Documentation](../README.md) · [Quickstart](quickstart.md) · [Tuning guide](tuning.md)
 
-This reference describes 0.2.0, including its experimental gesture APIs. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
+This section documents the compatible low-level API, including experimental gesture recognition. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
 
 ## Imports and units
 

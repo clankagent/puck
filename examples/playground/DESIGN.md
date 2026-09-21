@@ -25,3 +25,5 @@ should show what registered and let the visitor decide what to do next. Therefor
 raw input remains visible independently of recognition, pending singles have a
 waiting state, and device/simulator counts are separate. No hardware certification
 is implied by completing the board. Data stays in the browser on the public site.
+
+Application-controls workbench: retain the established Manual layout and tokens. Put the six-axis view beside the active session, with context selection above them; raw/effective graphs and inspection follow. Counter reset is distinct from session cancellation. Collapse the two-column workbench on phones. Public recipes own movement and selection; this page owns drawing only.

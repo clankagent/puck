@@ -1,5 +1,6 @@
 import { decodeCombinedReport, neutralInput } from './input.js';
 import type { InputState } from './input.js';
+import type { Puck, CancelReason } from './puck.js';
 
 /** Structural browser interfaces keep WebHID globals out of the core package. */
 export interface HidReportEvent extends Event { reportId: number; data: DataView }
@@ -28,6 +29,8 @@ export interface ConnectionOptions {
   onInput(input: Readonly<InputState>): void;
   /** Reset processor timing/response on pause, blur, hidden, close or disconnect. */
   onReset?(): void;
+  /** Explicit lifecycle reason for application runtimes. */
+  onInterrupt?(reason: CancelReason): void;
   onDisconnect?(): void;
   profile?: DeviceProfile;
   /** Inject for tests or an alternative WebHID implementation. */
@@ -57,14 +60,14 @@ export async function connectWebHid(options: ConnectionOptions): Promise<InputCo
   let paused = false;
   let closed = false;
   const isForeground = () => !focusPolicy || !document || document.hasFocus() && !document.hidden;
-  const clear = () => { options.onInput(neutralInput); options.onReset?.(); };
+  const clear = (reason: CancelReason) => { options.onInput(neutralInput); options.onReset?.(); options.onInterrupt?.(reason); };
   const report = (event: Event) => {
     if (paused || closed || !isForeground()) return;
     const input = event as HidReportEvent;
     const decoded = profile.decode(input.reportId, input.data);
     if (decoded) options.onInput(decoded);
   };
-  const blur = () => { if (focusPolicy) clear(); };
+  const blur = () => { if (focusPolicy) clear('blur'); };
   const visibility = () => { if (document?.hidden) blur(); };
   const detach = () => {
     device.removeEventListener('inputreport', report);
@@ -76,7 +79,7 @@ export async function connectWebHid(options: ConnectionOptions): Promise<InputCo
     if ((event as Event & { device: HidDevice }).device !== device) return;
     closed = true;
     detach();
-    clear();
+    clear('disconnect');
     options.onDisconnect?.();
   };
   device.addEventListener('inputreport', report);
@@ -85,13 +88,27 @@ export async function connectWebHid(options: ConnectionOptions): Promise<InputCo
   document?.addEventListener('visibilitychange', visibility);
   return {
     device,
-    pause() { if (!closed) { paused = true; clear(); } },
+    pause() { if (!closed) { paused = true; clear('pause'); } },
     resume() { if (!closed) paused = false; },
     async close() {
       if (closed) return;
       closed = true;
       detach();
-      try { clear(); } finally { await device.close(); }
+      try { clear('close'); } finally { await device.close(); }
     },
   };
+}
+
+/** Optional browser bridge. Owns deadline ticking, never a rendering loop. */
+export async function connectPuck(puck: Puck, options: Omit<ConnectionOptions, 'onInput' | 'onReset' | 'onInterrupt'> & { onError?: (error: unknown) => void } = {}): Promise<InputConnection | null> {
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const stop = () => { if (timer !== undefined) clearInterval(timer); timer = undefined; };
+  const connection = await connectWebHid({ ...options,
+    onInput(value) { if (value !== neutralInput) puck.feed(value); },
+    onInterrupt(reason) { puck.interrupt(reason); },
+    onDisconnect() { stop(); options.onDisconnect?.(); },
+  });
+  if (!connection) return null;
+  timer = setInterval(() => { try { puck.advance(); } catch (error) { stop(); options.onError?.(error); } }, 16);
+  return { device: connection.device, pause() { connection.pause(); }, resume() { connection.resume(); }, async close() { stop(); await connection.close(); } };
 }

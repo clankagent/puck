@@ -77,3 +77,4 @@ export function renderGestureGraphSvg(graph:GestureGraph,options:{width?:number;
   for(let i=0;i<=4;i++){const t=graph.start+(graph.end-graph.start)*i/4;svg.push(`<text x="${x(t)}" y="${height-24}" text-anchor="${i===0?'start':i===4?'end':'middle'}">${(t/1000).toFixed(2)} s</text>`);}
   svg.push('</g></svg>');return svg.join('');
 }
+export { createControlGraph } from './control-graph.js';
