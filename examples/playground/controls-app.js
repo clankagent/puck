@@ -41,10 +41,10 @@ const examples = {
   selection: [
     "Push / pull menu",
     "BOUNDED INTERACTIONS",
-    "Choose a display style",
-    "Both push and pull open the menu. Only a committed choice changes the scene.",
+    "Choose a drawing color",
+    "Pan and zoom the drawing. Push or pull to choose an ink color without leaving the canvas.",
     "Push down or pull up and hold to open the menu.",
-    "While holding, tilt toward a style. Release pressure to apply it. Twist to cancel.",
+    "Tilt toward a color, then release pressure to apply. To cancel, keep pressure held, twist briefly and let the twist return to center.",
   ],
   scalar: [
     "Held scalar",
@@ -57,38 +57,50 @@ const examples = {
   vector: [
     "Held vector",
     "PERSISTENT INTERACTIONS",
-    "Move a point while holding",
-    "A two-dimensional rate controlled by tilt while pressure keeps the interaction open.",
+    "Nudge a marker on a canvas",
+    "This is a positioning example: tilt controls travel speed, and the marker stays where you leave it. Useful for a cursor, selection or object.",
     "Push or pull and hold, then tilt to move the point.",
     "Center the tilt to stop the point without ending the hold. Release pressure to finish.",
   ],
   routing: [
-    "Contexts & ownership",
+    "View or edit the drawing",
     "INPUT ROUTING",
-    "Give one control the input",
-    "Switch between shared navigation and an exclusive menu. Debug shows which controls are suppressed.",
-    "In Menu context, push or pull to capture input. Tilt to choose.",
-    "The menu suppresses movement. An observer still sees input. Return to neutral to resume navigation.",
+    "Same device, two canvas modes",
+    "View mode only pans and zooms. Edit mode also lets push/pull open a color menu. Switching mode cancels an open selection.",
+    "In Edit mode, push or pull to open the palette. Switch to View mode to disable it.",
+    "While the palette is open you can still pan. Twist is reserved for cancel, so it cannot also zoom the canvas.",
   ],
   lifecycle: [
-    "Cancel & interrupt",
+    "Cancel without applying",
     "LIFECYCLE",
-    "End a session deliberately",
-    "Use a real hold to test cancellation, context changes, paused input and fresh-neutral rearming.",
-    "Push or pull to open a session, then use an interruption button.",
-    "Cancellation must not apply a selection. Let go completely before starting again.",
+    "Leave a selection safely",
+    "Highlight another ink color, then close the menu or leave Edit mode. The canvas must keep its existing color.",
+    "Hold push or pull, tilt to preview a color, then choose Cancel selection.",
+    "The preview disappears and the original color stays. Release the cap completely before opening the menu again.",
   ],
 };
 const styles = [
-  "Solid",
-  "Wireframe",
-  "Warm",
-  "White",
-  "Dark",
-  "No grid",
+  "Blue",
+  "Teal",
   "Green",
+  "Gold",
+  "Orange",
+  "Red",
   "Violet",
+  "Slate",
 ];
+const palette = [
+  "#2355cb",
+  "#087b8c",
+  "#23754e",
+  "#987000",
+  "#b9571a",
+  "#b13b4d",
+  "#7955a8",
+  "#41596e",
+];
+const isCanvasExample = () =>
+  ["canvas", "selection", "routing", "lifecycle"].includes(example);
 const settings = {
   translationSpeed: motionDefaults.translationSpeed,
   rotationSpeed: (motionDefaults.rotationSpeed * 180) / Math.PI,
@@ -100,6 +112,7 @@ const settings = {
   source: "tilt",
   as: "deflection",
   speed: 1,
+  vectorSpeed: 2,
   sectors: 8,
   sticky: false,
   hysteresis: 0.08,
@@ -162,7 +175,7 @@ const safe = (fn) => {
 };
 const activeContext = () =>
   example === "routing" && settings.routing === "navigation"
-    ? "navigation"
+    ? "canvas"
     : example;
 function cancelOptions() {
   return settings.cancelMode === "none"
@@ -193,7 +206,7 @@ function selections() {
         lifetime: settings.lifetime,
         holdMs: settings.holdMs,
         releaseMs: settings.releaseMs,
-        ownership: { mode: "exclusive", channels: "all" },
+        ownership: { mode: "exclusive", channels: ["z", "rx", "ry", "rz"] },
       }),
     ]),
   );
@@ -206,7 +219,7 @@ function held(value) {
         activation,
         value: control.continuous(value, {
           as: "velocity",
-          speed: settings.speed,
+          speed: value === "tilt" ? settings.vectorSpeed : settings.speed,
         }),
         lifetime: settings.lifetime,
         holdMs: settings.holdMs,
@@ -252,18 +265,24 @@ function newRuntime() {
       responseMs: settings.responseMs,
     }),
     values: { value: control.continuous(settings.source, probeOptions) },
-    selection: selections(),
+    selection: { ...recipes.panZoom(), ...selections() },
     scalar: held("twist"),
     vector: held("tilt"),
-    routing: { ...selections(), command: control.gesture("push") },
-    lifecycle: selections(),
+    routing: { ...recipes.panZoom(), ...selections() },
+    lifecycle: { ...recipes.panZoom(), ...selections() },
   };
   const conflicts = Object.values(groups)
     .flatMap((g) => Object.values(g))
     .filter((c) => c.kind === "interaction")
     .map((prefer) => ({
       prefer,
-      over: [common.translation, common.rotation, groups.routing.command],
+      over: [
+        common.translation,
+        common.rotation,
+        ...Object.values(groups)
+          .flatMap((g) => Object.values(g))
+          .filter((h) => h.kind === "continuous" && h !== common.observed),
+      ],
     }));
   puck = createPuck({
     controls: common,
@@ -299,7 +318,7 @@ function newRuntime() {
             style = e.value;
             say(`Applied ${styles[style]}.`);
           } else if (["selection", "routing", "lifecycle"].includes(example))
-            say(`No style selected. ${styles[style]} retained.`);
+            say(`No color selected. ${styles[style]} retained.`);
           else say(`Finished ${name.split(".").pop()} hold.`);
         }
         if (e.type === "cancel")
@@ -418,7 +437,7 @@ $("backExample").onclick = () => showPage("examples");
 $("debugExample").onchange = () => context($("debugExample").value);
 const settingsSpec = {
   translationSpeed: [
-    "Translation speed",
+    "Pan / dolly speed",
     "number",
     0,
     2000,
@@ -447,7 +466,7 @@ const settingsSpec = {
   curve: ["Response curve", "number", 0.1, 5, 0.1, "1 = linear"],
   speed: ["Value speed", "number", 0, 20, 0.1, "Units / second"],
   source: [
-    "Physical source",
+    "Which cap movement?",
     "select",
     [
       "slide",
@@ -461,7 +480,7 @@ const settingsSpec = {
       "axes",
     ],
   ],
-  as: ["Interpretation", "select", ["deflection", "velocity", "direction"]],
+  as: ["Use the input as", "select", ["deflection", "velocity", "direction"]],
   sectors: ["Direction sectors", "number", 2, 16, 1],
   sticky: ["Remember last direction", "checkbox"],
   hysteresis: ["Sector hysteresis", "number", 0, 0.9, 0.01],
@@ -488,18 +507,91 @@ const settingsSpec = {
     "Milliseconds before commit",
   ],
   requireValue: ["Require a selection", "checkbox"],
-  routing: ["Active context", "select", ["menu", "navigation"]],
+  routing: ["Canvas mode", "select", ["menu", "navigation"]],
 };
 const optionNames = {
+  slide: "Slide · raw X / Y",
+  tilt: "Tilt · left/right, up/down",
+  translation: "Translation · raw X / Y / Z",
+  rotation: "Rotation · raw RX / RY / RZ",
+  pressure: "Pressure · push and pull",
+  twist: "Twist · clockwise and counterclockwise",
+  push: "Push · downward force",
+  pull: "Pull · upward force",
+  axes: "All six raw channels",
+  deflection: "Position of the cap",
+  velocity: "Speed while deflected",
+  direction: "One selected direction",
   single: "One twist · either direction",
   same: "Two twists · same direction",
   either: "Two twists · either direction",
   none: "No gesture cancellation",
   activation: "While pressure is held",
   combination: "While pressure + value are held",
-  menu: "Menu captures movement",
-  navigation: "Navigation only",
+  menu: "Edit · palette enabled",
+  navigation: "View · pan and zoom only",
 };
+
+const helpFor = (key) =>
+  ({
+    translationSpeed:
+      "How quickly the scene pans and moves closer. Higher is faster; 0 stops translation. This changes the SDK rate, not a hidden camera multiplier.",
+    rotationSpeed:
+      "Orbit speed while tilting or twisting. Translation speed is independent. The SDK uses radians; this field displays degrees.",
+    panSpeed:
+      "Canvas travel at full sideways force, in pixels per second. Does not affect zoom.",
+    zoomSpeed:
+      "Zoom rate while twisting. Higher values zoom faster; 0 disables zoom.",
+    responseMs:
+      "Time to ease into movement. 0 responds immediately; larger values feel softer. Centering the cap still stops immediately.",
+    deadzone:
+      "Ignore small input around center. Increase to reject drift; decrease to respond to lighter movement.",
+    curve:
+      "1 gives a linear response. Above 1 makes gentle movement slower while preserving full-force speed.",
+    source:
+      {
+        tilt: "A 2D vector: lean left/right moves horizontally; lean up/down moves vertically. Right and down are positive.",
+        slide:
+          "Raw lateral/forward deflection. The pan/zoom recipe applies its own screen-direction mapping.",
+        axes: "The six device channels, shown once each. These are raw device coordinates, not six screen directions.",
+        translation:
+          "Three device translation channels. Z is pressure; it is not screen depth.",
+        rotation:
+          "Three device rotation channels. Use Tilt for a left/right and up/down vector.",
+      }[settings.source] ??
+      "The selected physical force is returned as one signed value.",
+    as: {
+      deflection:
+        "Follows your cap deflection and returns to zero when centered.",
+      velocity:
+        "Returns a movement rate. The application integrates that rate over time to move a value or object.",
+      direction:
+        "Returns a sector index instead of a distance. Centering gives no selection unless memory is enabled.",
+    }[settings.as],
+    speed:
+      example === "vector"
+        ? "Marker travel per second at full tilt. The marker keeps its position when you release; reset returns it to center."
+        : "How much the value changes per second at full deflection. Larger values make adjustment faster.",
+    sectors:
+      "Split the circle into this many choices. Sector 0 is right; indices increase clockwise.",
+    sticky:
+      "Keep the last selected direction when you center the tilt. A new interaction starts empty.",
+    hysteresis:
+      "Extra angle needed to leave the current sector. Increase to prevent flickering near a boundary.",
+    cancelMode:
+      "Keep push/pull held. Twist briefly, then let twist center. A double requires two completed twists; cancel never applies the previewed color.",
+    lifetime:
+      "Pressure only keeps the menu open while tilt centers. Pressure + value also ends it when the value becomes neutral.",
+    holdMs:
+      "How long pressure must be held before the interaction opens. 0 opens immediately.",
+    releaseMs:
+      "How long pressure must stay released before applying a selection. Helps reject brief release chatter.",
+    requireValue:
+      "If enabled, releasing without choosing a color cancels. Disabling allows an empty commit, which this canvas leaves unchanged.",
+    routing:
+      "View mode pans and zooms only. Edit mode gives the unused pressure/tilt axes a color menu; while open, twist cancels instead of zooming.",
+  })[key] ?? "";
+
 function syncSettings() {
   const s = puck.settings().controls;
   settings.translationSpeed = s["controls.translation"].speed;
@@ -552,14 +644,7 @@ function renderSettings() {
             ]
           : ["scalar", "vector"].includes(example)
             ? ["speed", "lifetime", "holdMs", "releaseMs"]
-            : [
-                "cancelMode",
-                "lifetime",
-                "holdMs",
-                "releaseMs",
-                "requireValue",
-                ...(example === "routing" ? ["routing"] : []),
-              ];
+            : ["cancelMode", "lifetime", "holdMs", "releaseMs", "requireValue"];
   $("settings").replaceChildren(
     ...keys.map((k) => {
       const [label, type, min, max, step, hint] = settingsSpec[k],
@@ -595,6 +680,8 @@ function renderSettings() {
               : type === "number"
                 ? +i.value
                 : i.value;
+          if (k === "speed" && example === "vector")
+            settings.vectorSpeed = settings.speed;
           if (
             !["slide", "tilt"].includes(settings.source) &&
             settings.as === "direction"
@@ -647,10 +734,30 @@ function renderSettings() {
           say("Settings applied. Return to neutral.");
         });
       l.append(i);
-      if (hint) {
-        const s = document.createElement("span");
-        s.textContent = hint;
-        l.append(s);
+      const explanation = document.createElement("span");
+      explanation.className = "setting-help";
+      explanation.id = "help-" + k;
+      explanation.textContent = helpFor(k);
+      i.setAttribute("aria-describedby", explanation.id);
+      l.append(explanation);
+      if (
+        [
+          "translationSpeed",
+          "rotationSpeed",
+          "panSpeed",
+          "zoomSpeed",
+          "speed",
+        ].includes(k)
+      ) {
+        const range = document.createElement("input");
+        range.type = "range";
+        Object.assign(range, { min, max, step, value: settings[k] });
+        range.setAttribute("aria-label", label + " slider");
+        range.oninput = () => {
+          i.value = range.value;
+        };
+        range.onchange = () => i.onchange();
+        l.append(range);
       }
       return l;
     }),
@@ -667,14 +774,23 @@ function renderExample() {
   for (const a of $("examples").children)
     a.toggleAttribute("aria-current", a.hash === "#" + example);
   const value = ["values", "scalar", "vector"].includes(example);
-  $("scene").hidden = value || example === "canvas";
-  $("canvas2d").toggleAttribute("hidden", example !== "canvas");
+  $("scene").hidden = value || isCanvasExample();
+  $("canvas2d").toggleAttribute("hidden", !isCanvasExample());
   $("valueStage").hidden = !value;
   $("selectionOverlay").hidden = true;
   renderSettings();
   renderSimulation();
+  $("contextModes").hidden = example !== "routing";
+  for (const b of $("contextModes").querySelectorAll("button"))
+    b.setAttribute("aria-pressed", String(b.dataset.mode === settings.routing));
   updateCode();
-  say("Ready for input");
+  say(
+    example === "routing"
+      ? settings.routing === "menu"
+        ? "Edit mode: push/pull opens the color palette."
+        : "View mode: only pan and zoom are assigned."
+      : "Ready for input",
+  );
 }
 function button(label, fn) {
   const b = document.createElement("button");
@@ -682,6 +798,14 @@ function button(label, fn) {
   b.onclick = () => safe(fn);
   return b;
 }
+for (const b of $("contextModes").querySelectorAll("button"))
+  b.onclick = () => {
+    settings.routing = b.dataset.mode;
+    stop("context-change");
+    puck.setContext(activeContext());
+    if (!connection) feed(neutralInput);
+    renderExample();
+  };
 function renderSimulation() {
   const items =
     example === "lifecycle"
@@ -690,14 +814,14 @@ function renderSimulation() {
             "Hold push",
             () => {
               stop();
-              feed({ ...neutralInput, z: 0.75 });
+              feed({ ...neutralInput, z: 0.75, rx: -0.7 });
             },
           ],
           [
             "Hold pull",
             () => {
               stop();
-              feed({ ...neutralInput, z: -0.75 });
+              feed({ ...neutralInput, z: -0.75, rx: -0.7 });
             },
           ],
           [
@@ -742,15 +866,12 @@ function renderSimulation() {
   );
   if (example === "lifecycle")
     $("simulations").append(
-      button("Interrupt now", () => {
-        stop("pause");
-        say("Interrupted. Return to neutral.");
-      }),
-      button("Cancel now", () => {
+      button(paused ? "Resume input" : "Pause input", () => $("pause").click()),
+      button("Cancel selection", () => {
         const a = active();
         if (a) puck.cancel(a.handle);
       }),
-      button("Switch context", () => context("navigation")),
+      button("Open view-only canvas", () => context("canvas")),
     );
 }
 function simulate(rows) {
@@ -771,13 +892,17 @@ function axisRun(v) {
   ]);
 }
 function interactionRun(direction, cancel = false) {
+  if (example === "routing" && settings.routing === "navigation")
+    say(
+      "View mode: push/pull is intentionally unassigned. Switch to Edit to open the palette.",
+    );
   const z = direction === "push" ? 0.75 : -0.75,
     value =
       example === "scalar"
         ? { rz: 0.65 }
         : example === "vector"
           ? { rx: 0.45, ry: 0.5 }
-          : { ry: 0.75 };
+          : { ry: -0.75 };
   simulate(
     cancel
       ? [
@@ -1155,6 +1280,11 @@ $("pause").onclick = () => {
   $("status").textContent = paused
     ? "Input paused. Release the cap before resuming."
     : `${source()} input resumed. Release to neutral.`;
+  say(
+    paused
+      ? "Input paused. Color unchanged."
+      : "Input resumed. Return to neutral.",
+  );
 };
 $("cancel").onclick = () => {
   const a = active();
@@ -1650,7 +1780,7 @@ function drawPlan() {
     parts.push(
       `<text x="${x}" y="${y}" fill="#29493d" font-size="19">${label}</text>`,
     );
-  $("plan").innerHTML = parts.join("");
+  $("plan").innerHTML = parts.join("").replaceAll("#48635a", palette[style]);
   $("plan").setAttribute(
     "transform",
     `translate(${400 + p.x} ${220 + p.y}) scale(${p.zoom})`,
@@ -1663,22 +1793,41 @@ function drawExample() {
   const v = a?.state.value;
   if (selection && a) {
     $("instruction").textContent =
-      "Keep holding. Tilt toward a style; release pressure to apply.";
+      "Tilt to a color. Release pressure to apply it.";
     $("expected").textContent =
       settings.cancelMode === "none"
         ? "No cancellation gesture configured. Use Cancel in Debug to abort."
-        : `Cancel with ${optionNames[settings.cancelMode].toLowerCase()}.`;
+        : `To cancel: ${optionNames[settings.cancelMode].toLowerCase()}, then let twist center while keeping pressure held.`;
     $("radial").replaceChildren(
-      ...[5, 6, 7, 4, null, 0, 3, 2, 1].map((i) => {
-        const s = document.createElement("span");
-        s.textContent = i === null ? "Release to apply" : styles[i];
-        s.className = i === null ? "center" : i === v ? "selected" : "";
-        return s;
+      ...styles.map((label, i) => {
+        const el = document.createElement("span"),
+          angle = (i * Math.PI) / 4;
+        el.textContent = label;
+        el.className = i === v ? "selected" : "";
+        el.style.left = 50 + 34 * Math.cos(angle) + "%";
+        el.style.top = 50 + 34 * Math.sin(angle) + "%";
+        el.style.setProperty("--swatch", palette[i]);
+        return el;
       }),
     );
+    $("menuHint").textContent = v === null ? "Tilt to choose" : styles[v];
+    const cancellation = puck.inspect(a.handle).controls[0].cancellation;
+    $("cancelFeedback").textContent =
+      cancellation?.phase === "active"
+        ? "Twist registered — center the twist to finish canceling."
+        : cancellation?.phase === "blocked"
+          ? "Center the twist to arm cancellation."
+          : "Keep pressure held while canceling.";
   } else {
+    $("cancelFeedback").textContent = "";
     $("instruction").textContent = examples[example][4];
     $("expected").textContent = examples[example][5];
+  }
+  if (example === "routing" && settings.routing === "navigation") {
+    $("instruction").textContent =
+      "View mode: slide to pan and twist to zoom. Push/pull has no action.";
+    $("expected").textContent =
+      "Choose Edit to enable the color palette on the unused pressure and tilt axes.";
   }
   $("sessionState").textContent = a
     ? `${a.name} active · session ${a.state.sessionId}`
@@ -1687,10 +1836,10 @@ function drawExample() {
     example === "canvas"
       ? `Zoom ${canvasPose.zoom.toFixed(2)}×`
       : selection
-        ? `${styles[style]} · ${a ? "menu owns input" : "navigation available"}`
+        ? `${styles[style]} ink · ${a ? "pan available · zoom reserved" : "pan + zoom available"}`
         : "Target orbit · all six axes";
-  if (!$("scene").hidden) drawScene($("scene"), camera, style);
-  if (example === "canvas") drawPlan();
+  if (!$("scene").hidden) drawScene($("scene"), camera, 0);
+  if (isCanvasExample()) drawPlan();
   if (["values", "scalar", "vector"].includes(example)) {
     const value =
       example === "values"
@@ -1703,18 +1852,51 @@ function drawExample() {
         ? `${settings.source} → ${settings.as}`
         : example === "scalar"
           ? "Integrated scalar value"
-          : "Integrated 2D position";
+          : "Marker position · stays where you leave it";
+    const many =
+      value &&
+      (Array.isArray(value) ? value.length > 2 : typeof value === "object");
+    $("axisValues").hidden = !many;
+    $("valueOutput").hidden = !!many;
+    if (many) {
+      const pairs = Array.isArray(value)
+        ? (settings.source === "rotation"
+            ? ["rx", "ry", "rz"]
+            : ["x", "y", "z"]
+          ).map((a, i) => [a, value[i]])
+        : axes.map((a) => [a, value[a]]);
+      $("axisValues").replaceChildren(
+        ...pairs.map(([name, v]) => {
+          const row = document.createElement("div"),
+            label = document.createElement("strong"),
+            out = document.createElement("output"),
+            meter = document.createElement("meter");
+          label.textContent = name.toUpperCase();
+          out.textContent = v.toFixed(3);
+          meter.min = -1;
+          meter.max = 1;
+          meter.value = v;
+          row.append(label, meter, out);
+          return row;
+        }),
+      );
+    }
     $("valueOutput").textContent =
       typeof value === "number"
         ? value.toFixed(3)
         : value === null
           ? "null"
           : Array.isArray(value)
-            ? value.map((v) => v.toFixed(2)).join(" / ")
+            ? value
+                .map(
+                  (v, i) =>
+                    `${value.length === 2 ? ["Right", "Down"][i] : ["X", "Y", "Z"][i]} ${v.toFixed(2)}`,
+                )
+                .join(" · ")
             : axes.map((a) => `${a}: ${value[a].toFixed(2)}`).join("  ");
     $("valueOutput").style.fontSize =
       value && typeof value === "object" && !Array.isArray(value) ? "19px" : "";
-    const vector = Array.isArray(value);
+    const vector = Array.isArray(value) && value.length === 2;
     $("vector").toggleAttribute("hidden", !vector);
     $("scalar").hidden = vector || typeof value !== "number";
     if (vector) {
@@ -1750,11 +1932,10 @@ function frame() {
     const f = puck.frame(t),
       linear = f.integrate(common.translation),
       angular = f.integrate(common.rotation);
-    if (["navigation", "selection", "routing", "lifecycle"].includes(example))
-      moveCamera(camera, linear, angular);
-    if (activeContext() === "canvas") {
-      const [x, y] = f.integrate(groups.canvas.pan),
-        dz = f.integrate(groups.canvas.zoom),
+    if (example === "navigation") moveCamera(camera, linear, angular);
+    if (isCanvasExample()) {
+      const [x, y] = f.integrate(groups[activeContext()].pan),
+        dz = f.integrate(groups[activeContext()].zoom),
         next = Math.max(0.15, Math.min(6, canvasPose.zoom * Math.exp(dz))),
         ratio = next / canvasPose.zoom;
       canvasPose = {
@@ -1771,8 +1952,18 @@ function frame() {
         point = point.map((v, i) => Math.max(-1, Math.min(1, v + d[i])));
       }
     if (t - lastDraw >= 33) {
-      const linearRate = puck.read(common.translation),
+      let linearRate = puck.read(common.translation),
         angularRate = puck.read(common.rotation);
+      let linearSpeed = settings.translationSpeed,
+        angularSpeed = (settings.rotationSpeed * Math.PI) / 180;
+      if (isCanvasExample()) {
+        const c = groups[activeContext()];
+        linearRate = [...puck.read(c.pan), 0];
+        angularRate = [0, 0, puck.read(c.zoom)];
+        const config = puck.settings().controls;
+        linearSpeed = config["contexts." + activeContext() + ".pan"].speed;
+        angularSpeed = config["contexts." + activeContext() + ".zoom"].speed;
+      }
       samples.push({
         t,
         input: { ...input },
@@ -1781,9 +1972,8 @@ function frame() {
           axes.map((a, i) => [
             a,
             i < 3
-              ? linearRate[i] / (settings.translationSpeed || 1)
-              : angularRate[i - 3] /
-                ((settings.rotationSpeed * Math.PI) / 180 || 1),
+              ? linearRate[i] / (linearSpeed || 1)
+              : angularRate[i - 3] / (angularSpeed || 1),
           ]),
         ),
         actual: Object.fromEntries(

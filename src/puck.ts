@@ -64,10 +64,13 @@ function valueDefinition(d: Control): AnyContinuous | undefined {
   const v = typeof d.options.value === 'string' ? continuous(d.options.value) : d.options.value;
   return continuous(v.source, { ...v.options, ...d.options.valueOptions });
 }
+function component(def: AnyContinuous, sample: Readonly<InputState>, axis: Axis): number {
+  return sample[axis] * (def.source === 'tilt' && axis === 'ry' ? -1 : 1) * (def.options.scale?.[axis] ?? 1);
+}
 function arrayValue(def: AnyContinuous, sample: Readonly<InputState>): number[] {
   const o = def.options;
   return sourceAxes[def.source as Source].map(axis => {
-    let v = sample[axis] * (o.scale?.[axis] ?? 1);
+    let v = component(def, sample, axis);
     if (def.source === 'pull') v = Math.max(0, -v);
     if (def.source === 'push') v = Math.max(0, v);
     v = Math.max(-1, Math.min(1, v));
@@ -153,7 +156,7 @@ export function createPuck(options: PuckOptions = {}) {
   function interpret(e: Entry): any {
     const d = e.valueDef!;
     if (d.options.as !== 'direction') return shaped(d, d.options.as === 'velocity' ? e.velocity : arrayValue(d, sample));
-    const [x, y] = sourceAxes[d.source as Source].map(a => sample[a] * (d.options.scale?.[a] ?? 1));
+    const [x, y] = sourceAxes[d.source as Source].map(a => component(d, sample, a));
     if (Math.hypot(x, y) <= d.options.deadzone!) { if (!d.options.sticky) e.sector = null; return e.sector; }
     const n = d.options.sectors!, step = 2 * Math.PI / n, angle = (Math.atan2(y, x) + 2 * Math.PI) % (2 * Math.PI);
     if (e.sector !== null) {
@@ -387,7 +390,7 @@ export function createPuck(options: PuckOptions = {}) {
     },
     inspect(handle?: Control) {
       live(); const selected = handle ? [entry(handle)] : entries;
-      return freeze({ context: context ?? null, input: { ...sample }, controls: selected.map(e => ({ name: e.name, kind: e.def.kind, definition: copy(e.def), settings: copy(e.def.options), ownership: copy(e.owner), eligible: eligible(e), suppressedBy: e.suppressed ?? (e.blocked ? 'neutral-rearm' : null), sessionId: e.active ? e.session : null, prefers: [...preferences.get(e) ?? []].map(x => x.name) })) });
+      return freeze({ context: context ?? null, input: { ...sample }, controls: selected.map(e => ({ name: e.name, kind: e.def.kind, definition: copy(e.def), settings: copy(e.def.options), ownership: copy(e.owner), eligible: eligible(e), suppressedBy: e.suppressed ?? (e.blocked ? 'neutral-rearm' : null), sessionId: e.active ? e.session : null, cancellation: e.cancelRecognizer ? copy(e.cancelRecognizer.state) : null, releasePending: e.releasing !== undefined, prefers: [...preferences.get(e) ?? []].map(x => x.name) })) });
     },
     explain(event: PuckEvent) { live(); return traces.has(event.sequence) && log.some(e => e === event) ? { status: 'retained' as const, evidence: traces.get(event.sequence) } : { status: options.trace ? 'expired' as const : 'disabled' as const }; },
     recording(): PuckRecording { live(); if (!options.record) throw new Error('Recording was not enabled.'); return freeze({ version: 1, definition: copy(initialDefinition), timeline: copy(timeline), full }); },

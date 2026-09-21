@@ -43,6 +43,11 @@
         <div id="lesson" class="lesson">
           <strong id="instruction"></strong><span id="expected"></span>
         </div>
+        <div id="contextModes" class="context-modes" hidden>
+          <span>Canvas mode</span
+          ><button data-mode="navigation">View · pan and zoom</button
+          ><button data-mode="menu">Edit · enable color palette</button>
+        </div>
         <div class="example-grid">
           <div class="visual-column">
             <div class="simulator">
@@ -67,7 +72,7 @@
               </svg>
               <div id="selectionOverlay" hidden>
                 <div class="menu-heading">
-                  Display style
+                  Ink color
                   <span id="menuHint"
                     >Tilt to highlight · release to apply</span
                   >
@@ -76,6 +81,7 @@
               </div>
               <div id="valueStage" hidden>
                 <p id="valueCaption"></p>
+                <div id="axisValues" hidden></div>
                 <output id="valueOutput">0</output
                 ><svg
                   id="vector"
@@ -97,13 +103,14 @@
                 ><button id="resetView">Fit / reset view</button>
               </div>
             </div>
+            <p id="cancelFeedback" class="cancel-feedback"></p>
             <div class="result" role="status">
               <strong id="outcome">Ready for input</strong
               ><span id="sessionState">No interaction active</span>
             </div>
           </div>
           <section class="settings" aria-label="Example settings">
-            <h2>Settings</h2>
+            <h2>How it behaves</h2>
             <div id="settings"></div>
             <button id="defaults">Restore defaults</button>
           </section>

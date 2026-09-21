@@ -5,6 +5,7 @@ import { defaultGestureTune } from './tune.js';
 
 export type Axis = keyof InputState;
 export type Source = 'slide' | 'tilt' | 'translation' | 'rotation' | 'pressure' | 'twist' | 'push' | 'pull' | 'axes';
+/** Semantic tilt vectors are [horizontal, vertical], right/down positive: [-ry, rx]. Raw rotation/axes stay in device order. */
 export type Vec2 = readonly [number, number];
 export type Vec3 = readonly [number, number, number];
 export type SourceValue<S extends Source> = S extends 'axes' ? Readonly<InputState> : S extends 'slide' | 'tilt' ? Vec2 : S extends 'translation' | 'rotation' ? Vec3 : number;
@@ -64,7 +65,7 @@ export type ValueOf<C> = C extends AnyContinuous ? C[typeof output] : C extends 
 type InteractionValue<V> = V extends Source ? SourceValue<V> : V extends AnyContinuous ? ValueOf<V> : never;
 
 export const sourceAxes: Readonly<Record<Source, readonly Axis[]>> = Object.freeze({
-  slide: ['x', 'y'], tilt: ['rx', 'ry'], translation: ['x', 'y', 'z'], rotation: ['rx', 'ry', 'rz'],
+  slide: ['x', 'y'], tilt: ['ry', 'rx'], translation: ['x', 'y', 'z'], rotation: ['rx', 'ry', 'rz'],
   pressure: ['z'], twist: ['rz'], push: ['z'], pull: ['z'], axes: ['x', 'y', 'z', 'rx', 'ry', 'rz'],
 });
 export function freeze<T>(value: T): T {

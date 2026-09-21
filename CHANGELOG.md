@@ -2,6 +2,8 @@
 
 ## Unreleased v1 preview
 
+- Correct semantic tilt coordinates throughout the SDK, preserve raw channels, fix example camera roll, and increase default six-axis translation and held-vector speeds. Replace oversized 3D menu/conflict demos with a compact 2D ink palette and View/Edit modes; explain settings, show cancellation progress and display each continuous axis once. Physical retesting remains required.
+
 - Rebuild the playground around feature examples, a complete gesture tester and a synchronized debug workspace. Add perspective target-orbit camera, instructional menu/hold examples, generated declarations, separate device/simulator counts, freeze/scrub and replayable diagnostic snapshots. Existing calibration and compatibility tools remain linked.
 
 - Add typed continuous, gesture and interaction controls behind `createPuck`, with symmetric push/pull sessions, scalar/vector values, rate integration, ownership, contexts and settings.
@@ -104,3 +106,4 @@ This is a source-history reference, not a claim that an npm release was publishe
 - ESM and TypeScript declarations, no runtime dependencies.
 
 [Baseline source](https://github.com/clankagent/puck/tree/f065d4a) · [Motion behavior and hardware](docs/motion.md)
+

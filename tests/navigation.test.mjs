@@ -49,3 +49,12 @@ test("dolly changes perspective scale, bounds prevent crossing the pivot, neutra
   c.orientation.forEach((v, i) => near(v, saved.orientation[i]));
   assert.deepEqual(c.target, saved.target);
 });
+
+test("physical left tilt rolls the object left, and clockwise twist turns its front right", () => {
+  const c = { target: [0, 0, 0], orientation: [0, 0, 0, 1], distance: 450 };
+  moveCamera(c, [0, 0, 0], [0, 0.2, 0]);
+  assert.ok(projection([0, 70, 0], c, 800, 500)[0] < 400);
+  const yaw = { target: [0, 0, 0], orientation: [0, 0, 0, 1], distance: 450 };
+  moveCamera(yaw, [0, 0, 0], [0, 0, 0.2]);
+  assert.ok(projection([0, 0, 70], yaw, 800, 500)[0] > 400);
+});

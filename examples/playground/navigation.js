@@ -45,7 +45,7 @@ export function moveCamera(camera, translation, angular) {
   );
   const q = quaternion(
     camera.orientation,
-    rotation([-angular[0], -angular[2], angular[1]]),
+    rotation([-angular[0], -angular[2], -angular[1]]),
   );
   const norm = Math.hypot(...q);
   camera.orientation = q.map((v) => v / norm);

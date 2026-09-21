@@ -229,7 +229,7 @@ are queued until the current event batch finishes. Create frames outside callbac
 
 `recipes.directionSelection`, `heldValue`, `panZoom` and `sixAxis` are compositions
 of the same public declarations. `motionDefaults` exposes their shared defaults.
-Pan is 1320 pixels/second, log zoom 1.5/second; six-axis translation is 200 app
+Pan is 1320 pixels/second, log zoom 1.5/second; six-axis translation is 600 app
 units/second and rotation is π/2 radians/second. The application exponentiates
 integrated log zoom and owns camera bounds, coordinate frames and rendering.
 
@@ -242,3 +242,8 @@ recordings are different named formats; do not send one to the other's validator
 There is no new public graph compiler or arbitrary temporal language in this
 candidate. Public declarations plus the existing low-level APIs cover the agreed
 controls; applications are not required to wire recognizer state machines.
+
+### Tilt coordinates in the preview
+
+The semantic tilt vector is [horizontal, vertical] = [-ry, rx], with right and down positive. Direction sector 0 points right and sectors advance clockwise; eight sectors put down at 2, left at 4 and up at 6. This mapping also applies to velocity, integrated values and interaction recipes. Raw axes and rotation retain their original channel order and signs. Per-axis scale options remain indexed by the physical channel. Held-vector recipes default to speed 2; held twist remains at 1.
+

@@ -94,3 +94,6 @@ To add gestures alongside motion, reuse the existing connection and frame loop. 
 - **Data versions:** package versions are separate from tune/recording `version: 1`. Validate restored data through public APIs; do not manually change a format version to bypass validation.
 
 Before shipping, check a single, double, held input, neutral rearming, blur/disconnect and teardown. Check JSON restoration and incomplete calibration if used. [Troubleshooting](troubleshooting.md) maps common symptoms to fixes.
+
+Unreleased preview correction: semantic tilt now uses [-ry, rx] (right/down positive), including direction selection and held values. Raw axes/rotation are unchanged. Six-axis translation defaults to 600 units/s; held vectors to 2, held twist remains 1. These changes are not yet published to npm.
+

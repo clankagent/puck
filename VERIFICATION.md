@@ -113,3 +113,22 @@ Ordinary pan/zoom false-positive rates and multi-session robustness remain
   reflection and moved simulator controls next to the scene so actions and
   results remain together. No horizontal page overflow at either phone width.
 - No new physical-device tests performed. No release is approved by this QA.
+
+## Physical-feedback corrections, 2026-09-21
+
+133 automated tests and the public TypeScript fixtures pass. Regression coverage
+checks the four physical tilt directions through deflection, velocity, integrated
+values and symmetric selection recipes, raw-channel preservation, camera roll,
+cancellation state, and 2D palette ownership. Browser checks confirmed left/up
+mapping, six distinct axis rows, compact palette, explicit cancellation retaining
+ink color, View/Edit mode selection and a 390px layout without page overflow.
+
+The user's hardware observations established the prior tilt swap/sign error.
+The correction is in the SDK: tilt = [-ry, rx]. Raw rotation and axes are unchanged.
+Three-dimensional translation now defaults to 600 units/s; held vectors to 2.
+Pan/zoom and held-scalar defaults remain unchanged. Settings explain their effects;
+menu and ownership examples now use a 2D canvas, leaving 3D navigation six-axis.
+Completed-twist cancellation now displays its recognition/centering state.
+
+These corrections still require the user's physical retest. No release approval
+has been given. No package publication, release tag or prerelease is authorized.

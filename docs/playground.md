@@ -24,13 +24,11 @@ zoom limits and drawings belong to the example, not the recognizer.
 - **Continuous values:** select any public source and supported interpretation.
   Direction is available for slide and tilt; configure sectors, memory and
   hysteresis. Velocity provides a frame-integrated rate; raw deflection does not.
-- **Push / pull menu:** either pressure direction opens a style chooser. Tilt
-  highlights a choice; qualified pressure release applies it. Single or double
-  twist can cancel; cancellation leaves the existing style unchanged.
+- **Push / pull menu:** either pressure direction opens a compact ink-color palette on the 2D drawing. Tilt
+  highlights a choice; qualified pressure release applies it. Single or double completed twists can cancel while pressure stays held; cancellation leaves the existing ink color unchanged.
 - **Held scalar / vector:** pressure keeps the session open while twist or tilt
   drives an integrated value. Compare activation and combination lifetimes.
-- **Contexts & ownership:** compare navigation-only context with a menu that
-  suppresses movement. The observer continues to see input. Debug shows actual
+- **Contexts & ownership:** compare View (pan/zoom only) with Edit (pan/zoom plus palette). The palette reserves twist zoom while planar pan stays available. The observer continues to see input. Debug shows actual
   owners, suppression and the fresh-neutral rearming requirement.
 - **Cancel & interrupt:** hold indefinitely using a device or simulator buttons,
   then explicitly cancel, interrupt or switch context. No cancellation commits.
@@ -61,8 +59,7 @@ Hold counters increment at holdstart; holdend and holdcancel appear in Debug.
 example**. Moving between an example and Debug preserves its live session.
 
 The six axis panels share a time window: raw report values, observer deflection
-and movement rate normalized to configured speed. Numeric rates are world units/s
-or radians/s. Other plots show occurrences, report delivery gaps and the selected
+and movement rate normalized to configured speed. Numeric rates use world units/s and radians/s in 3D, or pixels/s and log zoom/s on the canvas. Other plots show occurrences, report delivery gaps and the selected
 scalar/vector output. The routing table displays the SDK's current context,
 ownership and suppression. Select an event for `puck.explain()` evidence, or scrub
 to inspect a sample. Catalog occurrences identify their legacy recognizer origin.
@@ -112,3 +109,5 @@ pnpm site:serve
 Open `http://127.0.0.1:47827/puck/`. The build copies an explicit public asset list
 and the compiled SDK into ignored `site/`. Main deploys to GitHub Pages after CI.
 No release tag or npm publication is part of deploying this preview.
+
+

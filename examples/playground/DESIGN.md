@@ -58,3 +58,6 @@ selected output and ownership. Graph focus puts these together on desktop.
 Freeze copies the visible capture; it does not freeze input. Browser recordings
 include a bounded 30-second diagnostics window in addition to the public SDK
 recording. Imported plain SDK recordings explicitly lack these UI snapshots.
+
+Physical-feedback revision: keep all six axes for 3D navigation. Demonstrate pressure menus and ownership on a 2D drawing, with a compact radial ink palette, explicit View/Edit modes and cancellation retaining the previous color. Explain each setting beside its control; show multiaxis values once per channel.
+

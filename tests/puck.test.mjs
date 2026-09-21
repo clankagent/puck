@@ -60,8 +60,8 @@ for (const activation of ['push', 'pull']) {
   });
   test(`${activation}: sticky selection resets per session, supports diagonals and no-selection cancellation`, () => {
     const c = recipes.directionSelection({ activation }); const { p, feed, events } = setup({ c });
-    feed(10, { z }); assert.equal(p.read(c).value, null); feed(20, { z, rx: .8, ry: .8 }); assert.equal(p.read(c).value, 1);
-    feed(30, { z }); assert.equal(p.read(c).value, 1); feed(40); p.advance(65); assert.equal(events.drain().at(-1).value, 1);
+    feed(10, { z }); assert.equal(p.read(c).value, null); feed(20, { z, rx: .8, ry: .8 }); assert.equal(p.read(c).value, 3);
+    feed(30, { z }); assert.equal(p.read(c).value, 3); feed(40); p.advance(65); assert.equal(events.drain().at(-1).value, 3);
     feed(80); feed(90, { z }); assert.equal(p.read(c).value, null); feed(100); p.advance(125);
     assert.equal(events.drain().at(-1).reason, 'no-selection');
   });
@@ -152,7 +152,7 @@ test('pair-held policy releases on value neutral; activation-held policy permits
 test('selection freezes the candidate on release, rejects stale cancel evidence and survives chatter',()=>{
   const c=recipes.directionSelection({activation:'pull',cancel:{input:'twist',count:2,direction:'same'}}),{p,feed,events}=setup({c});
   feed(10,{rz:.8});feed(80);p.advance(110);feed(120,{z:-.8});feed(140,{z:-.8,rx:.8});feed(160,{z:-.8,rx:.8,rz:.8});feed(220,{z:-.8,rx:.8});p.advance(250);assert.equal(p.read(c).status,'active');
-  feed(260,{ry:.8});feed(270,{z:-.8,rx:.8});assert.equal(p.read(c).status,'active');feed(280,{ry:.8});p.advance(305);assert.equal(events.drain().at(-1).value,0);
+  feed(260,{ry:.8});feed(270,{z:-.8,rx:.8});assert.equal(p.read(c).status,'active');feed(280,{ry:.8});p.advance(305);assert.equal(events.drain().at(-1).value,2);
 });
 test('speed changes apply during movement; rate smoothing has an analytic frame-independent integral',()=>{
   const c=control.continuous('pressure',{as:'velocity',speed:2,deadzone:0,responseMs:25}),{p,feed}=setup({c});feed(0,{z:1});p.frame(0);
@@ -181,4 +181,23 @@ test('queued tuning patches compose; disposal from a subscriber delivers one can
   p.on(c.hold,e=>{seen.push(e.type);if(e.type==='begin'){p.configure(c.move,{speed:3},10);p.configure(c.move,{responseMs:0},10);}});
   feed(10,{z:-.8});assert.equal(p.settings().controls['controls.move'].speed,3);assert.equal(p.settings().controls['controls.move'].responseMs,0);
   p.on(c.hold,e=>{if(e.type==='update')p.dispose(20);});feed(20,{z:-.8,rx:.8});assert.deepEqual(seen,['begin','update','cancel']);assert.throws(()=>p.read(c.hold),/disposed/);
+});
+
+test('physical tilt directions map consistently through SDK values, rates and menu recipes; raw axes stay raw',()=>{
+ const cases=[{name:'left',sample:{ry:.8},vector:[-.8,0],sector:4},{name:'right',sample:{ry:-.8},vector:[.8,0],sector:0},{name:'up',sample:{rx:-.8},vector:[0,-.8],sector:6},{name:'down',sample:{rx:.8},vector:[0,.8],sector:2}];
+ for(const row of cases){
+  const c={tilt:control.continuous('tilt',{deadzone:0}),rate:control.continuous('tilt',{as:'velocity',deadzone:0,responseMs:0}),direction:control.continuous('tilt',{as:'direction',deadzone:0}),raw:control.continuous('axes',{deadzone:0}),rotation:control.continuous('rotation',{deadzone:0})};
+  const {p,feed}=setup(c);feed(10,row.sample);assert.deepEqual(p.read(c.tilt),row.vector,row.name);assert.deepEqual(p.read(c.rate),row.vector,row.name);assert.equal(p.read(c.direction),row.sector,row.name);assert.equal(p.read(c.raw).rx,row.sample.rx??0);assert.equal(p.read(c.raw).ry,row.sample.ry??0);assert.deepEqual(p.read(c.rotation),[row.sample.rx??0,row.sample.ry??0,0]);p.frame(10);const delta=p.frame(30).integrate(c.rate);delta.forEach((v,i)=>close(v,row.vector[i]*.02));
+  for(const activation of ['push','pull']){const menu=recipes.directionSelection({activation});const x=setup({menu});x.feed(10,{z:activation==='push'?.8:-.8});x.feed(20,{z:activation==='push'?.8:-.8,...row.sample});assert.equal(x.p.read(menu).value,row.sector,row.name);x.feed(30);x.p.advance(60);assert.equal(x.events.drain().at(-1).value,row.sector);}
+ }
+});
+
+test('cancel diagnostics expose a twist awaiting return to neutral; cancellation never commits afterward',()=>{
+ const menu=recipes.directionSelection({activation:'pull',cancel:{input:'twist'}}),{p,feed,events}=setup({menu});
+ feed(10,{z:-.8});feed(30,{z:-.8,ry:.5,rz:.7});assert.equal(p.inspect(menu).controls[0].cancellation.phase,'active');feed(110,{z:-.8,ry:.5});p.advance(150);assert.equal(events.drain().at(-1).reason,'gesture');feed(180);p.advance(600);assert.equal(events.drain().length,0);
+});
+
+test('2D palette owns twist without stealing pan; a context change cancels without applying',()=>{
+ const panzoom=recipes.panZoom({responseMs:0});const menu=recipes.directionSelection({activation:'pull',cancel:{input:'twist'},ownership:{mode:'exclusive',channels:['z','rx','ry','rz']}});
+ const p=createPuck({controls:panzoom,contexts:{view:{},edit:{menu}},context:'edit',conflicts:[{prefer:menu,over:Object.values(panzoom)}],clock:()=>0});const events=p.events();p.feed(neutralInput,0);p.feed(input({z:-.8,ry:.6,x:.5,rz:.2}),20);assert.notEqual(p.read(panzoom.pan)[0],0);assert.equal(p.read(panzoom.zoom),0);assert.equal(p.read(menu).value,4);p.setContext('view',30);assert.equal(events.drain().at(-1).reason,'context-change');p.feed(neutralInput,40);p.feed(input({z:-.8,rz:.6}),50);assert.equal(p.read(menu).status,'inactive');assert.notEqual(p.read(panzoom.zoom),0);
 });

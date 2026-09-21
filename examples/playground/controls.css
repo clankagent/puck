@@ -941,3 +941,168 @@ footer {
     padding: 7px;
   }
 }
+/* Compact palette belongs to the canvas; it never replaces the workspace. */
+#selectionOverlay {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -58%);
+  width: 240px;
+  height: 240px;
+  padding: 0;
+  border: 1px solid #9baebb;
+  border-radius: 50%;
+  background: #fffffff5;
+  box-shadow: 0 4px 22px #18324722;
+  pointer-events: none;
+}
+#selectionOverlay .menu-heading {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 92px;
+  font-size: 13px;
+  line-height: 1.35;
+  z-index: 1;
+}
+#menuHint {
+  font-size: 11px !important;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+#radial {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  max-width: none;
+}
+#radial span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 44px;
+  border-radius: 22px;
+  border: 2px solid transparent;
+  background: #f6f8fa;
+  font-size: 11px;
+  color: #203449;
+  box-shadow: inset 0 -5px var(--swatch);
+}
+#radial span.selected {
+  outline: 3px solid var(--swatch);
+  outline-offset: 2px;
+  background: var(--swatch);
+  color: white;
+  border-color: white;
+  box-shadow: none;
+}
+.cancel-feedback {
+  font-size: 14px;
+  margin: 8px 0;
+  color: #304b63;
+  min-height: 21px;
+}
+.cancel-feedback:empty {
+  display: none;
+}
+.settings .setting-help {
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: #30485e;
+  margin-top: 7px;
+}
+.settings label {
+  margin-bottom: 20px;
+}
+.settings input[type="range"] {
+  border: 0;
+  padding: 0;
+  margin-top: 9px;
+  width: 100%;
+  accent-color: #2355cb;
+}
+.settings h2 {
+  font-size: 18px;
+}
+#axisValues {
+  width: 90%;
+  max-width: 540px;
+  display: grid;
+  gap: 14px;
+}
+#axisValues > div {
+  display: grid;
+  grid-template-columns: 40px 1fr 65px;
+  align-items: center;
+  gap: 14px;
+}
+#axisValues meter {
+  width: 100%;
+  height: 24px;
+}
+#axisValues output {
+  font:
+    15px Consolas,
+    monospace;
+  text-align: right;
+}
+#valueStage #vector {
+  height: 220px;
+}
+#valueStage #valueOutput {
+  font-size: 26px;
+}
+@media (min-width: 1151px) {
+  .example-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+  .settings {
+    max-height: 620px;
+    overflow: auto;
+    padding-right: 5px;
+  }
+}
+@media (max-width: 760px) {
+  #selectionOverlay {
+    width: 216px;
+    height: 216px;
+  }
+  .menu-heading {
+    left: 58px !important;
+    right: 58px !important;
+    top: 82px !important;
+  }
+  #radial span {
+    width: 50px;
+    height: 38px;
+    font-size: 10px;
+  }
+  .settings #settings {
+    grid-template-columns: 1fr;
+  }
+  .settings .setting-help {
+    font-size: 14px;
+  }
+  .settings label {
+    margin-bottom: 5px;
+  }
+}
+.context-modes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.context-modes > span {
+  font-weight: 650;
+}
+.context-modes button[aria-pressed="true"] {
+  background: #2355cb;
+  color: white;
+  border-color: #2355cb;
+}

@@ -1,7 +1,7 @@
 import { control } from './controls.js';
 import type { Activation, CancelGesture, Ownership } from './controls.js';
 
-export const motionDefaults = Object.freeze({ panSpeed: 1320, zoomSpeed: 1.5, translationSpeed: 200, rotationSpeed: Math.PI / 2, panDeadzone: .05, zoomDeadzone: .1, rotationDeadzone: .05, responseMs: 25, maxFrameMs: 50 });
+export const motionDefaults = Object.freeze({ panSpeed: 1320, zoomSpeed: 1.5, translationSpeed: 600, rotationSpeed: Math.PI / 2, panDeadzone: .05, zoomDeadzone: .1, rotationDeadzone: .05, responseMs: 25, maxFrameMs: 50 });
 export interface DirectionSelectionOptions {
   activation: 'push' | 'pull'; sectors?: number; deadzone?: number; hysteresis?: number;
   sticky?: boolean; cancel?: CancelGesture; ownership?: Ownership;
@@ -12,7 +12,7 @@ export const recipes = Object.freeze({
     return control.interaction({ activation, value: control.continuous('tilt', { as: 'direction', sectors, deadzone, hysteresis, sticky }), requireValue: true, ...options });
   },
   heldValue(activation: Activation, value: 'twist' | 'tilt' | 'slide', options: { speed?: number; ownership?: Ownership } = {}) {
-    return control.interaction({ activation, value: control.continuous(value, { as: 'velocity', speed: options.speed ?? 1 }), ownership: options.ownership });
+    return control.interaction({ activation, value: control.continuous(value, { as: 'velocity', speed: options.speed ?? (value === 'twist' ? 1 : 2) }), ownership: options.ownership });
   },
   panZoom(options: { panSpeed?: number; zoomSpeed?: number; panDeadzone?: number; zoomDeadzone?: number; responseMs?: number; zoomInput?: 'twist' | 'press' } = {}) {
     const o = { ...motionDefaults, ...options };
