@@ -19,7 +19,7 @@ const examples = {
     "CONTINUOUS INPUT",
     "Navigate in 3D",
     "Explore a mechanical assembly with screen-relative pan, forward/back dolly and rotation around the crosshair.",
-    "Slide left/right to pan. Push the cap forward to move closer. Tilt and twist to orbit.",
+    "Hold the model like the cap: slide sideways to pan, lift to raise it, push forward to move it away. Tilt and twist to rotate it.",
     "All six axes work together. Release the cap to stop. Fit view returns to the starting position.",
   ],
   canvas: [
@@ -68,7 +68,7 @@ const examples = {
     "Same device, two canvas modes",
     "View mode only pans and zooms. Edit mode also lets push/pull open a color menu. Switching mode cancels an open selection.",
     "In Edit mode, push or pull to open the palette. Switch to View mode to disable it.",
-    "While the palette is open you can still pan. Twist is reserved for cancel, so it cannot also zoom the canvas.",
+    "While the palette is open the drawing stays still. The palette owns the input until you finish or cancel.",
   ],
   lifecycle: [
     "Cancel without applying",
@@ -102,6 +102,13 @@ const palette = [
 const isCanvasExample = () =>
   ["canvas", "selection", "routing", "lifecycle"].includes(example);
 const settings = {
+  zoomAxis: "forward",
+  invertX: false,
+  invertY: false,
+  invertZ: false,
+  invertRX: false,
+  invertRY: false,
+  invertRZ: false,
   translationSpeed: motionDefaults.translationSpeed,
   rotationSpeed: (motionDefaults.rotationSpeed * 180) / Math.PI,
   panSpeed: motionDefaults.panSpeed,
@@ -124,6 +131,15 @@ const settings = {
   routing: "menu",
 };
 const defaults = { ...settings };
+function navigationScale(axisNames) {
+  return Object.fromEntries(
+    axisNames.map((a) => [
+      a,
+      (["x", "y"].includes(a) ? -1 : 1) *
+        (settings["invert" + a.toUpperCase()] ? -1 : 1),
+    ]),
+  );
+}
 let example = "navigation",
   page = "examples",
   puck,
@@ -206,7 +222,7 @@ function selections() {
         lifetime: settings.lifetime,
         holdMs: settings.holdMs,
         releaseMs: settings.releaseMs,
-        ownership: { mode: "exclusive", channels: ["z", "rx", "ry", "rz"] },
+        ownership: { mode: "exclusive", channels: "all" },
       }),
     ]),
   );
@@ -243,6 +259,15 @@ function newRuntime() {
     }),
     observed: control.continuous("axes", { ownership: "observe" }),
   };
+  for (const [name, axisNames] of [
+    ["translation", ["x", "y", "z"]],
+    ["rotation", ["rx", "ry", "rz"]],
+  ]) {
+    common[name] = control.continuous(name, {
+      ...common[name].options,
+      scale: navigationScale(axisNames),
+    });
+  }
   const probeOptions = {
     as: settings.as,
     deadzone: settings.deadzone,
@@ -375,7 +400,6 @@ function feed(value, t = performance.now()) {
   if (lastReport !== null) reportGaps.push({ t, gap: t - lastReport });
   lastReport = t;
   while (reportGaps.length && reportGaps[0].t < t - 30000) reportGaps.shift();
-  syncSliders();
 }
 function stop(reason = "explicit") {
   run = null;
@@ -436,6 +460,13 @@ $("inspectExample").onclick = $("inspectTester").onclick = () =>
 $("backExample").onclick = () => showPage("examples");
 $("debugExample").onchange = () => context($("debugExample").value);
 const settingsSpec = {
+  zoomAxis: ["Zoom gesture", "select", ["forward", "vertical"]],
+  invertX: ["Reverse sideways pan", "checkbox"],
+  invertY: ["Reverse forward / backward", "checkbox"],
+  invertZ: ["Reverse lift / press", "checkbox"],
+  invertRX: ["Reverse forward / backward tilt", "checkbox"],
+  invertRY: ["Reverse left / right tilt", "checkbox"],
+  invertRZ: ["Reverse twist", "checkbox"],
   translationSpeed: [
     "Pan / dolly speed",
     "number",
@@ -510,6 +541,8 @@ const settingsSpec = {
   routing: ["Canvas mode", "select", ["menu", "navigation"]],
 };
 const optionNames = {
+  forward: "Forward / backward · lift to pan",
+  vertical: "Lift / press · forward to pan",
   slide: "Slide · raw X / Y",
   tilt: "Tilt · left/right, up/down",
   translation: "Translation · raw X / Y / Z",
@@ -534,6 +567,20 @@ const optionNames = {
 
 const helpFor = (key) =>
   ({
+    zoomAxis:
+      "Object-in-hand navigation: move the model with the cap. Choose forward/back zoom or lift/press zoom; the other motion pans vertically. These are application camera mappings.",
+    invertX:
+      "Reverse only sideways model movement. This changes the SDK translation X scale.",
+    invertY:
+      "Reverse the forward/back cap motion, whether assigned to zoom or vertical pan. SDK translation Y scale.",
+    invertZ:
+      "Reverse lifting/pressing, whether assigned to vertical pan or zoom. SDK translation Z scale.",
+    invertRX:
+      "Reverse pitch: tipping the cap toward or away from you. SDK rotation RX scale.",
+    invertRY:
+      "Reverse roll: leaning the cap left or right. SDK rotation RY scale.",
+    invertRZ:
+      "Reverse yaw: twisting the cap clockwise or counterclockwise. SDK rotation RZ scale.",
     translationSpeed:
       "How quickly the scene pans and moves closer. Higher is faster; 0 stops translation. This changes the SDK rate, not a hidden camera multiplier.",
     rotationSpeed:
@@ -594,6 +641,11 @@ const helpFor = (key) =>
 
 function syncSettings() {
   const s = puck.settings().controls;
+  for (const a of axes)
+    settings["invert" + a.toUpperCase()] =
+      (s[a.length === 1 ? "controls.translation" : "controls.rotation"].scale?.[
+        a
+      ] ?? 1) !== (["x", "y"].includes(a) ? -1 : 1);
   settings.translationSpeed = s["controls.translation"].speed;
   settings.rotationSpeed = (s["controls.rotation"].speed * 180) / Math.PI;
   settings.responseMs = s["controls.translation"].responseMs;
@@ -627,7 +679,19 @@ function renderSettings() {
   syncSettings();
   const keys =
     example === "navigation"
-      ? ["translationSpeed", "rotationSpeed", "responseMs", "deadzone"]
+      ? [
+          "translationSpeed",
+          "rotationSpeed",
+          "zoomAxis",
+          "invertX",
+          "invertY",
+          "invertZ",
+          "invertRX",
+          "invertRY",
+          "invertRZ",
+          "responseMs",
+          "deadzone",
+        ]
       : example === "canvas"
         ? ["panSpeed", "zoomSpeed", "responseMs"]
         : example === "values"
@@ -687,7 +751,16 @@ function renderSettings() {
             settings.as === "direction"
           )
             settings.as = "deflection";
-          if (k === "routing") {
+          if (k === "zoomAxis") {
+            stop("configuration-change");
+          } else if (k.startsWith("invert")) {
+            puck.configure(common.translation, {
+              scale: navigationScale(["x", "y", "z"]),
+            });
+            puck.configure(common.rotation, {
+              scale: navigationScale(["rx", "ry", "rz"]),
+            });
+          } else if (k === "routing") {
             stop("context-change");
             puck.setContext(activeContext());
             if (!connection) feed(neutralInput);
@@ -739,6 +812,7 @@ function renderSettings() {
       explanation.id = "help-" + k;
       explanation.textContent = helpFor(k);
       i.setAttribute("aria-describedby", explanation.id);
+      i.setAttribute("aria-label", label);
       l.append(explanation);
       if (
         [
@@ -764,6 +838,7 @@ function renderSettings() {
   );
 }
 function renderExample() {
+  lastExampleSignature = "";
   const [, , heading, desc, instruction, expected] = examples[example];
   $("category").textContent = examples[example][1];
   $("title").textContent = heading;
@@ -998,6 +1073,13 @@ function updateCode() {
   if (!puck) return;
   const actual = puck.settings().controls;
   let body = `const controls = recipes.sixAxis(${JSON.stringify({ translationSpeed: actual["controls.translation"].speed, rotationSpeed: actual["controls.rotation"].speed, responseMs: actual["controls.translation"].responseMs, panDeadzone: actual["controls.translation"].deadzone, rotationDeadzone: actual["controls.rotation"].deadzone })});\nconst puck = createPuck({ controls });\nfunction render() {\n  const frame = puck.frame();\n  const translation = frame.integrate(controls.translation);\n  const rotation = frame.integrate(controls.rotation); // radians\n  // Apply deltas to your application's camera.\n  requestAnimationFrame(render);\n}\nrender();`;
+  if (example === "navigation") {
+    body = body.replace(
+      "const puck = createPuck({ controls });",
+      `const puck = createPuck({ controls });\npuck.configure(controls.translation, { scale: ${JSON.stringify(actual["controls.translation"].scale)} });\npuck.configure(controls.rotation, { scale: ${JSON.stringify(actual["controls.rotation"].scale ?? {})} });`,
+    );
+    body += `\n\n// Application camera mapping (not a recognizer option):\n// zoomAxis: ${JSON.stringify(settings.zoomAxis)}. See navigation.js for the example\n// object-in-hand camera implementation. SDK deltas already include the inversions.`;
+  }
   if (example === "canvas")
     body = `const controls = recipes.panZoom(${JSON.stringify({ panSpeed: actual["contexts.canvas.pan"].speed, zoomSpeed: actual["contexts.canvas.zoom"].speed, responseMs: actual["contexts.canvas.pan"].responseMs })});\nconst puck = createPuck({ controls });\nfunction render() {\n  const frame = puck.frame();\n  const [dx, dy] = frame.integrate(controls.pan);\n  const zoomFactor = Math.exp(frame.integrate(controls.zoom));\n  // Pan by dx/dy; zoom around the application's anchor.\n  requestAnimationFrame(render);\n}\nrender();`;
   else if (example === "values")
@@ -1250,7 +1332,10 @@ $("export").onclick = () =>
     },
   });
 $("saveSettings").onclick = () =>
-  download("puck-settings.json", puck.settings());
+  download("puck-settings.json", {
+    ...puck.settings(),
+    preview: { zoomAxis: settings.zoomAxis },
+  });
 $("fresh").onclick = () => {
   newRuntime();
   say("New recording started.");
@@ -1259,7 +1344,14 @@ $("restoreSettings").onchange = async (e) => {
   try {
     const file = e.target.files[0];
     if (!file) return;
-    puck.restoreSettings(JSON.parse(await file.text()));
+    const saved = JSON.parse(await file.text());
+    if (
+      saved.preview?.zoomAxis !== undefined &&
+      !["forward", "vertical"].includes(saved.preview.zoomAxis)
+    )
+      throw new Error("Invalid preview zoom gesture.");
+    puck.restoreSettings(saved);
+    settings.zoomAxis = saved.preview?.zoomAxis ?? "forward";
     renderSettings();
     updateCode();
     $("status").textContent = "Settings restored. Release to neutral.";
@@ -1759,36 +1851,66 @@ $("replay").onchange = async (e) => {
     e.target.value = "";
   }
 };
+let planStyle;
 function drawPlan() {
   const p = canvasPose,
     parts = [
       '<rect x="-600" y="-400" width="1200" height="800" fill="#f7f8f5"/>',
     ];
-  for (let x = -600; x <= 600; x += 50)
-    parts.push(`<path d="M${x} -400V400" stroke="#dce4df"/>`);
-  for (let y = -400; y <= 400; y += 50)
-    parts.push(`<path d="M-600 ${y}H600" stroke="#dce4df"/>`);
-  parts.push(
-    '<path d="M-280-150H280V150H-280Z M-80-150V150 M100-150V20H280 M-80 20H100" fill="none" stroke="#48635a" stroke-width="8"/>',
-  );
-  for (const [x, y, label] of [
-    [-220, -30, "Studio"],
-    [0, -60, "Kitchen"],
-    [175, -60, "Office"],
-    [75, 100, "Living room"],
-  ])
+  if (planStyle !== style) {
+    for (let x = -600; x <= 600; x += 50)
+      parts.push(`<path d="M${x} -400V400" stroke="#dce4df"/>`);
+    for (let y = -400; y <= 400; y += 50)
+      parts.push(`<path d="M-600 ${y}H600" stroke="#dce4df"/>`);
     parts.push(
-      `<text x="${x}" y="${y}" fill="#29493d" font-size="19">${label}</text>`,
+      '<path d="M-280-150H280V150H-280Z M-80-150V150 M100-150V20H280 M-80 20H100" fill="none" stroke="#48635a" stroke-width="8"/>',
     );
-  $("plan").innerHTML = parts.join("").replaceAll("#48635a", palette[style]);
+    for (const [x, y, label] of [
+      [-220, -30, "Studio"],
+      [0, -60, "Kitchen"],
+      [175, -60, "Office"],
+      [75, 100, "Living room"],
+    ])
+      parts.push(
+        `<text x="${x}" y="${y}" fill="#29493d" font-size="19">${label}</text>`,
+      );
+    $("plan").innerHTML = parts.join("").replaceAll("#48635a", palette[style]);
+    planStyle = style;
+  }
   $("plan").setAttribute(
     "transform",
     `translate(${400 + p.x} ${220 + p.y}) scale(${p.zoom})`,
   );
 }
+let lastExampleSignature = "";
+window.addEventListener("resize", () => {
+  lastExampleSignature = "";
+});
 function drawExample() {
   const a = active(),
     selection = ["selection", "routing", "lifecycle"].includes(example);
+  const cancellation =
+    selection && a ? puck.inspect(a.handle).controls[0].cancellation : null;
+  const liveValue =
+    example === "values"
+      ? puck.read(groups.values.value)
+      : example === "scalar"
+        ? adjusted
+        : point;
+  const signature = JSON.stringify([
+    example,
+    a?.state,
+    cancellation?.phase,
+    liveValue,
+    camera,
+    canvasPose,
+    style,
+    settings.cancelMode,
+    settings.routing,
+    settings.zoomAxis,
+  ]);
+  if (signature === lastExampleSignature) return;
+  lastExampleSignature = signature;
   $("selectionOverlay").hidden = !selection || !a;
   const v = a?.state.value;
   if (selection && a) {
@@ -1798,20 +1920,22 @@ function drawExample() {
       settings.cancelMode === "none"
         ? "No cancellation gesture configured. Use Cancel in Debug to abort."
         : `To cancel: ${optionNames[settings.cancelMode].toLowerCase()}, then let twist center while keeping pressure held.`;
-    $("radial").replaceChildren(
-      ...styles.map((label, i) => {
-        const el = document.createElement("span"),
-          angle = (i * Math.PI) / 4;
-        el.textContent = label;
-        el.className = i === v ? "selected" : "";
-        el.style.left = 50 + 34 * Math.cos(angle) + "%";
-        el.style.top = 50 + 34 * Math.sin(angle) + "%";
-        el.style.setProperty("--swatch", palette[i]);
-        return el;
-      }),
-    );
+    if (!$("radial").children.length)
+      $("radial").replaceChildren(
+        ...styles.map((label, i) => {
+          const el = document.createElement("span"),
+            angle = (i * Math.PI) / 4;
+          el.textContent = label;
+          el.className = i === v ? "selected" : "";
+          el.style.left = 50 + 34 * Math.cos(angle) + "%";
+          el.style.top = 50 + 34 * Math.sin(angle) + "%";
+          el.style.setProperty("--swatch", palette[i]);
+          return el;
+        }),
+      );
+    for (const [i, el] of [...$("radial").children].entries())
+      el.classList.toggle("selected", i === v);
     $("menuHint").textContent = v === null ? "Tilt to choose" : styles[v];
-    const cancellation = puck.inspect(a.handle).controls[0].cancellation;
     $("cancelFeedback").textContent =
       cancellation?.phase === "active"
         ? "Twist registered — center the twist to finish canceling."
@@ -1829,6 +1953,14 @@ function drawExample() {
     $("expected").textContent =
       "Choose Edit to enable the color palette on the unused pressure and tilt axes.";
   }
+  if (example === "navigation") {
+    $("instruction").textContent =
+      settings.zoomAxis === "forward"
+        ? "Object in hand: slide sideways to pan, lift to raise, push forward to move the model away. Tilt to pitch/roll; twist to turn."
+        : "Object in hand: slide sideways/forward to pan, lift toward you to enlarge, press down to shrink. Tilt to pitch/roll; twist to turn.";
+    $("expected").textContent =
+      "Use the six Reverse switches to match your preferred directions. These invert the SDK controls; raw Debug input stays unchanged.";
+  }
   $("sessionState").textContent = a
     ? `${a.name} active · session ${a.state.sessionId}`
     : "No interaction active";
@@ -1836,17 +1968,12 @@ function drawExample() {
     example === "canvas"
       ? `Zoom ${canvasPose.zoom.toFixed(2)}×`
       : selection
-        ? `${styles[style]} ink · ${a ? "pan available · zoom reserved" : "pan + zoom available"}`
+        ? `${styles[style]} ink · ${a ? "drawing locked while selecting" : "pan + zoom available"}`
         : "Target orbit · all six axes";
   if (!$("scene").hidden) drawScene($("scene"), camera, 0);
   if (isCanvasExample()) drawPlan();
   if (["values", "scalar", "vector"].includes(example)) {
-    const value =
-      example === "values"
-        ? puck.read(groups.values.value)
-        : example === "scalar"
-          ? adjusted
-          : point;
+    const value = liveValue;
     $("valueCaption").textContent =
       example === "values"
         ? `${settings.source} → ${settings.as}`
@@ -1865,21 +1992,31 @@ function drawExample() {
             : ["x", "y", "z"]
           ).map((a, i) => [a, value[i]])
         : axes.map((a) => [a, value[a]]);
-      $("axisValues").replaceChildren(
-        ...pairs.map(([name, v]) => {
-          const row = document.createElement("div"),
-            label = document.createElement("strong"),
-            out = document.createElement("output"),
-            meter = document.createElement("meter");
-          label.textContent = name.toUpperCase();
-          out.textContent = v.toFixed(3);
-          meter.min = -1;
-          meter.max = 1;
-          meter.value = v;
-          row.append(label, meter, out);
-          return row;
-        }),
-      );
+      if (
+        $("axisValues").dataset.channels !== pairs.map((p) => p[0]).join(",")
+      ) {
+        $("axisValues").dataset.channels = pairs.map((p) => p[0]).join(",");
+        $("axisValues").replaceChildren(
+          ...pairs.map(([name, v]) => {
+            const row = document.createElement("div"),
+              label = document.createElement("strong"),
+              out = document.createElement("output"),
+              meter = document.createElement("meter");
+            label.textContent = name.toUpperCase();
+            out.textContent = v.toFixed(3);
+            meter.min = -1;
+            meter.max = 1;
+            meter.value = v;
+            row.append(label, meter, out);
+            return row;
+          }),
+        );
+      }
+      for (const [i, [, v]] of pairs.entries()) {
+        const row = $("axisValues").children[i];
+        row.querySelector("output").textContent = v.toFixed(3);
+        row.querySelector("meter").value = v;
+      }
     }
     $("valueOutput").textContent =
       typeof value === "number"
@@ -1902,17 +2039,40 @@ function drawExample() {
     if (vector) {
       $("vectorDot").setAttribute(
         "cx",
-        250 + Math.max(-1, Math.min(1, value[0])) * 200,
+        120 + Math.max(-1, Math.min(1, value[0])) * 110,
       );
       $("vectorDot").setAttribute(
         "cy",
-        110 + Math.max(-1, Math.min(1, value[1])) * 90,
+        120 + Math.max(-1, Math.min(1, value[1])) * 110,
       );
     } else if (typeof value === "number")
       $("scalar").value = Math.max(-1, Math.min(1, value));
   }
 }
+const frameCosts = [];
+let frameGaps = [],
+  lastFrameTime = performance.now(),
+  healthAt = 0,
+  lastDebugDraw = 0,
+  slowFrames = 0,
+  worstGap = 0;
+const health = document.createElement("p");
+health.id = "frameHealth";
+health.title =
+  "Work is JavaScript time inside the render callback. Interval includes browser rendering and scheduling. Foreground gaps over 50 ms are retained until reload; device report gaps are graphed separately.";
+$("graphs").before(health);
+document.addEventListener("visibilitychange", () => {
+  lastFrameTime = null;
+});
 function frame() {
+  const workStart = performance.now();
+  if (lastFrameTime !== null && !document.hidden) {
+    const gap = workStart - lastFrameTime;
+    frameGaps.push(gap);
+    worstGap = Math.max(worstGap, gap);
+    if (gap > 50) slowFrames++;
+  }
+  lastFrameTime = workStart;
   safe(() => {
     const t = performance.now();
     if (run) {
@@ -1932,7 +2092,7 @@ function frame() {
     const f = puck.frame(t),
       linear = f.integrate(common.translation),
       angular = f.integrate(common.rotation);
-    if (example === "navigation") moveCamera(camera, linear, angular);
+    if (example === "navigation") moveCamera(camera, linear, angular, settings);
     if (isCanvasExample()) {
       const [x, y] = f.integrate(groups[activeContext()].pan),
         dz = f.integrate(groups[activeContext()].zoom),
@@ -1951,7 +2111,9 @@ function frame() {
         const d = f.integrate(h);
         point = point.map((v, i) => Math.max(-1, Math.min(1, v + d[i])));
       }
+    if (page === "examples") drawExample();
     if (t - lastDraw >= 33) {
+      if ($("manualInputs").open) syncSliders();
       let linearRate = puck.read(common.translation),
         angularRate = puck.read(common.rotation);
       let linearSpeed = settings.translationSpeed,
@@ -2010,8 +2172,10 @@ function frame() {
         frameMs: f.end - f.start,
       });
       while (samples.length && samples[0].t < t - 30000) samples.shift();
-      if (page === "examples") drawExample();
-      if (page === "debug") debugFrame();
+      if (page === "debug" && t - lastDebugDraw >= 100) {
+        debugFrame();
+        lastDebugDraw = t;
+      }
       $("recognizerState").textContent =
         `${recognizer.state.phase}${recognizer.state.pending ? " · waiting for double: " + recognizer.state.pending : ""}${recognizer.state.hold ? " · hold active" : ""}`;
       if (puck.recordingFull)
@@ -2020,6 +2184,14 @@ function frame() {
       lastDraw = t;
     }
   });
+  frameCosts.push(performance.now() - workStart);
+  if (workStart - healthAt >= 2000) {
+    const sorted = frameCosts.toSorted((a, b) => a - b);
+    health.textContent = `Last 2 s: frame work p95 ${sorted[Math.floor(sorted.length * 0.95)]?.toFixed(2)} ms · interval p95 ${frameGaps.toSorted((a, b) => a - b)[Math.floor(frameGaps.length * 0.95)]?.toFixed(1) ?? "—"} ms. Since load: ${slowFrames} foreground gaps over 50 ms · worst ${worstGap.toFixed(1)} ms.`;
+    frameCosts.length = 0;
+    frameGaps.length = 0;
+    healthAt = workStart;
+  }
   requestAnimationFrame(frame);
 }
 newRuntime();

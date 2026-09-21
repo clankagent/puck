@@ -2,6 +2,8 @@
 
 ## Unreleased v1 preview
 
+- Add six SDK-backed navigation inversion controls and an application zoom-axis choice; correct forward dolly to object-in-hand direction. Make vector plots square, lock the drawing while a palette is open, retain static DOM, render motion at animation-frame cadence, and add frame-stall diagnostics. No release; physical retesting remains required.
+
 - Correct semantic tilt coordinates throughout the SDK, preserve raw channels, fix example camera roll, and increase default six-axis translation and held-vector speeds. Replace oversized 3D menu/conflict demos with a compact 2D ink palette and View/Edit modes; explain settings, show cancellation progress and display each continuous axis once. Physical retesting remains required.
 
 - Rebuild the playground around feature examples, a complete gesture tester and a synchronized debug workspace. Add perspective target-orbit camera, instructional menu/hold examples, generated declarations, separate device/simulator counts, freeze/scrub and replayable diagnostic snapshots. Existing calibration and compatibility tools remain linked.

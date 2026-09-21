@@ -84,3 +84,23 @@ Completed-twist cancellation now displays its recognition/centering state.
 
 These corrections still require the user's physical retest. No release approval
 has been given. No package publication, release tag or prerelease is authorized.
+
+## Navigation preferences and rendering follow-up, 2026-09-21
+
+135 tests and public type fixtures pass. Added coverage runs all six SDK axis
+inversions through both camera zoom mappings and verifies modal push/pull palettes
+suppress pan and zoom. Existing alternative shared-pan ownership remains tested.
+Browser checks confirmed SDK inversion in the generated snippet, all-channel
+suppression in inspection, a stationary drawing under incidental simulated pan,
+and 240 x 240 vector plots on desktop and a 390px phone viewport.
+
+Before optimization, a sustained simulated menu hold measured frame work p95
+1.0 ms and frame interval p95 17.3 ms, with no gaps over 50 ms in that interval.
+Afterward, quiet intervals measured roughly 0.4–0.7 ms work; Debug around 2.8 ms,
+with frame intervals around 17.4 ms. These are spot measurements on the agent VM,
+not a hardware stress test or proof that the user's severe intermittent stalls
+are resolved. DOM rebuilding and unnecessary idle rendering were removed; the
+preview now retains foreground frame-stall counts for a physical retest.
+
+Only preview deployment is authorized. Physical feel and intermittent performance
+remain subject to user testing; there is no release approval.

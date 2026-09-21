@@ -1051,7 +1051,14 @@ footer {
   text-align: right;
 }
 #valueStage #vector {
-  height: 220px;
+  width: min(240px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+}
+#valueStage {
+  min-height: 400px;
+  padding: 16px;
 }
 #valueStage #valueOutput {
   font-size: 26px;

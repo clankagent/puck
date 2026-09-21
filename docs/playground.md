@@ -19,7 +19,7 @@ zoom limits and drawings belong to the example, not the recognizer.
 - **3D navigation:** screen-relative pan, forward/back dolly and orbit around a
   visible pivot. Fit / reset view restores the camera. Translation speed is world
   units per second; rotation speed is displayed in degrees and passed to the SDK
-  in radians per second. Camera orientation uses normalized quaternions.
+  in radians per second. Camera orientation uses normalized quaternions. The default is object-in-hand: pushing forward moves the object away; lifting raises it. Choose lift/press zoom instead, or independently reverse all six physical motions. Inversions use SDK scale settings; choosing the zoom gesture belongs to the application camera.
 - **2D pan & zoom:** slide to pan, twist to zoom around the viewport center.
 - **Continuous values:** select any public source and supported interpretation.
   Direction is available for slide and tilt; configure sectors, memory and
@@ -28,7 +28,7 @@ zoom limits and drawings belong to the example, not the recognizer.
   highlights a choice; qualified pressure release applies it. Single or double completed twists can cancel while pressure stays held; cancellation leaves the existing ink color unchanged.
 - **Held scalar / vector:** pressure keeps the session open while twist or tilt
   drives an integrated value. Compare activation and combination lifetimes.
-- **Contexts & ownership:** compare View (pan/zoom only) with Edit (pan/zoom plus palette). The palette reserves twist zoom while planar pan stays available. The observer continues to see input. Debug shows actual
+- **Contexts & ownership:** compare View (pan/zoom only) with Edit (pan/zoom plus palette). The open palette owns all channels, so incidental translation cannot move the drawing. The observer continues to see input. Debug shows actual
   owners, suppression and the fresh-neutral rearming requirement.
 - **Cancel & interrupt:** hold indefinitely using a device or simulator buttons,
   then explicitly cancel, interrupt or switch context. No cancellation commits.
@@ -110,4 +110,32 @@ Open `http://127.0.0.1:47827/puck/`. The build copies an explicit public asset l
 and the compiled SDK into ignored `site/`. Main deploys to GitHub Pages after CI.
 No release tag or npm publication is part of deploying this preview.
 
+
+
+### Navigation conventions and frame diagnostics
+
+[Blender's NDOF documentation](https://docs.blender.org/UATEST/manual/en/dev/editors/preferences/input.html)
+describes object-in-hand navigation, forward/back versus up/down zoom, and
+independent pan/rotation inversions. The preview exposes those direction choices;
+it does not claim to reproduce every Blender navigation mode or pivot policy.
+[Onshape's documentation](https://cad.onshape.com/help/Content/Plans/my_account_preferences.htm)
+refers SpaceMouse setup to the device's own settings rather than specifying a
+separate universal mapping. The preview reads WebHID directly and does not inherit
+settings from the desktop 3Dconnexion driver.
+
+Both vector displays use a square plot with equal signed-axis travel. Menu
+movement locking is declared with exclusive ownership of all channels and explicit
+precedence over pan/zoom. Other applications may choose narrower ownership.
+
+Motion renders on animation frames; plots redraw at 10 Hz, while processed
+samples remain at roughly 30 Hz and raw device reports retain their timestamps.
+Static drawing geometry, menu items and axis rows are retained instead of rebuilt.
+Unchanged examples skip rendering. Manual slider displays refresh only while open.
+Debug reports recent frame work/interval p95, retained foreground stalls and worst
+gap. JavaScript work excludes browser paint; frame interval includes scheduling.
+These measurements are separate from the device report-gap graph. Hidden-tab gaps
+are excluded. Capture export still retains raw input and diagnostic snapshots.
+
+Settings export also includes the preview's camera zoom-axis preference; SDK
+settings contain the six axis scales. Import validates the preview preference.
 

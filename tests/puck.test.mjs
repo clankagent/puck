@@ -201,3 +201,14 @@ test('2D palette owns twist without stealing pan; a context change cancels witho
  const panzoom=recipes.panZoom({responseMs:0});const menu=recipes.directionSelection({activation:'pull',cancel:{input:'twist'},ownership:{mode:'exclusive',channels:['z','rx','ry','rz']}});
  const p=createPuck({controls:panzoom,contexts:{view:{},edit:{menu}},context:'edit',conflicts:[{prefer:menu,over:Object.values(panzoom)}],clock:()=>0});const events=p.events();p.feed(neutralInput,0);p.feed(input({z:-.8,ry:.6,x:.5,rz:.2}),20);assert.notEqual(p.read(panzoom.pan)[0],0);assert.equal(p.read(panzoom.zoom),0);assert.equal(p.read(menu).value,4);p.setContext('view',30);assert.equal(events.drain().at(-1).reason,'context-change');p.feed(neutralInput,40);p.feed(input({z:-.8,rz:.6}),50);assert.equal(p.read(menu).status,'inactive');assert.notEqual(p.read(panzoom.zoom),0);
 });
+
+test('a modal 2D palette locks pan and zoom until neutral rearming, for push and pull',()=>{
+ for(const activation of ['push','pull']){
+  const panzoom=recipes.panZoom({responseMs:0});const menu=recipes.directionSelection({activation,ownership:{mode:'exclusive',channels:'all'}});
+  const p=createPuck({controls:{...panzoom,menu},conflicts:[{prefer:menu,over:Object.values(panzoom)}],clock:()=>0});const events=p.events();
+  p.feed(neutralInput,0);p.frame(0);p.feed(input({z:activation==='pull'?-.8:.8,rx:-.6,x:.4,y:.3,rz:.2}),20);
+  assert.deepEqual(p.read(panzoom.pan),[0,0]);assert.equal(p.read(panzoom.zoom),0);assert.deepEqual(p.frame(40).integrate(panzoom.pan),[0,0]);
+  p.cancel(menu,50);assert.equal(events.drain().at(-1).type,'cancel');
+  p.feed(neutralInput,60);p.feed(input({x:.4,rz:.5}),80);assert.notEqual(p.read(panzoom.pan)[0],0);assert.notEqual(p.read(panzoom.zoom),0);
+ }
+});

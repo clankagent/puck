@@ -1,5 +1,5 @@
-// Application camera: SDK deltas arrive in device coordinates (X right,
-// Y forward, Z vertical). Rendering uses X right, Y up, Z toward the viewer.
+// Application camera: sixAxis already applies its X/Y scaling. Rendering uses
+// X right, Y up, Z toward the viewer. Do not apply raw HID sign fixes again.
 const add = (a, b) => a.map((v, i) => v + b[i]);
 const mul = (a, s) => a.map((v) => v * s);
 export function quaternion(a, b) {
@@ -33,15 +33,31 @@ export function cameraHome() {
     distance: 450,
   };
 }
-export function moveCamera(camera, translation, angular) {
+export function moveCamera(
+  camera,
+  translation,
+  angular,
+  { zoomAxis = "forward" } = {},
+) {
   // Screen-relative pan, forward/back dolly, and local orbit about a stable pivot.
   camera.target = add(
     camera.target,
-    rotate([-translation[0], translation[2], 0], camera.orientation),
+    rotate(
+      [
+        -translation[0],
+        zoomAxis === "forward" ? translation[2] : -translation[1],
+        0,
+      ],
+      camera.orientation,
+    ),
   );
   camera.distance = Math.max(
     90,
-    Math.min(5000, camera.distance + translation[1]),
+    Math.min(
+      5000,
+      camera.distance +
+        (zoomAxis === "forward" ? -translation[1] : translation[2]),
+    ),
   );
   const q = quaternion(
     camera.orientation,
