@@ -95,3 +95,21 @@ direction; interrupted/outlying excursions are excluded. Inferred labels are
 not ground truth or an accuracy score. No new hardware compatibility is claimed.
 Ordinary pan/zoom false-positive rates and multi-session robustness remain
 1.0 validation work. Raw captures and user metadata are not distributed.
+
+## Rebuilt preview QA — 2026-09-21
+
+- 129 automated tests and the public TypeScript fixtures pass. Four new tests
+  cover camera behavior and reconstruction of displayed control declarations.
+- Browser simulator detected all 32 catalog outcomes through real SDK samples.
+  Device counts remained zero. Reset clears both independent banks.
+- Browser checks: push/pull menu commit; single and same-direction double cancel;
+  scalar and vector holds; explicit interrupt/cancel; context ownership suppression;
+  observer visibility; independent event cursor; continuous direction / axes;
+  2D zoom; keyboard speed editing and settings export/restore.
+- Exported browser recording replayed with diagnostic snapshots and evidence.
+  Graph focus shows all six axes plus occurrence, timing and output plots at once
+  on desktop. Freeze captures its own retained window while the SDK keeps running.
+- Desktop and 390px / 320px phone layouts inspected. Fixed SVG hidden-state
+  reflection and moved simulator controls next to the scene so actions and
+  results remain together. No horizontal page overflow at either phone width.
+- No new physical-device tests performed. No release is approved by this QA.

@@ -1,100 +1,106 @@
 # Puck playground
 
-[Open the demo](https://clankagent.github.io/puck/) · [Documentation](../README.md)
+[Open the preview](https://clankagent.github.io/puck/) · [Application API](application-api.md)
 
-The public demo runs entirely in the browser, served from GitHub Pages. No
-account, installation or device is required to try simulated input.
+This is an **unreleased v1 preview** for hands-on testing. It runs the repository's
+actual SDK; the npm package is still 0.5.0. A preview deployment is not a release.
+The user's physical-controller testing and explicit approval are required before
+any v1 publication, including prereleases.
 
-The public site runs the same SDK as the package version shown in its header.
-The initial 2D movement configuration
-uses `createPanZoom()` defaults, and the tester uses `createGestures()` without
-overrides. Regression tests compare the demo output and displayed motion defaults
-with unconfigured SDK instances. Speed/profile changes are explicit overrides.
+## Examples
 
-Default gesture mode enables all 32 types, including standalone tilt and combined
-press/tilt and press/rotate taps and holds, just as in the library. Explicitly disabled tiles say why;
-the coverage denominator counts the currently enabled types. Restore gesture
-defaults returns to unconfigured SDK behavior. The public calibration lab also
-starts with the same all-family defaults as the local lab and library.
+Choose a feature in the left navigation. Each example has a physical instruction,
+visible result, relevant settings, simulator buttons and generated application
+code. The complete declaration is generated from the live runtime's definitions
+and current settings. Navigation starts with public `recipes.sixAxis()` defaults;
+2D motion uses `recipes.panZoom()` defaults. Application-specific camera, menu,
+zoom limits and drawings belong to the example, not the recognizer.
 
-The 3D object renderer and camera limits are example-application behavior, not
-additional SDK defaults. Copy movement settings produces the actual `createPanZoom`
-setup needed in a consuming project, with only the changed SDK options.
+- **3D navigation:** screen-relative pan, forward/back dolly and orbit around a
+  visible pivot. Fit / reset view restores the camera. Translation speed is world
+  units per second; rotation speed is displayed in degrees and passed to the SDK
+  in radians per second. Camera orientation uses normalized quaternions.
+- **2D pan & zoom:** slide to pan, twist to zoom around the viewport center.
+- **Continuous values:** select any public source and supported interpretation.
+  Direction is available for slide and tilt; configure sectors, memory and
+  hysteresis. Velocity provides a frame-integrated rate; raw deflection does not.
+- **Push / pull menu:** either pressure direction opens a style chooser. Tilt
+  highlights a choice; qualified pressure release applies it. Single or double
+  twist can cancel; cancellation leaves the existing style unchanged.
+- **Held scalar / vector:** pressure keeps the session open while twist or tilt
+  drives an integrated value. Compare activation and combination lifetimes.
+- **Contexts & ownership:** compare navigation-only context with a menu that
+  suppresses movement. The observer continues to see input. Debug shows actual
+  owners, suppression and the fresh-neutral rearming requirement.
+- **Cancel & interrupt:** hold indefinitely using a device or simulator buttons,
+  then explicitly cancel, interrupt or switch context. No cancellation commits.
+
+Connect a supported SpaceMouse using the header button. Simulator controls disable
+while connected. Without hardware, the buttons and six manual sliders feed real
+input samples through the SDK; they do not fabricate recognition events. Focus
+loss interrupts the session. Speed changes update the live runtime; structural
+changes such as source, interpretation or cancellation policy start a new capture.
+Export a capture before changing its structure. Restore defaults resets the
+preview's settings and starts a fresh runtime.
 
 ## Gesture tester
 
-The board covers 32 emitted gesture types: eight twist/press singles and doubles,
-eight standalone tilt singles and doubles, eight push/pull + tilt singles, and
-eight push/pull + rotation tap/hold outcomes.
-Each starts gray at zero. The first recognized event turns it green and marks
-it Detected; subsequent events increment the count. Reset clears the counters,
-event history, live traces and pending recognition. Counts last for this page
-session. Changing the count source starts a fresh test; changing the force
-profile keeps counts until reset.
+[Open the tester](https://clankagent.github.io/puck/#tester).
 
-Click a tile to feed a timed sequence through the real SDK. This is synthetic
-input, not a claim of physical validation. Lower simulator force may fall below
-the selected tune's gates and produce no event. Device-only counting excludes
-all simulated events. Connecting hardware selects device-only mode and clears
-the board. On disconnect, device counts remain until reset or source change.
+All 32 catalog outcomes are enabled through `createGestures()` defaults: 16 plain
+single/double outcomes, eight pressure + tilt outcomes and eight pressure + twist
+tap/hold outcomes. Select a tile to see its instructions and code, then perform
+the action or use **Simulate selected gesture**. Simulator and device counts are
+separate and persist when switching between the two. Reset all counts clears
+both banks. Each tile starts gray at zero and turns green on first detection.
+Hold counters increment at holdstart; holdend and holdcancel appear in Debug.
 
-Manual buttons support hold and release. With focus outside form controls,
-arrow keys twist/push/pull, W/S and A/D tilt, and I/K/J/L pan. Shift adds push
-to a tilt; Alt adds pull where the browser/OS does not reserve that shortcut.
-Focus loss clears input and cancels pending recognition. Keyboard Enter or Space
-also activates gesture tiles. Combined gestures emit singles, not doubles.
+## Debug workspace
 
-## Continuous movement
+[Open Debug](https://clankagent.github.io/puck/#debug), or select **Inspect this
+example**. Moving between an example and Debug preserves its live session.
 
-Movement opens first, with live settings beside the view. Set pan speed (px/s),
-zoom speed (log units/s), movement/zoom deadzones, acceleration response and the
-maximum integrated frame interval. The numeric inputs and sliders control the
-same values. Changes apply immediately to held input, without resetting the view.
-Zero speed disables that movement. Restore movement defaults resets settings;
-Reset view recenters the view. Copy movement settings exports the configuration.
-Gesture force profiles and movement settings are independent.
+The six axis panels share a time window: raw report values, observer deflection
+and movement rate normalized to configured speed. Numeric rates are world units/s
+or radians/s. Other plots show occurrences, report delivery gaps and the selected
+scalar/vector output. The routing table displays the SDK's current context,
+ownership and suppression. Select an event for `puck.explain()` evidence, or scrub
+to inspect a sample. Catalog occurrences identify their legacy recognizer origin.
 
-Switch between **2D pan / zoom** and **3D · all six axes**. The 2D view uses
-the public SDK pan/zoom controller. The 3D view is a consuming-app example built
-with the SDK integrators: x/y/z move an isometrically projected object and rx/ry/rz
-rotate it about fixed axes. It is not an added 3D camera API. The 3D view has
-separate translation (units/s), rotation (degrees/s) and rotation-deadzone settings.
-Neutral stops immediately in both views, even with a long acceleration response.
+**Focus graphs** keeps the plots together on desktop. Freeze takes a retained
+snapshot of the display while recognition continues. Scrub or change the window
+for all plots together. Return to live discards the replay/frozen view.
 
-Test buttons send one second of simulated input. Under **Hold manual input /
-combine axes**, six sliders can hold and mix continuous deflections. Release all
-zeros them, and focus loss cancels them. These simulator controls disable while
-hardware is connected; movement settings remain editable. Output graphs scale
-to the selected speeds and frame cap. Raw input graphs below remain independent
-of speeds, deadzones and recognition.
+Pause input, explicit cancellation and interruption are available for lifecycle
+testing. The independent cursor can be drained without consuming subscriptions.
 
-## Signals and motion graphs
+## Recordings and settings
 
-All six raw axes have signed traces. A separate event timeline shows singles,
-doubles and combined gestures. Freeze pauses graph rendering while recognition
-continues. The motion example demonstrates pan and anchored, bounded zoom using
-the SDK's controller; its graph shows pan deltas and log-zoom per frame. Reset
-view restores the camera. Select twist or pressure as the zoom source.
+Export a recording before reloading the page or creating a new capture. Nothing
+is uploaded. The public SDK recording includes input and timeline operations.
+An optional preview extension retains the last 30 seconds of browser diagnostic
+snapshots and event evidence. Loading it shows those saved graphs without altering
+the live runtime. Plain SDK recordings replay too, with explicit indications of
+which diagnostic snapshots are unavailable. Very large files are rejected by the
+browser preview; the public replay API remains available to applications.
 
-## Recording and calibration
+Settings export/restore uses the public versioned format. Restoring validates
+against the current definition. A file cannot silently change control structure.
 
-Open Record & tune for the full lab. Hardware requires WebHID in a supporting
-desktop browser (Chrome or Edge) and explicit device permission. The current
-adapter only supports the documented 256f:c63a profile. Experimental recognition
-still needs testing on real devices and users' actual movements.
+## Calibration and compatibility
 
-On the public site, recordings are stored in IndexedDB in that browser. Nothing
-is uploaded. Clearing browser site data removes them; download a backup to keep
-a portable JSON copy. If browser storage fails, the capture remains available
-for retry or download. Recording capacity depends on browser storage limits.
+The [calibration lab](https://clankagent.github.io/puck/lab/) provides presets,
+force/timing settings, labeled physical recordings and calibration analysis.
+The [legacy playground](https://clankagent.github.io/puck/legacy.html) is retained
+for compatibility testing; see its [guide](legacy-playground.md). Lab recordings
+use browser IndexedDB; the new preview's current session stays in memory until
+export. Neither format is automatically uploaded.
 
-Enable simulator recording using the link in the recording panel. The simulated
-gesture selector covers every family. Record three examples of each of a
-family's eight actions, choose its Analyze family, inspect actions individually,
-then use or export the tune. The Graph family selector shows twist/press,
-pressure + tilt, or standalone tilt activation and release thresholds.
+WebHID requires a supporting desktop browser and device permission. The current
+adapter's supported profile remains 256f:c63a. Simulator checks do not establish
+additional hardware compatibility or subjective physical feel.
 
-## Develop and deploy
+## Development
 
 ```sh
 pnpm install
@@ -103,18 +109,6 @@ pnpm site:build
 pnpm site:serve
 ```
 
-Open `http://127.0.0.1:47827/puck/`. The `/puck/` prefix exercises project-relative
-links. The build copies an explicit set of public assets into ignored `site/`;
-server code and private recordings are excluded. The Pages workflow tests,
-builds and deploys main. The site uses the repository's built SDK. The website
-and lab server are not shipped in the npm package.
-
-## Press + rotate
-
-The four pressure/rotation combinations each have a tap tile and a hold tile.
-A hold increments its counter once at holdstart; holdend/holdcancel appear in the
-event history and timeline without another count. The live hold indicator shows
-elapsed time, twist strength and pressure. Use Shift with a manual twist button
-or arrow key for push; Alt for pull. Keep it held, then release. Continuous
-movement still uses the motion SDK; gesture recognition does not move the camera.
-See [hold lifecycle](press-rotate.md).
+Open `http://127.0.0.1:47827/puck/`. The build copies an explicit public asset list
+and the compiled SDK into ignored `site/`. Main deploys to GitHub Pages after CI.
+No release tag or npm publication is part of deploying this preview.

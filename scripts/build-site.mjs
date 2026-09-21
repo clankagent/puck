@@ -5,12 +5,14 @@ const { version: packageVersion } = JSON.parse(await readFile(new URL('package.j
 await mkdir(new URL('lab/', out), { recursive: true });
 await mkdir(new URL('dist/', out), { recursive: true });
 // Explicit asset lists keep server code, recordings and local files out of publication.
-for (const file of ['index.html', 'style.css', 'app.js', 'model.js', 'movement.js', 'controls.html', 'controls.css', 'controls-app.js']) {
+for (const file of ['index.html', 'style.css', 'app.js', 'model.js', 'movement.js', 'controls.html', 'controls.css', 'controls-app.js', 'navigation.js', 'showcase-code.js']) {
   let text = await readFile(new URL('examples/playground/' + file, root), 'utf8');
   text = text.replaceAll('../../dist/', './dist/').replaceAll('../camera.mjs', './camera.mjs');
   if (file.endsWith('.html')) text = text.replace('Puck · library defaults', packageVersion.includes('-dev.') ? `Unreleased preview · SDK ${packageVersion}` : `SDK ${packageVersion}`);
   await writeFile(new URL(file, out), text);
 }
+await copyFile(new URL('index.html', out), new URL('legacy.html', out));
+await copyFile(new URL('controls.html', out), new URL('index.html', out));
 await copyFile(new URL('examples/camera.mjs', root), new URL('camera.mjs', out));
 for (const file of ['index.html', 'style.css', 'app.js', 'settings.js', 'recorder.js', 'calibration-panel.js', 'storage.js']) {
   let text = await readFile(new URL('examples/gestures/' + file, root), 'utf8');

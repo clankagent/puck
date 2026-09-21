@@ -27,3 +27,34 @@ waiting state, and device/simulator counts are separate. No hardware certificati
 is implied by completing the board. Data stays in the browser on the public site.
 
 Application-controls workbench: retain the established Manual layout and tokens. Put the six-axis view beside the active session, with context selection above them; raw/effective graphs and inspection follow. Counter reset is distinct from session cancellation. Collapse the two-column workbench on phones. Public recipes own movement and selection; this page owns drawing only.
+
+## 2026-09-21: complete preview workspace
+
+Audience: a SpaceMouse owner evaluating physical behavior and an application
+writer trying every public control. Primary action: choose an example, follow
+its physical instruction and judge the result; inspect the same session when
+something surprises you.
+
+Continue Manual's readable type, white surface and chapter navigation, but use
+an application workspace instead of a long documentation page. Examples, the
+32-outcome tester and debugging are distinct views. Instructions and results
+are prominent; implementation detail lives in code/inspection sections. Keep
+16px body text, larger changing instructions, blue actions and gray-to-green
+physical coverage tiles. The scene contains a stepped mechanical assembly so
+perspective, occlusion, orientation and distance are visible. It is application
+camera code, not a new SDK recognizer.
+
+Reuse the inspected gamepad tester and Stripe documentation references above:
+clear neutral/connected state and practical adjacent examples. The system-status
+rationale applies to a menu that opens only while active and explicitly reports
+commit/cancel. Navigation conventions were checked against 3Dconnexion's object,
+camera and target-camera description:
+https://3dconnexion.com/se/applications/alcads-alcad/learn-more/
+Choose target orbit for this example, with a stable visible pivot and quaternion
+orientation. Do not claim hardware feel has been validated by these checks.
+
+Debug view shows six raw/observer/rate graphs, event lanes, report delivery gaps,
+selected output and ownership. Graph focus puts these together on desktop.
+Freeze copies the visible capture; it does not freeze input. Browser recordings
+include a bounded 30-second diagnostics window in addition to the public SDK
+recording. Imported plain SDK recordings explicitly lack these UI snapshots.

@@ -26,3 +26,42 @@ selection comfort while maintaining pressure, incidental twist rejection,
 double-cancel usability, and unintended activation during ordinary movement.
 The supported profile remains 256f:c63a on the previously verified transport;
 no additional device compatibility is claimed.
+
+## Playground coverage and physical testing
+
+The public root now opens the feature showcase. `#tester` opens all 32 gesture
+outcomes; `#debug` opens the same live session's diagnostics. `controls.html`
+remains a supported entry point. The prior playground is retained at `legacy.html`
+and the calibration tools remain at `lab/`.
+
+| Public capability | Preview exercise |
+| --- | --- |
+| Six-axis velocity and frame integration | 3D navigation, translation/rotation speeds, response and deadzone |
+| Pan/zoom recipe | 2D floor plan with anchored zoom |
+| Nine continuous sources | Continuous values source selector |
+| Deflection / velocity / direction | Interpretation selector; direction offers sectors, hysteresis and memory |
+| Singles, doubles, standalone tilt, pressure + tilt/twist, holds | 32-outcome tester with instructions, snippets and independent device/simulator counts |
+| Push/pull interaction lifecycle | Display-style menu, release-to-commit, empty selection policy |
+| Single and double cancellation | Menu cancellation settings: single, same-direction double, either-direction double, none |
+| Held scalar/vector rates | Held scalar and Held vector examples; activation/combination lifetime |
+| Hold and release qualification | Interaction settings, explicit lifecycle exercise |
+| Contexts, conflicts, observe, neutral rearming | Contexts & ownership example; Debug routing table |
+| Subscriptions, event cursor, inspection and explanation | Results, Debug event evidence and independent cursor drain |
+| Runtime settings and restore | Live settings, export/restore and generated current declarations |
+| Interrupt / pause / explicit cancel / WebHID lifecycle | Lifecycle example, Debug controls and device connection |
+| Recording, replay and graph data | Debug export/load, shared graph time window and scrubber |
+| Tuning, calibration and compatibility APIs | Linked calibration lab and legacy playground |
+
+The optional `preview` property on exported SDK recordings contains the last
+30 seconds of browser diagnostic snapshots, raw reports, report gaps and event
+evidence. It is not part of the SDK recording contract. Plain SDK recordings
+still replay; their graphs show raw reports and available interval-average
+movement, and explicitly identify missing live diagnostic snapshots. Freeze
+copies the displayed window while recognition continues. Device reports and
+simulator samples never share tester counts.
+
+The renderer uses a stable target-orbit camera, perspective projection and
+normalized quaternion orientation. These are application rendering conventions,
+not a new SDK motion processor. The camera tests check pivot preservation,
+orientation normalization, camera-relative pan, dolly limits and neutral stopping.
+The user's controller testing must still establish mapping, feel and usability.

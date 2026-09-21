@@ -1,0 +1,51 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  cameraHome,
+  moveCamera,
+  projection,
+  rotate,
+} from "../examples/playground/navigation.js";
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} ≠ ${b}`);
+test("camera orbit keeps the pivot centered while preserving distance and orientation norm", () => {
+  const c = cameraHome(),
+    target = [...c.target],
+    distance = c.distance;
+  for (let i = 0; i < 10000; i++)
+    moveCamera(c, [0, 0, 0], [0.002, 0.001, -0.003]);
+  assert.deepEqual(c.target, target);
+  near(c.distance, distance);
+  near(Math.hypot(...c.orientation), 1);
+  const p = projection(c.target, c, 800, 500);
+  near(p[0], 400);
+  near(p[1], 250);
+});
+test("screen-relative panning follows the camera after orbit; forward motion dollies", () => {
+  const c = cameraHome();
+  moveCamera(c, [0, 0, 0], [0.6, 0.4, 0.7]);
+  const before = [...c.target],
+    q = [...c.orientation];
+  moveCamera(c, [12, 0, 8], [0, 0, 0]);
+  const expected = rotate([-12, 8, 0], q);
+  c.target.forEach((v, i) => near(v - before[i], expected[i]));
+  const d = c.distance;
+  moveCamera(c, [0, -30, 0], [0, 0, 0]);
+  near(c.distance, d - 30);
+  assert.deepEqual(c.orientation, q);
+});
+test("dolly changes perspective scale, bounds prevent crossing the pivot, neutral is stationary", () => {
+  const c = cameraHome(),
+    point = [120, 70, 0],
+    a = projection(point, c, 800, 500);
+  moveCamera(c, [0, -80, 0], [0, 0, 0]);
+  const b = projection(point, c, 800, 500);
+  assert.ok(Math.abs(b[0] - 400) > Math.abs(a[0] - 400));
+  moveCamera(c, [0, -100000, 0], [0, 0, 0]);
+  assert.equal(c.distance, 90);
+  moveCamera(c, [0, 100000, 0], [0, 0, 0]);
+  assert.equal(c.distance, 5000);
+  const saved = structuredClone(c);
+  moveCamera(c, [0, 0, 0], [0, 0, 0]);
+  c.orientation.forEach((v, i) => near(v, saved.orientation[i]));
+  assert.deepEqual(c.target, saved.target);
+});

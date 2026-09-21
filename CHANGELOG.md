@@ -2,6 +2,8 @@
 
 ## Unreleased v1 preview
 
+- Rebuild the playground around feature examples, a complete gesture tester and a synchronized debug workspace. Add perspective target-orbit camera, instructional menu/hold examples, generated declarations, separate device/simulator counts, freeze/scrub and replayable diagnostic snapshots. Existing calibration and compatibility tools remain linked.
+
 - Add typed continuous, gesture and interaction controls behind `createPuck`, with symmetric push/pull sessions, scalar/vector values, rate integration, ownership, contexts and settings.
 - Add bounded event cursors, inspection/tracing, portable recording/replay and control graphs.
 - Add public selection, held-value, pan/zoom and six-axis recipes plus the optional `connectPuck` browser bridge.

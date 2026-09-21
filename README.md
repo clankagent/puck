@@ -11,10 +11,12 @@ Six-axis input, responsive pan/zoom, and tunable single/double gestures for Spac
 
 **Version note:** the low-level examples target the compatible 0.5 API. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
 
+Try the [feature showcase](https://clankagent.github.io/puck/), [32-outcome gesture tester](https://clankagent.github.io/puck/#tester), or [debug workspace](https://clankagent.github.io/puck/#debug). Examples include live declarations, settings, perspective navigation, bounded menus and held values. Debug captures stay in your browser; export before changing a structural definition.
+
 ## Start here
 
 **[Open the Puck playground](https://clankagent.github.io/puck/)** — tune live movement
-speeds, pan/zoom or move and rotate a six-axis object, test all 32 gesture outcomes,
+speeds, pan/zoom or navigate a perspective 3D scene, test all 32 gesture outcomes,
 reset detection counts, watch six-axis graphs, and record
 or calibrate input. Works without hardware using simulated input. The public
 site keeps recordings in your browser. [Playground guide](docs/playground.md).

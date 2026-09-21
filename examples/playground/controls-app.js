@@ -1,93 +1,1842 @@
-import { createPuck, control, recipes, motionDefaults, neutralInput, replayPuck } from '../../dist/index.js';
-import { connectWebHid } from '../../dist/webhid.js';
-import { projectCube, initialPose, advancePose } from './movement.js';
-const $ = id => document.getElementById(id), axes = ['x','y','z','rx','ry','rz'];
-let runtime, controls, contexts, handles, connection, run, pose = initialPose(), adjusted = 0, sample = { ...neutralInput }, history = [], samples = [], frozen = false, lastDraw = 0;
-const counts = new Map();
-const names = { single: 'Push · single', double: 'Pull · double', clockwise: 'Clockwise · single', counterclockwise: 'Counterclockwise · single', push: 'Push · selection', pull: 'Pull · selection', pushAdjust: 'Push · held adjustment', pullAdjust: 'Pull · held adjustment' };
-function declaration() {
-  return `import { createPuck, control, recipes } from '@clankagent/puck';\n\nconst controls = recipes.sixAxis(${JSON.stringify({ translationSpeed: +$('translationSpeed').value, rotationSpeed: +$('rotationSpeed').value * Math.PI / 180 })});\nconst contexts = {\n  commands: {\n    single: control.gesture('push'),\n    double: control.gesture('pull', { count: 2 }),\n    clockwise: control.gesture('cw'),\n    counterclockwise: control.gesture('ccw'),\n  },\n  selection: {\n    push: recipes.directionSelection({ activation: 'push', cancel: ${JSON.stringify(cancelOptions())}, ownership: { mode: 'exclusive', channels: 'all' } }),\n    pull: recipes.directionSelection({ activation: 'pull', cancel: ${JSON.stringify(cancelOptions())}, ownership: { mode: 'exclusive', channels: 'all' } }),\n  },\n  adjustment: {\n    pushAdjust: recipes.heldValue('push', 'twist'),\n    pullAdjust: recipes.heldValue('pull', 'twist'),\n  },\n};\nconst conflicts = [...Object.values(contexts.selection), ...Object.values(contexts.adjustment)]\n  .map(prefer => ({ prefer, over: Object.values(controls) }));\nconst puck = createPuck({ controls, contexts, context: '${$('context').value}', conflicts });\n\n// Feed input through @clankagent/puck/webhid connectPuck(puck),\n// or puck.feed(sample, timestamp). Your application owns rendering.\n// const frame = puck.frame(timestamp);\n// const translation = frame.integrate(controls.translation);\n// const rotation = frame.integrate(controls.rotation); // radians\n// puck.on(contexts.selection.pull, event => { /* application action */ });`;
+import { codeControl } from "./showcase-code.js";
+import {
+  createPuck,
+  control,
+  recipes,
+  motionDefaults,
+  neutralInput,
+  createGestures,
+  replayPuck,
+} from "../../dist/index.js";
+import { connectWebHid } from "../../dist/webhid.js";
+import { createControlGraph } from "../../dist/graph.js";
+import { axes, gestures, key, title, sequence } from "./model.js";
+import { cameraHome, moveCamera, drawScene } from "./navigation.js";
+const $ = (id) => document.getElementById(id);
+const examples = {
+  navigation: [
+    "3D navigation",
+    "CONTINUOUS INPUT",
+    "Navigate in 3D",
+    "Explore a mechanical assembly with screen-relative pan, forward/back dolly and rotation around the crosshair.",
+    "Slide left/right to pan. Push the cap forward to move closer. Tilt and twist to orbit.",
+    "All six axes work together. Release the cap to stop. Fit view returns to the starting position.",
+  ],
+  canvas: [
+    "2D pan & zoom",
+    "CONTINUOUS INPUT",
+    "Move around a floor plan",
+    "A canvas using the public pan/zoom recipe. The application keeps zoom anchored at the center.",
+    "Slide the cap to pan. Twist to zoom in or out.",
+    "Pan and zoom simultaneously. Release the cap to stop.",
+  ],
+  values: [
+    "Continuous values",
+    "VALUES & INTERPRETATIONS",
+    "See what your application reads",
+    "Explore every continuous source as a deflection, a movement rate or a directional sector.",
+    "Move the selected physical input. Watch the value respond.",
+    "Deflection is a value; velocity is a rate. Direction returns a sector, or null.",
+  ],
+  selection: [
+    "Push / pull menu",
+    "BOUNDED INTERACTIONS",
+    "Choose a display style",
+    "Both push and pull open the menu. Only a committed choice changes the scene.",
+    "Push down or pull up and hold to open the menu.",
+    "While holding, tilt toward a style. Release pressure to apply it. Twist to cancel.",
+  ],
+  scalar: [
+    "Held scalar",
+    "PERSISTENT INTERACTIONS",
+    "Adjust a value while holding",
+    "Pressure activates a twist-driven rate. The application integrates it into a value.",
+    "Push or pull and hold, then twist to adjust.",
+    "Center the twist to pause without ending the hold. Release pressure to finish.",
+  ],
+  vector: [
+    "Held vector",
+    "PERSISTENT INTERACTIONS",
+    "Move a point while holding",
+    "A two-dimensional rate controlled by tilt while pressure keeps the interaction open.",
+    "Push or pull and hold, then tilt to move the point.",
+    "Center the tilt to stop the point without ending the hold. Release pressure to finish.",
+  ],
+  routing: [
+    "Contexts & ownership",
+    "INPUT ROUTING",
+    "Give one control the input",
+    "Switch between shared navigation and an exclusive menu. Debug shows which controls are suppressed.",
+    "In Menu context, push or pull to capture input. Tilt to choose.",
+    "The menu suppresses movement. An observer still sees input. Return to neutral to resume navigation.",
+  ],
+  lifecycle: [
+    "Cancel & interrupt",
+    "LIFECYCLE",
+    "End a session deliberately",
+    "Use a real hold to test cancellation, context changes, paused input and fresh-neutral rearming.",
+    "Push or pull to open a session, then use an interruption button.",
+    "Cancellation must not apply a selection. Let go completely before starting again.",
+  ],
+};
+const styles = [
+  "Solid",
+  "Wireframe",
+  "Warm",
+  "White",
+  "Dark",
+  "No grid",
+  "Green",
+  "Violet",
+];
+const settings = {
+  translationSpeed: motionDefaults.translationSpeed,
+  rotationSpeed: (motionDefaults.rotationSpeed * 180) / Math.PI,
+  panSpeed: motionDefaults.panSpeed,
+  zoomSpeed: motionDefaults.zoomSpeed,
+  responseMs: motionDefaults.responseMs,
+  deadzone: 0.05,
+  curve: 1,
+  source: "tilt",
+  as: "deflection",
+  speed: 1,
+  sectors: 8,
+  sticky: false,
+  hysteresis: 0.08,
+  cancelMode: "single",
+  lifetime: "activation",
+  holdMs: 0,
+  releaseMs: 25,
+  requireValue: true,
+  routing: "menu",
+};
+const defaults = { ...settings };
+let example = "navigation",
+  page = "examples",
+  puck,
+  common,
+  groups,
+  lookup,
+  cursor,
+  connection = null,
+  paused = false,
+  run = null,
+  input = { ...neutralInput },
+  camera = cameraHome(),
+  canvasPose = { x: 0, y: 0, zoom: 1 },
+  style = 0,
+  adjusted = 0,
+  point = [0, 0],
+  lastDraw = 0,
+  lastReport = null,
+  reportCount = 0;
+let frozenData = null,
+  rawReports = [];
+let samples = [],
+  events = [],
+  frozen = false,
+  frozenEnd = 0,
+  replayData = null,
+  selectedEvent = null,
+  started = performance.now(),
+  recognizer = createGestures(),
+  selectedGesture = gestures[0],
+  reportGaps = [];
+const counts = {
+  device: Object.fromEntries(gestures.map((g) => [key(g), 0])),
+  simulator: Object.fromEntries(gestures.map((g) => [key(g), 0])),
+};
+const timeOrigin = () => replayData?.started ?? started;
+const pretty = (v) => JSON.stringify(v, null, 2),
+  source = () => (connection ? "device" : "simulator");
+const say = (text) => {
+  $("outcome").textContent = text;
+};
+const safe = (fn) => {
+  try {
+    return fn();
+  } catch (error) {
+    $("status").textContent = error.message;
+    console.error(error);
+  }
+};
+const activeContext = () =>
+  example === "routing" && settings.routing === "navigation"
+    ? "navigation"
+    : example;
+function cancelOptions() {
+  return settings.cancelMode === "none"
+    ? undefined
+    : settings.cancelMode === "single"
+      ? { input: "twist", direction: "either" }
+      : {
+          input: "twist",
+          direction: settings.cancelMode === "same" ? "same" : "either",
+          count: 2,
+        };
 }
-function cancelOptions() { return $('cancelMode').value === 'double' ? { input:'twist', direction:'same', count:2 } : { input:'twist', direction:'either' }; }
-function make() {
-  if (runtime) runtime.dispose();
-  controls = recipes.sixAxis({ translationSpeed: +$('translationSpeed').value, rotationSpeed: +$('rotationSpeed').value * Math.PI / 180 });
-  contexts = {
-    commands: { single: control.gesture('push'), double: control.gesture('pull', { count:2 }), clockwise:control.gesture('cw'), counterclockwise:control.gesture('ccw') },
-    selection: Object.fromEntries(['push','pull'].map(activation => [activation, recipes.directionSelection({ activation, cancel:cancelOptions(), ownership:{mode:'exclusive',channels:'all'} })])),
-    adjustment: { pushAdjust:recipes.heldValue('push','twist'), pullAdjust:recipes.heldValue('pull','twist') },
+function selections() {
+  return Object.fromEntries(
+    ["push", "pull"].map((activation) => [
+      activation,
+      control.interaction({
+        activation,
+        value: control.continuous("tilt", {
+          as: "direction",
+          sectors: 8,
+          deadzone: 0.12,
+          hysteresis: 0.08,
+          sticky: true,
+        }),
+        requireValue: settings.requireValue,
+        cancel: cancelOptions(),
+        lifetime: settings.lifetime,
+        holdMs: settings.holdMs,
+        releaseMs: settings.releaseMs,
+        ownership: { mode: "exclusive", channels: "all" },
+      }),
+    ]),
+  );
+}
+function held(value) {
+  return Object.fromEntries(
+    ["push", "pull"].map((activation) => [
+      activation,
+      control.interaction({
+        activation,
+        value: control.continuous(value, {
+          as: "velocity",
+          speed: settings.speed,
+        }),
+        lifetime: settings.lifetime,
+        holdMs: settings.holdMs,
+        releaseMs: settings.releaseMs,
+        ownership: { mode: "exclusive", channels: "all" },
+      }),
+    ]),
+  );
+}
+function newRuntime() {
+  run = null;
+  if (puck) puck.dispose();
+  recognizer = createGestures();
+  common = {
+    ...recipes.sixAxis({
+      translationSpeed: settings.translationSpeed,
+      rotationSpeed: (settings.rotationSpeed * Math.PI) / 180,
+      responseMs: settings.responseMs,
+      panDeadzone: settings.deadzone,
+      rotationDeadzone: settings.deadzone,
+    }),
+    observed: control.continuous("axes", { ownership: "observe" }),
   };
-  handles = new Map(Object.values(contexts).flatMap(Object.entries).map(([name,h]) => [h,name]));
-  const conflicts = [...Object.values(contexts.selection), ...Object.values(contexts.adjustment)].map(prefer => ({prefer,over:Object.values(controls)}));
-  runtime = createPuck({controls,contexts,context:$('context').value,conflicts,trace:true,record:true});
-  for (const [h,name] of handles) runtime.on(h,e => {
-    if (e.type === 'trigger' || e.type === 'begin') counts.set(name,(counts.get(name)??0)+1);
-    history.push({name,...e}); history = history.slice(-150);
-    $('outcome').textContent = e.type === 'trigger' ? `${names[name]} detected` : e.type === 'commit' ? `${names[name]} committed${typeof e.value === 'number' ? ' · '+e.value.toFixed(2) : ''}` : e.type === 'cancel' ? `${names[name]} canceled · ${e.reason}` : `${names[name]} ${e.type}`;
-    paintCounts();
-    $('events').replaceChildren(...history.slice(-30).reverse().map(row => {const li=document.createElement('li'); li.textContent=`${(row.timestamp/1000).toFixed(2)}s · ${names[row.name]} · ${row.type}${row.reason?' · '+row.reason:''}`;return li;}));
+  const probeOptions = {
+    as: settings.as,
+    deadzone: settings.deadzone,
+    curve: settings.curve,
+    responseMs: settings.responseMs,
+    ...(settings.as === "velocity" ? { speed: settings.speed } : {}),
+    ...(settings.as === "direction"
+      ? {
+          sectors: settings.sectors,
+          sticky: settings.sticky,
+          hysteresis: settings.hysteresis,
+        }
+      : {}),
+  };
+  groups = {
+    navigation: {},
+    canvas: recipes.panZoom({
+      panSpeed: settings.panSpeed,
+      zoomSpeed: settings.zoomSpeed,
+      responseMs: settings.responseMs,
+    }),
+    values: { value: control.continuous(settings.source, probeOptions) },
+    selection: selections(),
+    scalar: held("twist"),
+    vector: held("tilt"),
+    routing: { ...selections(), command: control.gesture("push") },
+    lifecycle: selections(),
+  };
+  const conflicts = Object.values(groups)
+    .flatMap((g) => Object.values(g))
+    .filter((c) => c.kind === "interaction")
+    .map((prefer) => ({
+      prefer,
+      over: [common.translation, common.rotation, groups.routing.command],
+    }));
+  puck = createPuck({
+    controls: common,
+    contexts: groups,
+    context: activeContext(),
+    conflicts,
+    trace: true,
+    record: true,
+    recordingLimit: 100000,
+    eventLimit: 4096,
   });
-  sample={...neutralInput}; if(connection)runtime.interrupt('configuration-change');else runtime.feed(sample); runtime.frame(performance.now());
-  $('declaration').textContent=declaration(); paintCounts(); renderButtons();
+  lookup = new Map([
+    ...Object.entries(common).map(([n, h]) => [h, n]),
+    ...Object.entries(groups).flatMap(([g, hs]) =>
+      Object.entries(hs).map(([n, h]) => [h, `${g}.${n}`]),
+    ),
+  ]);
+  for (const [handle, name] of lookup)
+    if (handle.kind !== "continuous")
+      puck.on(handle, (e) => {
+        events.push({
+          ...e,
+          name,
+          explanation: puck.explain(e),
+          origin: source(),
+        });
+        if (events.length > 1200) events.shift();
+        if (e.type === "commit") {
+          if (
+            ["selection", "routing", "lifecycle"].includes(example) &&
+            e.value !== null
+          ) {
+            style = e.value;
+            say(`Applied ${styles[style]}.`);
+          } else if (["selection", "routing", "lifecycle"].includes(example))
+            say(`No style selected. ${styles[style]} retained.`);
+          else say(`Finished ${name.split(".").pop()} hold.`);
+        }
+        if (e.type === "cancel")
+          say(`Canceled: ${e.reason}. ${styles[style]} retained.`);
+        if (e.type === "begin")
+          say(`${name.endsWith("push") ? "Push" : "Pull"} session opened.`);
+        if (e.type === "trigger") say(`${name} triggered.`);
+      });
+  cursor = puck.events();
+  samples = [];
+  events = [];
+  reportGaps = [];
+  rawReports = [];
+  frozenData = null;
+  selectedEvent = null;
+  replayData = null;
+  frozen = false;
+  lastReport = null;
+  reportCount = 0;
+  started = performance.now();
+  input = { ...neutralInput };
+  if (connection) puck.interrupt("configuration-change");
+  else feed(input);
+  puck.frame(performance.now());
+  $("recordStatus").textContent =
+    "Recording this session locally. Captures are bounded. Export before changing a structural setting.";
+  $("replayStatus").textContent = "";
+  $("evidence").textContent = "Select an event or scrub the graphs.";
+  updateCode();
 }
-function paintCounts(){ $('counts').replaceChildren(...[...handles].map(([h,name])=>{const d=document.createElement('div'),n=counts.get(name)??0;d.className=n?'detected':'';d.textContent=names[name];const s=document.createElement('strong');s.textContent=n;d.append(s);d.setAttribute('aria-label',`${names[name]}, ${n} detections`);return d;})); }
-function feed(value,t=performance.now()){sample={...value};runtime.feed(sample,t);for(const a of axes){$('axis-'+a).value=sample[a];$('value-'+a).textContent=sample[a].toFixed(2);}}
-function stop(reason='explicit'){run=null;runtime.interrupt(reason);sample={...neutralInput};if(!connection)feed(sample);for(const a of axes){$('axis-'+a).value=0;$('value-'+a).textContent='0.00';}}
-function simulate(kind){
-  if(connection)return;stop();const neutral={},z=kind.startsWith('pull')?-.75:.75;
-  let rows;
-  if(kind==='single')rows=[[0,neutral],[60,{z:.75}],[180,neutral]];
-  else if(kind==='double')rows=[[0,neutral],[60,{z:-.75}],[180,neutral],[300,{z:-.75}],[420,neutral]];
-  else if(kind==='clockwise'||kind==='counterclockwise')rows=[[0,neutral],[60,{rz:kind==='clockwise'?.75:-.75}],[180,neutral]];
-  else if(kind.includes('Adjust'))rows=[[0,neutral],[60,{z}],[140,{z,rz:.75}],[850,neutral]];
-  else if(kind.endsWith('Cancel'))rows=[[0,neutral],[60,{z}],[140,{z,rx:.75}],[250,{z,rx:.75,rz:.75}],[340,{z,rx:.75}],[460,{z,rx:.75,rz:.75}],[550,{z,rx:.75}],[720,neutral]];
-  else rows=[[0,neutral],[60,{z}],[200,{z,rx:.75,ry:.75}],[550,{z,ry:.75}],[800,neutral]];
-  run={start:performance.now(),rows,index:0};$('status').textContent=`Simulating ${kind}.`;
+function receive(rows) {
+  for (const e of rows) {
+    const id = key(e);
+    if (id in counts[source()]) counts[source()][id]++;
+    events.push({
+      ...e,
+      type: e.kind,
+      name: title(e),
+      origin: source(),
+      catalog: true,
+    });
+    if (events.length > 1200) events.shift();
+    $("gestureResult").textContent = `${title(e)} detected · ${source()}`;
+  }
+  if (rows.length) paintCounts();
 }
-function renderButtons(){
-  const mode=$('context').value,items=mode==='commands'?['single','double','clockwise','counterclockwise']:mode==='selection'?['push','pull','pushCancel','pullCancel']:['pushAdjust','pullAdjust'];
-  $('simulations').replaceChildren(...items.map(kind=>{const b=document.createElement('button');b.textContent='Try '+(names[kind]??kind.replace('Cancel',' · cancel'));b.disabled=!!connection;b.onclick=()=>simulate(kind);return b;}));
-  $('sessionTitle').textContent=mode==='commands'?'Commands':mode==='selection'?'Directional selection':'Held adjustment';
-  $('radial').hidden=mode!=='selection';$('adjusted').hidden=mode!=='adjustment';
-  $('instructions').textContent=mode==='commands'?'Short push, double pull, or twist. Commands share input with movement.':mode==='selection'?'Push or pull to open. Tilt to choose; release pressure to commit. Twist cancels. Selection captures movement until the cap returns to neutral.':'Push or pull and hold. Twist in either direction to adjust the value continuously; return twist to center to pause adjustment while keeping the session open.';
+function feed(value, t = performance.now()) {
+  input = { ...value };
+  puck.feed(input, t);
+  receive(recognizer.update(input, t));
+  rawReports.push({ t, input: { ...input } });
+  while (rawReports.length && rawReports[0].t < t - 30000) rawReports.shift();
+  reportCount++;
+  if (lastReport !== null) reportGaps.push({ t, gap: t - lastReport });
+  lastReport = t;
+  while (reportGaps.length && reportGaps[0].t < t - 30000) reportGaps.shift();
+  syncSliders();
 }
-for(const axis of axes){const label=document.createElement('label');label.innerHTML=`${axis} <output id="value-${axis}">0.00</output><input id="axis-${axis}" aria-label="${axis} deflection" type="range" min="-1" max="1" step="0.01" value="0"><svg viewBox="0 0 360 90" aria-label="${axis} raw and effective rate graph" role="img"><path d="M0 45H360" stroke="#b4c3d4"/><path id="raw-${axis}" fill="none" stroke="#2355cb" stroke-width="2"/><path id="rate-${axis}" fill="none" stroke="#23754e" stroke-width="2"/></svg>`;$('sliders').append(label);$('axis-'+axis).oninput=()=>{run=null;feed(Object.fromEntries(axes.map(a=>[a,+$('axis-'+a).value])));};}
-$('translationSpeed').value=motionDefaults.translationSpeed;$('rotationSpeed').value=motionDefaults.rotationSpeed*180/Math.PI;
-for(const [id,h] of [['translationSpeed','translation'],['rotationSpeed','rotation']])$(id).onchange=()=>{const n=+$(id).value;if(!Number.isFinite(n)||n<0||n>+$(id).max){$('status').textContent='Enter a valid nonnegative speed.';return;}runtime.configure(controls[h],{speed:id==='rotationSpeed'?n*Math.PI/180:n});$('declaration').textContent=declaration();};
-$('context').onchange=()=>{stop();runtime.setContext($('context').value);if(!connection)feed(neutralInput);renderButtons();$('declaration').textContent=declaration();};
-$('cancelMode').onchange=()=>{stop();make();$('status').textContent='Cancellation policy changed. Started a fresh recording; counters retained.';};
-$('neutral').onclick=()=>{run=null;feed(neutralInput);};
-$('resetCounts').onclick=()=>{counts.clear();paintCounts();};
-$('resetSession').onclick=()=>{stop();pose=initialPose();adjusted=0;$('outcome').textContent='Session reset. Counters retained.';};
-$('resetView').onclick=()=>{pose=initialPose();};
-$('freeze').onclick=()=>{frozen=!frozen;$('freeze').textContent=frozen?'Resume graphs':'Freeze graphs';};
-function download(name,value){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('export').onclick=()=>download('puck-controls-recording.json',runtime.recording());
-$('saveSettings').onclick=()=>download('puck-controls-settings.json',runtime.settings());
-$('restoreSettings').onchange=async e=>{try{runtime.restoreSettings(JSON.parse(await e.target.files[0].text()));const s=runtime.settings().controls;$('translationSpeed').value=s['controls.translation'].speed;$('rotationSpeed').value=s['controls.rotation'].speed*180/Math.PI;$('status').textContent='Settings restored; release to neutral before starting an interaction.';$('declaration').textContent=declaration();}catch(error){$('status').textContent=error.message;}finally{e.target.value='';}};
-$('replay').onchange=async e=>{try{const r=replayPuck(JSON.parse(await e.target.files[0].text()));$('replayStatus').textContent=`Replay ${r.complete?'complete':'partial (recording limit reached)'}: ${r.events.length} occurrences, ${r.frames.length} movement frames. Live controls unchanged.`;r.puck.dispose();}catch(error){$('replayStatus').textContent=`Replay failed: ${error.message}`;}finally{e.target.value='';}};
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(declaration());$('status').textContent='SDK declaration copied.';}catch{$('status').textContent='Copy from the Application declaration below.';}};
-$('connect').onclick=async()=>{try{stop();if(connection){const c=connection;connection=null;await c.close();}else connection=await connectWebHid({onInput(v){if(v!==neutralInput)feed(v);},onInterrupt:reason=>stop(reason),onDisconnect(){connection=null;connected();}});connected();}catch(error){$('status').textContent=error.message;}};
-function connected(){runtime.interrupt('pause');$('connect').textContent=connection?'Disconnect':'Connect SpaceMouse';$('status').textContent=connection?'Device connected. Release to neutral to arm.':'Simulator ready.';for(const a of axes)$('axis-'+a).disabled=!!connection;$('neutral').disabled=!!connection;renderButtons();}
-window.addEventListener('blur',()=>stop('blur'));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop('blur');});
-function chart(t){const path=(axis,key)=>samples.map((s,i)=>`${i?'L':'M'}${((s.t-t+8000)/8000*360).toFixed(1)},${(45-s[key][axis]*38).toFixed(1)}`).join(' ');for(const a of axes){$('raw-'+a).setAttribute('d',path(a,'input'));$('rate-'+a).setAttribute('d',path(a,'rate'));}
-  $('timeline').innerHTML='<text x="0" y="14" fill="#465870" font-size="12">Lifecycle · begin / update / commit / cancel / trigger</text>'+history.filter(e=>e.timestamp>=t-8000).map(e=>`<circle cx="${(e.timestamp-t+8000)/8000*800}" cy="${30+['begin','update','commit','cancel','trigger'].indexOf(e.type)*11}" r="3" fill="${e.type==='cancel'?'#ac3755':'#2355cb'}"/>`).join('');
+function stop(reason = "explicit") {
+  run = null;
+  puck.interrupt(reason);
+  receive(recognizer.reset(performance.now()));
+  input = { ...neutralInput };
+  if (!connection && !paused) feed(input);
+  syncSliders();
 }
-function frame(){
-  const t=performance.now();
-  if(run){if(t-run.start>1800)stop();else if(run.index<run.rows.length&&t>=run.start+run.rows[run.index][0]){feed({...neutralInput,...run.rows[run.index++][1]},t);}if(run&&run.index===run.rows.length&&t-run.start>1200){run=null;$('status').textContent='Simulation finished.';}}
-  const f=runtime.frame(t),translation=f.integrate(controls.translation),rotation=f.integrate(controls.rotation);advancePose(pose,{translation,rotation:rotation.map(v=>v*180/Math.PI)});
-  for(const h of Object.values(contexts.adjustment))adjusted+=f.integrate(h);
-  const active=[...handles].find(([h])=>h.kind==='interaction'&&runtime.read(h).status==='active');
-  $('owner').textContent=active?`${names[active[1]]} owns its input`:'Movement available · release to neutral if rearming';document.querySelector('.session-view').classList.toggle('active',!!active);
-  const selected=active&&$ ('context').value==='selection'?runtime.read(active[0]).value:null;$('selection').textContent=selected??'—';
-  $('sectors').innerHTML=Array.from({length:8},(_,i)=>{const a=i*Math.PI/4,x=150+100*Math.cos(a),y=150+100*Math.sin(a);return `<circle cx="${x}" cy="${y}" r="28" fill="${selected===i?'#2355cb':'#edf2f8'}" stroke="#71859e"/><text x="${x}" y="${y+5}" text-anchor="middle" fill="${selected===i?'white':'#35465f'}">${i}</text>`;}).join('');
-  $('adjusted').textContent=`Adjusted value: ${adjusted.toFixed(2)}`;
-  const vertices=projectCube(pose),faces=[[0,1,3,2],[4,5,7,6],[0,1,5,4],[2,3,7,6],[0,2,6,4],[1,3,7,5]];$('cube').innerHTML=faces.map(face=>`<polygon points="${face.map(i=>vertices[i].join(',')).join(' ')}" fill="#2355cb18" stroke="#2355cb" stroke-width="2"/>`).join('');$('pose').textContent=`Position: ${pose.position.map(v=>v.toFixed(1)).join(' / ')} · Rotation: ${pose.angles.map(v=>v.toFixed(1)+'°').join(' / ')}`;
-  const linear=runtime.read(controls.translation),angular=runtime.read(controls.rotation),speed=+$('translationSpeed').value||1,rot=(+$('rotationSpeed').value*Math.PI/180)||1;
-  samples.push({t,input:{...sample},rate:Object.fromEntries(axes.map((a,i)=>[a,i<3?linear[i]/speed:angular[i-3]/rot]))});while(samples.length&&samples[0].t<t-8000)samples.shift();
-  if(t-lastDraw>100){if(!frozen)chart(t);if($('inspection').parentElement.open)$('inspection').textContent=JSON.stringify(runtime.inspect(),null,2);lastDraw=t;}
-  if(runtime.recordingFull)$('replayStatus').textContent='Recording limit reached. Export the bounded recording, then change cancellation policy to start a fresh capture.';
+function context(next) {
+  stop("context-change");
+  example = next;
+  puck.setContext(activeContext());
+  if (!connection) feed(neutralInput);
+  renderExample();
+}
+function active() {
+  return Object.entries(groups[activeContext()])
+    .filter(([, h]) => h.kind === "interaction")
+    .map(([n, h]) => ({ name: n, handle: h, state: puck.read(h) }))
+    .find((e) => e.state.status === "active");
+}
+for (const [id, [label]] of Object.entries(examples)) {
+  const a = document.createElement("a");
+  a.href = "#" + id;
+  a.textContent = label;
+  a.onclick = (e) => {
+    e.preventDefault();
+    context(id);
+    showPage("examples");
+  };
+  $("examples").append(a);
+  $("debugExample").add(new Option(label, id));
+}
+function showPage(next) {
+  page = next;
+  if (page !== "debug") document.body.classList.remove("focus-debug");
+  for (const p of ["examples", "tester", "debug"]) {
+    $(p === "examples" ? "examplePage" : p + "Page").hidden = p !== page;
+    document
+      .querySelector(`[data-page="${p}"]`)
+      .toggleAttribute("aria-current", p === page);
+  }
+  window.history.replaceState(
+    null,
+    "",
+    "#" + (page === "examples" ? example : page),
+  );
+  paintCounts();
+}
+for (const a of document.querySelectorAll("[data-page]"))
+  a.onclick = (e) => {
+    e.preventDefault();
+    showPage(a.dataset.page);
+  };
+$("inspectExample").onclick = $("inspectTester").onclick = () =>
+  showPage("debug");
+$("backExample").onclick = () => showPage("examples");
+$("debugExample").onchange = () => context($("debugExample").value);
+const settingsSpec = {
+  translationSpeed: [
+    "Translation speed",
+    "number",
+    0,
+    2000,
+    10,
+    "World units / second",
+  ],
+  rotationSpeed: ["Rotation speed", "number", 0, 720, 5, "Degrees / second"],
+  panSpeed: ["Pan speed", "number", 0, 5000, 50, "Pixels / second"],
+  zoomSpeed: ["Zoom speed", "number", 0, 5, 0.1, "Log scale / second"],
+  responseMs: [
+    "Response",
+    "number",
+    0,
+    500,
+    5,
+    "Milliseconds; neutral still stops",
+  ],
+  deadzone: [
+    "Deadzone",
+    "number",
+    0,
+    0.9,
+    0.01,
+    "Ignore deflection below this",
+  ],
+  curve: ["Response curve", "number", 0.1, 5, 0.1, "1 = linear"],
+  speed: ["Value speed", "number", 0, 20, 0.1, "Units / second"],
+  source: [
+    "Physical source",
+    "select",
+    [
+      "slide",
+      "tilt",
+      "translation",
+      "rotation",
+      "pressure",
+      "twist",
+      "push",
+      "pull",
+      "axes",
+    ],
+  ],
+  as: ["Interpretation", "select", ["deflection", "velocity", "direction"]],
+  sectors: ["Direction sectors", "number", 2, 16, 1],
+  sticky: ["Remember last direction", "checkbox"],
+  hysteresis: ["Sector hysteresis", "number", 0, 0.9, 0.01],
+  cancelMode: [
+    "Cancel gesture",
+    "select",
+    ["single", "same", "either", "none"],
+  ],
+  lifetime: ["Hold lifetime", "select", ["activation", "combination"]],
+  holdMs: [
+    "Activation hold",
+    "number",
+    0,
+    1500,
+    25,
+    "Milliseconds before begin",
+  ],
+  releaseMs: [
+    "Release qualification",
+    "number",
+    0,
+    500,
+    5,
+    "Milliseconds before commit",
+  ],
+  requireValue: ["Require a selection", "checkbox"],
+  routing: ["Active context", "select", ["menu", "navigation"]],
+};
+const optionNames = {
+  single: "One twist · either direction",
+  same: "Two twists · same direction",
+  either: "Two twists · either direction",
+  none: "No gesture cancellation",
+  activation: "While pressure is held",
+  combination: "While pressure + value are held",
+  menu: "Menu captures movement",
+  navigation: "Navigation only",
+};
+function syncSettings() {
+  const s = puck.settings().controls;
+  settings.translationSpeed = s["controls.translation"].speed;
+  settings.rotationSpeed = (s["controls.rotation"].speed * 180) / Math.PI;
+  settings.responseMs = s["controls.translation"].responseMs;
+  settings.deadzone = s["controls.translation"].deadzone;
+  settings.panSpeed = s["contexts.canvas.pan"].speed;
+  settings.zoomSpeed = s["contexts.canvas.zoom"].speed;
+  if (example === "canvas")
+    settings.responseMs = s["contexts.canvas.pan"].responseMs;
+  const v = s["contexts.values.value"];
+  if (example === "values")
+    Object.assign(settings, {
+      deadzone: v.deadzone,
+      curve: v.curve,
+      responseMs: v.responseMs,
+      speed: typeof v.speed === "number" ? v.speed : 1,
+      sectors: v.sectors,
+      sticky: v.sticky,
+      hysteresis: v.hysteresis,
+    });
+  if (
+    ["scalar", "vector", "selection", "routing", "lifecycle"].includes(example)
+  ) {
+    const h = s["contexts." + example + ".pull"];
+    settings.holdMs = h.holdMs;
+    settings.releaseMs = h.releaseMs;
+    if (["scalar", "vector"].includes(example))
+      settings.speed = h.valueOptions?.speed ?? h.value.options.speed;
+  }
+}
+function renderSettings() {
+  syncSettings();
+  const keys =
+    example === "navigation"
+      ? ["translationSpeed", "rotationSpeed", "responseMs", "deadzone"]
+      : example === "canvas"
+        ? ["panSpeed", "zoomSpeed", "responseMs"]
+        : example === "values"
+          ? [
+              "source",
+              "as",
+              "deadzone",
+              "curve",
+              ...(settings.as === "velocity"
+                ? ["speed", "responseMs"]
+                : settings.as === "direction"
+                  ? ["sectors", "sticky", "hysteresis"]
+                  : []),
+            ]
+          : ["scalar", "vector"].includes(example)
+            ? ["speed", "lifetime", "holdMs", "releaseMs"]
+            : [
+                "cancelMode",
+                "lifetime",
+                "holdMs",
+                "releaseMs",
+                "requireValue",
+                ...(example === "routing" ? ["routing"] : []),
+              ];
+  $("settings").replaceChildren(
+    ...keys.map((k) => {
+      const [label, type, min, max, step, hint] = settingsSpec[k],
+        l = document.createElement("label");
+      l.textContent = label;
+      const i = document.createElement(type === "select" ? "select" : "input");
+      i.id = "setting-" + k;
+      if (type === "select") {
+        for (const v of min) {
+          if (
+            k === "as" &&
+            v === "direction" &&
+            !["slide", "tilt"].includes(settings.source)
+          )
+            continue;
+          i.add(new Option(optionNames[v] ?? v, v));
+        }
+        i.value = settings[k];
+      } else {
+        i.type = type;
+        if (type === "checkbox") i.checked = settings[k];
+        else Object.assign(i, { min, max, step, value: settings[k] });
+      }
+      i.onchange = () =>
+        safe(() => {
+          if (type === "number" && !i.checkValidity()) {
+            i.reportValidity();
+            return;
+          }
+          settings[k] =
+            type === "checkbox"
+              ? i.checked
+              : type === "number"
+                ? +i.value
+                : i.value;
+          if (
+            !["slide", "tilt"].includes(settings.source) &&
+            settings.as === "direction"
+          )
+            settings.as = "deflection";
+          if (k === "routing") {
+            stop("context-change");
+            puck.setContext(activeContext());
+            if (!connection) feed(neutralInput);
+          } else if (
+            [
+              "translationSpeed",
+              "rotationSpeed",
+              "responseMs",
+              "deadzone",
+            ].includes(k) &&
+            example === "navigation"
+          ) {
+            puck.configure(common.translation, {
+              speed: settings.translationSpeed,
+              responseMs: settings.responseMs,
+              deadzone: settings.deadzone,
+            });
+            puck.configure(common.rotation, {
+              speed: (settings.rotationSpeed * Math.PI) / 180,
+              responseMs: settings.responseMs,
+              deadzone: settings.deadzone,
+            });
+          } else if (example === "values" && !["source", "as"].includes(k)) {
+            puck.configure(groups.values.value, { [k]: settings[k] });
+          } else if (example === "canvas") {
+            puck.configure(groups.canvas.pan, {
+              speed: settings.panSpeed,
+              responseMs: settings.responseMs,
+            });
+            puck.configure(groups.canvas.zoom, {
+              speed: settings.zoomSpeed,
+              responseMs: settings.responseMs,
+            });
+          } else if (["scalar", "vector"].includes(example) && k === "speed") {
+            for (const h of Object.values(groups[example]))
+              puck.configure(h, { valueOptions: { speed: settings.speed } });
+          } else if (["holdMs", "releaseMs"].includes(k)) {
+            for (const h of Object.values(groups[example]))
+              if (h.kind === "interaction")
+                puck.configure(h, { [k]: settings[k] });
+          } else newRuntime();
+          renderSettings();
+          updateCode();
+          say("Settings applied. Return to neutral.");
+        });
+      l.append(i);
+      if (hint) {
+        const s = document.createElement("span");
+        s.textContent = hint;
+        l.append(s);
+      }
+      return l;
+    }),
+  );
+}
+function renderExample() {
+  const [, , heading, desc, instruction, expected] = examples[example];
+  $("category").textContent = examples[example][1];
+  $("title").textContent = heading;
+  $("description").textContent = desc;
+  $("instruction").textContent = instruction;
+  $("expected").textContent = expected;
+  $("debugExample").value = example;
+  for (const a of $("examples").children)
+    a.toggleAttribute("aria-current", a.hash === "#" + example);
+  const value = ["values", "scalar", "vector"].includes(example);
+  $("scene").hidden = value || example === "canvas";
+  $("canvas2d").toggleAttribute("hidden", example !== "canvas");
+  $("valueStage").hidden = !value;
+  $("selectionOverlay").hidden = true;
+  renderSettings();
+  renderSimulation();
+  updateCode();
+  say("Ready for input");
+}
+function button(label, fn) {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.onclick = () => safe(fn);
+  return b;
+}
+function renderSimulation() {
+  const items =
+    example === "lifecycle"
+      ? [
+          [
+            "Hold push",
+            () => {
+              stop();
+              feed({ ...neutralInput, z: 0.75 });
+            },
+          ],
+          [
+            "Hold pull",
+            () => {
+              stop();
+              feed({ ...neutralInput, z: -0.75 });
+            },
+          ],
+          [
+            "Release",
+            () => {
+              run = null;
+              feed(neutralInput);
+            },
+          ],
+        ]
+      : example === "navigation"
+        ? [
+            ["Pan", () => axisRun({ x: 0.6 })],
+            ["Dolly", () => axisRun({ y: 0.6 })],
+            ["Orbit", () => axisRun({ rz: 0.5, rx: 0.25 })],
+          ]
+        : example === "canvas"
+          ? [
+              ["Pan", () => axisRun({ x: 0.5, y: 0.3 })],
+              ["Zoom", () => axisRun({ rz: 0.45 })],
+            ]
+          : example === "values"
+            ? [
+                [
+                  "Send input",
+                  () => axisRun(Object.fromEntries(axes.map((a) => [a, 0.55]))),
+                ],
+              ]
+            : [
+                ["Push", () => interactionRun("push")],
+                ["Pull", () => interactionRun("pull")],
+                ...(["selection", "routing", "lifecycle"].includes(example)
+                  ? [["Pull + cancel", () => interactionRun("pull", true)]]
+                  : []),
+              ];
+  $("simulations").replaceChildren(
+    ...items.map(([label, fn]) => {
+      const b = button(label, fn);
+      b.disabled = !!connection || paused;
+      return b;
+    }),
+  );
+  if (example === "lifecycle")
+    $("simulations").append(
+      button("Interrupt now", () => {
+        stop("pause");
+        say("Interrupted. Return to neutral.");
+      }),
+      button("Cancel now", () => {
+        const a = active();
+        if (a) puck.cancel(a.handle);
+      }),
+      button("Switch context", () => context("navigation")),
+    );
+}
+function simulate(rows) {
+  if (connection || paused) return;
+  stop();
+  run = {
+    rows: rows.map(([t, v]) => ({ t, input: { ...neutralInput, ...v } })),
+    start: performance.now(),
+    index: 0,
+  };
+  $("status").textContent = "Simulator · sending physical samples.";
+}
+function axisRun(v) {
+  simulate([
+    [0, {}],
+    [80, v],
+    [900, {}],
+  ]);
+}
+function interactionRun(direction, cancel = false) {
+  const z = direction === "push" ? 0.75 : -0.75,
+    value =
+      example === "scalar"
+        ? { rz: 0.65 }
+        : example === "vector"
+          ? { rx: 0.45, ry: 0.5 }
+          : { ry: 0.75 };
+  simulate(
+    cancel
+      ? [
+          [0, {}],
+          [60, { z }],
+          [200, { z, ...value }],
+          [320, { z, ...value, rz: 0.75 }],
+          [440, { z, ...value }],
+          [560, { z, ...value, rz: 0.75 }],
+          [680, { z, ...value }],
+          [1000, {}],
+        ]
+      : [
+          [0, {}],
+          [60, { z }],
+          [200, { z, ...value }],
+          [900, {}],
+        ],
+  );
+}
+for (const a of axes) {
+  const l = document.createElement("label");
+  l.textContent = a + " ";
+  const out = document.createElement("output");
+  out.id = "axis-value-" + a;
+  out.textContent = "0.00";
+  const i = document.createElement("input");
+  Object.assign(i, {
+    type: "range",
+    min: -1,
+    max: 1,
+    step: 0.01,
+    value: 0,
+    id: "axis-" + a,
+  });
+  i.setAttribute("aria-label", a + " deflection");
+  i.oninput = () => {
+    run = null;
+    feed(Object.fromEntries(axes.map((a) => [a, +$("axis-" + a).value])));
+  };
+  l.append(out, i);
+  $("sliders").append(l);
+}
+function syncSliders() {
+  for (const a of axes) {
+    $("axis-" + a).value = input[a];
+    $("axis-value-" + a).textContent = input[a].toFixed(2);
+  }
+}
+$("neutral").onclick = () => {
+  run = null;
+  feed(neutralInput);
+};
+$("resetView").onclick = () => {
+  camera = cameraHome();
+  canvasPose = { x: 0, y: 0, zoom: 1 };
+  point = [0, 0];
+  adjusted = 0;
+};
+$("defaults").onclick = () => {
+  Object.assign(settings, defaults);
+  stop();
+  newRuntime();
+  renderExample();
+  say("SDK defaults restored.");
+};
+function completeCode() {
+  const entries = puck.inspect().controls,
+    group = (es) =>
+      "{\n" +
+      es
+        .map(
+          (e) =>
+            `  ${JSON.stringify(e.name.split(".").pop())}: ${codeControl({ ...e.definition, options: e.settings })},`,
+        )
+        .join("\n") +
+      "\n}";
+  return `import { createPuck, control } from '@clankagent/puck';\nimport { connectPuck } from '@clankagent/puck/webhid';\n\nconst controls = ${group(entries.filter((e) => e.name.startsWith("controls.")))};\nconst contexts = {\n${Object.keys(
+    groups,
+  )
+    .map(
+      (n) =>
+        `  ${n}: ${group(entries.filter((e) => e.name.startsWith("contexts." + n + ".")))},`,
+    )
+    .join("\n")}\n};\nconst conflicts = [\n${entries
+    .filter((e) => e.prefers.length)
+    .map((e) => `  { prefer: ${e.name}, over: [${e.prefers.join(", ")}] },`)
+    .join(
+      "\n",
+    )}\n];\nconst puck = createPuck({ controls, contexts, context: ${JSON.stringify(activeContext())}, conflicts, trace: true, record: true });\n// From a user action: const connection = await connectPuck(puck);\n// At teardown: await connection.close(); puck.dispose();`;
+}
+function updateCode() {
+  if (!puck) return;
+  const actual = puck.settings().controls;
+  let body = `const controls = recipes.sixAxis(${JSON.stringify({ translationSpeed: actual["controls.translation"].speed, rotationSpeed: actual["controls.rotation"].speed, responseMs: actual["controls.translation"].responseMs, panDeadzone: actual["controls.translation"].deadzone, rotationDeadzone: actual["controls.rotation"].deadzone })});\nconst puck = createPuck({ controls });\nfunction render() {\n  const frame = puck.frame();\n  const translation = frame.integrate(controls.translation);\n  const rotation = frame.integrate(controls.rotation); // radians\n  // Apply deltas to your application's camera.\n  requestAnimationFrame(render);\n}\nrender();`;
+  if (example === "canvas")
+    body = `const controls = recipes.panZoom(${JSON.stringify({ panSpeed: actual["contexts.canvas.pan"].speed, zoomSpeed: actual["contexts.canvas.zoom"].speed, responseMs: actual["contexts.canvas.pan"].responseMs })});\nconst puck = createPuck({ controls });\nfunction render() {\n  const frame = puck.frame();\n  const [dx, dy] = frame.integrate(controls.pan);\n  const zoomFactor = Math.exp(frame.integrate(controls.zoom));\n  // Pan by dx/dy; zoom around the application's anchor.\n  requestAnimationFrame(render);\n}\nrender();`;
+  else if (example === "values")
+    body = `const value = ${codeControl(puck.inspect(groups.values.value).controls[0].definition)};\nconst puck = createPuck({ controls: { value } });\nfunction render() {\n  const frame = puck.frame();\n  console.log(puck.read(value));${settings.as === "velocity" ? "\n  console.log(frame.integrate(value)); // delta for this frame" : ""}\n  requestAnimationFrame(render);\n}\nrender();`;
+  else if (!["navigation", "canvas"].includes(example))
+    body = `const pull = ${codeControl(puck.inspect(groups[example].pull).controls[0].definition)};\nconst push = ${codeControl(puck.inspect(groups[example].push).controls[0].definition)};\nconst puck = createPuck({ controls: { pull, push } });\nfor (const handle of [pull, push]) puck.on(handle, event => {\n  console.log(event.type, event); // begin / update / commit / cancel\n});${["scalar", "vector"].includes(example) ? "\nfunction render() {\n  const frame = puck.frame();\n  const delta = frame.integrate(pull);\n  const otherDelta = frame.integrate(push);\n  // Add deltas to an application value.\n  requestAnimationFrame(render);\n}\nrender();" : ""}\n// Full setup below includes movement, contexts and ownership rules.`;
+  $("snippet").textContent =
+    `import { createPuck, control, recipes } from '@clankagent/puck';\nimport { connectPuck } from '@clankagent/puck/webhid';\n\n${body}\n\n// From your Connect button: const connection = await connectPuck(puck);\n// At teardown: await connection.close(); puck.dispose();`;
+  $("definition").textContent = completeCode();
+}
+async function copy(id) {
+  try {
+    await navigator.clipboard.writeText($(id).textContent);
+    $("status").textContent = "Code copied.";
+  } catch {
+    $("status").textContent =
+      "Clipboard unavailable. Select and copy the code below.";
+  }
+}
+$("copy").onclick = () => copy("snippet");
+$("copyDefinition").onclick = () => copy("definition");
+const coverage = [
+  [
+    "navigation",
+    "Six-axis motion",
+    "Translation, rotation, integration, speed, response and deadzone",
+  ],
+  [
+    "canvas",
+    "2D motion",
+    "Pan/zoom recipe, simultaneous input and anchored zoom",
+  ],
+  [
+    "values",
+    "Continuous sources",
+    "All nine sources; deflection, velocity, direction; curve, sectors, hysteresis and memory",
+  ],
+  [
+    "tester",
+    "32 gesture outcomes",
+    "Singles, doubles, standalone tilt, pressure + tilt, pressure + twist and four holds",
+  ],
+  [
+    "selection",
+    "Bounded interactions",
+    "Push/pull, selection memory, release qualification, no-selection and cancel policies",
+  ],
+  [
+    "scalar",
+    "Scalar / vector holds",
+    "Activation or combination lifetime; pressure gating and integrated values",
+  ],
+  [
+    "routing",
+    "Contexts & conflicts",
+    "Exclusive claims, shared movement, observing input and neutral rearming",
+  ],
+  [
+    "debug",
+    "Inspection & delivery",
+    "Inspect/explain, occurrences, independent cursor, graphs and report timing",
+  ],
+  [
+    "lifecycle",
+    "Interruptions",
+    "Explicit cancel, pause, blur, disconnect and context changes",
+  ],
+  [
+    "debug",
+    "Persistence",
+    "Settings save/restore, bounded recording, replay and graphs",
+  ],
+  [
+    "lab",
+    "Calibration / legacy APIs",
+    "Gesture tuning, presets, recordings, calibration and compatibility tools",
+  ],
+];
+for (const [target, label, desc] of coverage) {
+  const a = document.createElement("a");
+  a.href = target === "lab" ? "./lab/" : "#" + target;
+  const strong = document.createElement("strong");
+  strong.textContent = label;
+  const span = document.createElement("span");
+  span.textContent = desc;
+  a.append(strong, span);
+  if (target !== "lab")
+    a.onclick = (e) => {
+      e.preventDefault();
+      if (target === "tester" || target === "debug") showPage(target);
+      else {
+        context(target);
+        showPage("examples");
+      }
+      window.scrollTo(0, 0);
+    };
+  $("coverageRows").append(a);
+}
+function gestureInstruction(g) {
+  const base =
+    g.direction === "push"
+      ? "Push down"
+      : g.direction === "pull"
+        ? "Pull up"
+        : g.direction === "clockwise"
+          ? "Twist clockwise"
+          : g.direction === "counterclockwise"
+            ? "Twist counterclockwise"
+            : `Tilt along ${g.direction}`;
+  return g.rotation
+    ? `${base} first, then twist ${g.rotation}. ${g.kind === "holdstart" ? "Keep both held until the hold starts, then release." : "Briefly hold both, then release."}`
+    : g.tilt
+      ? `${base} first, then tilt along ${g.tilt} while holding pressure; release.`
+      : `${base}, then release to neutral.${g.kind === "double" ? " Repeat promptly for a double." : " Wait for the double-gesture window to finish."}`;
+}
+function chooseGesture(g) {
+  selectedGesture = g;
+  $("gestureInstruction").textContent = gestureInstruction(g);
+  const value = g.rotation
+    ? {
+        pressure: g.direction,
+        twist: g.rotation === "clockwise" ? "cw" : "ccw",
+      }
+    : g.tilt
+      ? { pressure: g.direction, tilt: g.tilt }
+      : g.direction === "clockwise"
+        ? "cw"
+        : g.direction === "counterclockwise"
+          ? "ccw"
+          : g.direction;
+  $("gestureCode").textContent =
+    g.kind === "holdstart"
+      ? `import { createGestures } from '@clankagent/puck';\nconst gestures = createGestures();\n// On each physical input report:\nconst events = gestures.update(input, performance.now());\n// Between reports: gestures.advance(performance.now());\n// Listen for holdstart, holdend and holdcancel.\n// Current strength and pressure: gestures.state.hold\n// On interruption: gestures.reset(performance.now());`
+      : `import { createPuck, control } from '@clankagent/puck';\nimport { connectPuck } from '@clankagent/puck/webhid';\nconst action = control.gesture(${JSON.stringify(value)}${g.kind === "double" ? ", { count: 2 }" : ""});\nconst puck = createPuck({ controls: { action } });\npuck.on(action, event => console.log(event));\n// From a button: const connection = await connectPuck(puck);`;
+  for (const tile of document.querySelectorAll(".gesture"))
+    tile.setAttribute("aria-pressed", String(tile.dataset.key === key(g)));
+}
+for (const group of new Set(gestures.map((g) => g.group))) {
+  const h = document.createElement("h2");
+  h.textContent = group;
+  h.style.marginTop = "25px";
+  const grid = document.createElement("div");
+  grid.className = "tile-grid";
+  for (const g of gestures.filter((g) => g.group === group)) {
+    const b = button("", () => chooseGesture(g));
+    b.className = "gesture";
+    b.dataset.key = key(g);
+    const label = document.createElement("span");
+    label.textContent = title(g);
+    const n = document.createElement("strong");
+    n.textContent = "0";
+    const state = document.createElement("small");
+    state.textContent = "Not detected";
+    b.append(label, n, state);
+    grid.append(b);
+  }
+  $("gestureBoard").append(h, grid);
+}
+function paintCounts() {
+  const c = counts[$("countSource").value];
+  for (const b of document.querySelectorAll(".gesture")) {
+    const n = c[b.dataset.key];
+    b.classList.toggle("detected", n > 0);
+    b.querySelector("strong").textContent = n;
+    b.querySelector("small").textContent = n ? "Detected" : "Not detected";
+  }
+  $("coverageCount").textContent =
+    `${Object.values(c).filter(Boolean).length} / 32 detected · ${$("countSource").value}`;
+  $("simulateGesture").disabled = !!connection || paused;
+}
+$("countSource").onchange = paintCounts;
+$("resetCounts").onclick = () => {
+  for (const c of Object.values(counts)) for (const k in c) c[k] = 0;
+  paintCounts();
+};
+$("simulateGesture").onclick = () => {
+  if (connection) return;
+  $("countSource").value = "simulator";
+  paintCounts();
+  simulate(sequence(selectedGesture).map((r) => [r.t, r.input]));
+};
+chooseGesture(selectedGesture);
+$("connect").onclick = async () => {
+  try {
+    $("connect").disabled = true;
+    stop();
+    if (connection) {
+      const c = connection;
+      connection = null;
+      await c.close();
+    } else {
+      connection = await connectWebHid({
+        onInput(v) {
+          if (v !== neutralInput && !paused) feed(v);
+        },
+        onInterrupt: (reason) => stop(reason),
+        onDisconnect() {
+          connection = null;
+          connected();
+        },
+      });
+      if (connection) $("countSource").value = "device";
+    }
+    connected();
+  } catch (e) {
+    $("status").textContent = e.message;
+  } finally {
+    $("connect").disabled = false;
+  }
+};
+function connected() {
+  paused = false;
+  puck.interrupt("pause");
+  $("connect").textContent = connection ? "Disconnect" : "Connect SpaceMouse";
+  $("status").textContent = connection
+    ? "Device connected · release the cap completely to arm."
+    : "Simulator · connect your device or use the example buttons.";
+  for (const a of axes) $("axis-" + a).disabled = !!connection;
+  $("neutral").disabled = !!connection;
+  renderSimulation();
+  paintCounts();
+}
+window.addEventListener("blur", () => {
+  if (puck) stop("blur");
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && puck) stop("blur");
+});
+function download(name, value) {
+  const url = URL.createObjectURL(
+      new Blob([pretty(value)], { type: "application/json" }),
+    ),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("export").onclick = () =>
+  download("puck-recording.json", {
+    ...puck.recording(),
+    preview: {
+      version: 1,
+      started,
+      samples,
+      rawReports,
+      gaps: reportGaps,
+      events: events.map((e) => ({ ...e, control: undefined })),
+      note: "Diagnostic snapshots cover the last 30 seconds; the SDK timeline covers the full bounded recording.",
+    },
+  });
+$("saveSettings").onclick = () =>
+  download("puck-settings.json", puck.settings());
+$("fresh").onclick = () => {
+  newRuntime();
+  say("New recording started.");
+};
+$("restoreSettings").onchange = async (e) => {
+  try {
+    const file = e.target.files[0];
+    if (!file) return;
+    puck.restoreSettings(JSON.parse(await file.text()));
+    renderSettings();
+    updateCode();
+    $("status").textContent = "Settings restored. Release to neutral.";
+  } catch (error) {
+    $("status").textContent = error.message;
+  } finally {
+    e.target.value = "";
+  }
+};
+$("pause").onclick = () => {
+  paused = !paused;
+  stop("pause");
+  $("pause").textContent = paused ? "Resume input" : "Pause input";
+  for (const a of axes) $("axis-" + a).disabled = !!connection || paused;
+  $("neutral").disabled = !!connection || paused;
+  renderSimulation();
+  paintCounts();
+  $("status").textContent = paused
+    ? "Input paused. Release the cap before resuming."
+    : `${source()} input resumed. Release to neutral.`;
+};
+$("cancel").onclick = () => {
+  const a = active();
+  if (a) puck.cancel(a.handle);
+  else $("status").textContent = "No active interaction to cancel.";
+};
+$("interrupt").onclick = () => {
+  stop("pause");
+  $("status").textContent = "Session interrupted. Release to neutral.";
+};
+$("drain").onclick = () => {
+  try {
+    const rows = cursor.drain();
+    $("cursorStatus").textContent =
+      `Drained ${rows.length} occurrences. Subscriptions and other cursors are independent.`;
+  } catch (e) {
+    $("cursorStatus").textContent = e.message;
+  }
+};
+for (const a of axes) {
+  const d = document.createElement("div");
+  d.className = "graph";
+  const head = document.createElement("div");
+  head.className = "heading";
+  const b = document.createElement("strong");
+  b.textContent = {
+    x: "X · lateral",
+    y: "Y · forward",
+    z: "Z · pressure",
+    rx: "RX · tilt",
+    ry: "RY · tilt",
+    rz: "RZ · twist",
+  }[a];
+  const o = document.createElement("output");
+  o.id = "read-" + a;
+  const c = document.createElement("canvas");
+  c.id = "graph-" + a;
+  c.setAttribute("aria-label", a + " raw, processed and movement rate graph");
+  head.append(b, o);
+  d.append(head, c);
+  $("graphs").append(d);
+}
+function surface(canvas) {
+  const w = canvas.clientWidth || 500,
+    h = canvas.clientHeight || 110,
+    d = Math.min(devicePixelRatio || 1, 2);
+  if (
+    canvas.width !== Math.round(w * d) ||
+    canvas.height !== Math.round(h * d)
+  ) {
+    canvas.width = Math.round(w * d);
+    canvas.height = Math.round(h * d);
+  }
+  const c = canvas.getContext("2d");
+  c.setTransform(d, 0, 0, d, 0, 0);
+  c.clearRect(0, 0, w, h);
+  return { c, w, h };
+}
+function plot(canvas, rows, end, duration, fields, range = 1) {
+  const { c, w, h } = surface(canvas),
+    left = 26,
+    right = w - 6,
+    top = 8,
+    bottom = h - 20,
+    mid = (top + bottom) / 2;
+  c.font = "10px system-ui";
+  c.fillStyle = "#465d71";
+  for (const v of [-range, 0, range]) {
+    const y = mid - ((v / range) * (bottom - top)) / 2;
+    c.strokeStyle = "#dbe3ea";
+    c.beginPath();
+    c.moveTo(left, y);
+    c.lineTo(right, y);
+    c.stroke();
+    c.fillText(String(v), 0, y + 3);
+  }
+  for (const t of [0, 0.5, 1])
+    c.fillText(
+      `${((end - duration + t * duration - timeOrigin()) / 1000).toFixed(1)}s`,
+      left + t * (right - left - 28),
+      h - 3,
+    );
+  for (const [read, color, points = rows] of fields) {
+    c.strokeStyle = color;
+    c.lineWidth = 1.6;
+    c.beginPath();
+    let first = true,
+      previousY = 0;
+    for (const r of points) {
+      if (r.t > end) break;
+      const x = Math.max(
+          left,
+          left + ((r.t - end + duration) / duration) * (right - left),
+        ),
+        v = read(r);
+      if (!Number.isFinite(v)) continue;
+      const y =
+        mid -
+        ((Math.max(-range, Math.min(range, v)) / range) * (bottom - top)) / 2;
+      if (first) {
+        c.moveTo(x, y);
+        first = false;
+      } else {
+        c.lineTo(x, previousY);
+        c.lineTo(x, y);
+      }
+      previousY = y;
+    }
+    if (!first) c.lineTo(right, previousY);
+    c.stroke();
+  }
+}
+function debugFrame() {
+  const display = replayData ?? frozenData;
+  const data = display?.samples ?? samples,
+    rows = display?.events ?? events;
+  if (!data.length) return;
+  const last = data.at(-1).t,
+    first = data[0].t;
+  const base = frozen ? Math.max(first, Math.min(frozenEnd, last)) : last,
+    end = Math.max(
+      first,
+      base - (1 - +$("scrub").value / 1000) * Math.min(30000, base - first),
+    ),
+    duration = +$("window").value;
+  const at = data.findLast((r) => r.t <= end) ?? data[0];
+  $("scrubTime").textContent =
+    `${replayData ? "Replay" : frozen ? "Frozen" : "Live"} · ${((end - timeOrigin()) / 1000).toFixed(2)}s`;
+  for (const a of axes) {
+    plot($("graph-" + a), data, end, duration, [
+      [
+        (r) => r.input[a],
+        "#2355cb",
+        display ? (display.rawReports ?? data) : rawReports,
+      ],
+      [(r) => r.processed?.[a], "#ad570e"],
+      [(r) => r.rate?.[a], "#167552"],
+    ]);
+    $("read-" + a).textContent =
+      `raw ${at.input[a].toFixed(2)} · rate ${at.actual?.[a]?.toFixed(2) ?? "—"}`;
+  }
+  const timing = display?.gaps ?? reportGaps,
+    maxGap = Math.max(
+      0,
+      ...timing
+        .filter((r) => r.t >= end - duration && r.t <= end)
+        .map((r) => r.gap),
+    );
+  plot(
+    $("timing"),
+    timing,
+    end,
+    duration,
+    [[(r) => r.gap, "#2355cb"]],
+    Math.max(1, Math.ceil(maxGap)),
+  );
+  $("timingStats").textContent = maxGap
+    ? `${replayData ? "Recorded" : reportCount + " live"} reports · max gap ${maxGap.toFixed(1)} ms in window. Delivery spacing, not a polling-rate claim.`
+    : "No report gaps in this window. A held input stays held until a release report.";
+  const { c, w } = surface($("timeline")),
+    kinds = [
+      "trigger",
+      "begin",
+      "update",
+      "commit",
+      "cancel",
+      "holdstart",
+      "holdend",
+      "holdcancel",
+      "single",
+      "double",
+    ];
+  c.font = "10px system-ui";
+  for (const [i, type] of kinds.entries()) {
+    c.fillStyle = "#465d71";
+    c.fillText(type, 0, 10 + i * 10);
+  }
+  const visible = rows.filter(
+    (e) => e.timestamp >= end - duration && e.timestamp <= end,
+  );
+  for (const e of visible) {
+    const y = 7 + Math.max(0, kinds.indexOf(e.type)) * 10;
+    c.fillStyle = ["cancel", "holdcancel"].includes(e.type)
+      ? "#b03b42"
+      : "#2355cb";
+    c.fillRect(
+      66 + ((e.timestamp - end + duration) / duration) * (w - 70),
+      y,
+      3,
+      5,
+    );
+  }
+  const eventKey = visible
+    .slice(-45)
+    .map((e) => e.timestamp + e.name + e.type)
+    .join("|");
+  if ($("events").dataset.key !== eventKey) {
+    $("events").dataset.key = eventKey;
+    $("events").replaceChildren(
+      ...visible
+        .slice(-45)
+        .reverse()
+        .map((e) =>
+          button(
+            `${((e.timestamp - timeOrigin()) / 1000).toFixed(3)}s · ${e.name} · ${e.type}${e.reason ? " · " + e.reason : ""}`,
+            () => {
+              selectedEvent = e;
+              $("evidence").textContent = pretty(
+                e.explanation ?? {
+                  event: { ...e, control: undefined },
+                  note: replayData
+                    ? "Replayed occurrence. Live event evidence was not persisted."
+                    : "Recognition catalog occurrence. See recognizer state in the sample.",
+                },
+              );
+            },
+          ),
+        ),
+    );
+  }
+  const controls = at.inspection?.controls ?? [];
+  $("routing").replaceChildren(
+    ...controls
+      .filter(
+        (c) =>
+          c.name.startsWith("controls.") ||
+          c.name.startsWith("contexts." + at.inspection.context + "."),
+      )
+      .map((c) => {
+        const d = document.createElement("div");
+        d.className = "routing-row";
+        const n = document.createElement("span");
+        n.textContent = c.name;
+        const s = document.createElement("span");
+        s.textContent = c.suppressedBy
+          ? `Suppressed: ${c.suppressedBy}`
+          : c.sessionId !== null
+            ? `Active session ${c.sessionId}`
+            : c.ownership.mode;
+        d.append(n, s);
+        return d;
+      }),
+  );
+  const outputRows = data.map((r) => ({
+    ...r,
+    value:
+      typeof r.output === "number"
+        ? [r.output]
+        : Array.isArray(r.output)
+          ? r.output
+          : r.output
+            ? Object.values(r.output)
+            : [],
+  }));
+  const outputRange = Math.max(
+    1,
+    ...outputRows
+      .filter((r) => r.t >= end - duration && r.t <= end)
+      .flatMap((r) => r.value.map((v) => Math.abs(v))),
+  );
+  plot(
+    $("outputGraph"),
+    outputRows,
+    end,
+    duration,
+    Array.from({ length: 6 }, (_, i) => [
+      (r) => r.value[i],
+      ["#2355cb", "#ad570e", "#167552", "#8954a8", "#b03b42", "#187d8a"][i],
+    ]),
+    Math.ceil(outputRange),
+  );
+  $("outputState").textContent =
+    "Selected control: " +
+    JSON.stringify(at.output ?? at.interaction?.value ?? null);
+  if (!selectedEvent)
+    $("evidence").textContent = pretty({
+      time: at.t,
+      input: at.input,
+      processed: at.processed,
+      movementRate: at.actual,
+      context: at.inspection?.context,
+      recognizer: at.recognizer,
+      interaction: at.interaction,
+      frameInterval: at.frameMs,
+      note:
+        replayData && !replayData.fullDiagnostics
+          ? "Replay rates are interval averages. Live processed/ownership snapshots were not recorded."
+          : undefined,
+    });
+}
+$("focusGraphs").onclick = () => {
+  const on = document.body.classList.toggle("focus-debug");
+  $("focusGraphs").textContent = on ? "Exit graph focus" : "Focus graphs";
+};
+$("freeze").onclick = () => {
+  frozen = !frozen;
+  frozenData = frozen
+    ? {
+        samples: [...samples],
+        events: [...events],
+        gaps: [...reportGaps],
+        rawReports: [...rawReports],
+      }
+    : null;
+  frozenEnd = (replayData?.samples ?? samples).at(-1)?.t ?? performance.now();
+  $("freeze").textContent = frozen ? "Resume display" : "Freeze display";
+};
+$("scrub").oninput = () => {
+  if (!frozen) {
+    frozen = true;
+    frozenData = {
+      samples: [...samples],
+      events: [...events],
+      gaps: [...reportGaps],
+      rawReports: [...rawReports],
+    };
+    frozenEnd = (replayData?.samples ?? samples).at(-1)?.t ?? performance.now();
+  }
+  $("freeze").textContent = "Resume display";
+  selectedEvent = null;
+};
+$("live").onclick = () => {
+  replayData = null;
+  frozenData = null;
+  frozen = false;
+  $("scrub").value = 1000;
+  selectedEvent = null;
+  $("freeze").textContent = "Freeze display";
+  $("replayStatus").textContent =
+    "Showing live input. Replay did not alter the live session.";
+};
+function validDiagnostics(s) {
+  const value = (v) => typeof v === "number" && Number.isFinite(v);
+  const axisObject = (o) => o && axes.every((a) => value(o[a]));
+  return (
+    value(s.started) &&
+    Array.isArray(s.events) &&
+    s.events.length <= 1200 &&
+    s.events.every(
+      (e) =>
+        value(e.timestamp) &&
+        typeof e.name === "string" &&
+        typeof e.type === "string",
+    ) &&
+    Array.isArray(s.rawReports) &&
+    s.rawReports.length < 20000 &&
+    s.rawReports.every((r) => value(r.t) && axisObject(r.input)) &&
+    Array.isArray(s.gaps) &&
+    s.gaps.length < 20000 &&
+    s.gaps.every((r) => value(r.t) && value(r.gap)) &&
+    s.samples.every(
+      (r) =>
+        value(r.t) &&
+        axisObject(r.input) &&
+        ["processed", "actual", "rate"].every(
+          (k) => r[k] === undefined || axisObject(r[k]),
+        ) &&
+        (!r.inspection ||
+          (Array.isArray(r.inspection.controls) &&
+            r.inspection.controls.every(
+              (c) =>
+                typeof c.name === "string" &&
+                c.ownership &&
+                typeof c.ownership.mode === "string",
+            ))),
+    )
+  );
+}
+$("replay").onchange = async (e) => {
+  try {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 25000000)
+      throw new Error("Recording exceeds the 25 MB preview limit.");
+    const recording = JSON.parse(await file.text()),
+      graph = createControlGraph(recording),
+      r = replayPuck(recording),
+      feeds = recording.timeline.filter((o) => o.type === "feed");
+    let last = {},
+      previous = null;
+    const gaps = [],
+      rows = feeds.map((o) => {
+        if (previous !== null) gaps.push({ t: o.time, gap: o.time - previous });
+        previous = o.time;
+        return { t: o.time, input: o.input };
+      });
+    const translation = graph.movement.find(
+        (m) => m.control === "controls.translation",
+      ),
+      rotation = graph.movement.find((m) => m.control === "controls.rotation");
+    let index = 0;
+    for (let i = 0; i < r.frames.length; i++) {
+      const f = r.frames[i];
+      while (index < feeds.length && feeds[index].time <= f.end)
+        last = feeds[index++].input;
+      const dt = (f.end - f.start) / 1000;
+      if (dt <= 0) continue;
+      const linear = translation?.intervals[i]?.delta ?? [0, 0, 0],
+        angular = rotation?.intervals[i]?.delta ?? [0, 0, 0];
+      rows.push({
+        t: f.end,
+        input: { ...neutralInput, ...last },
+        actual: Object.fromEntries(
+          axes.map((a, j) => [a, (j < 3 ? linear[j] : angular[j - 3]) / dt]),
+        ),
+      });
+    }
+    rows.sort((a, b) => a.t - b.t);
+    let translationSpeed =
+        recording.definition.controls?.translation?.options.speed ?? 1,
+      rotationSpeed =
+        recording.definition.controls?.rotation?.options.speed ?? 1;
+    const changes = recording.timeline.filter((op) => op.type === "configure");
+    let changeIndex = 0;
+    for (const row of rows) {
+      while (
+        changeIndex < changes.length &&
+        changes[changeIndex].time <= row.t
+      ) {
+        const op = changes[changeIndex++];
+        if (
+          op.control === "controls.translation" &&
+          typeof op.settings.speed === "number"
+        )
+          translationSpeed = op.settings.speed;
+        if (
+          op.control === "controls.rotation" &&
+          typeof op.settings.speed === "number"
+        )
+          rotationSpeed = op.settings.speed;
+      }
+      if (row.actual)
+        row.rate = Object.fromEntries(
+          axes.map((a, i) => [
+            a,
+            row.actual[a] / ((i < 3 ? translationSpeed : rotationSpeed) || 1),
+          ]),
+        );
+    }
+    r.puck.dispose();
+    replayData = {
+      samples: rows,
+      events: graph.events.map((e) => ({ ...e, name: e.control })),
+      gaps,
+    };
+    if (
+      recording.preview?.version === 1 &&
+      Array.isArray(recording.preview.samples) &&
+      recording.preview.samples.length &&
+      recording.preview.samples.length < 20000
+    ) {
+      const saved = recording.preview;
+      if (validDiagnostics(saved)) {
+        replayData = { ...saved };
+        replayData.fullDiagnostics = true;
+      }
+    }
+    replayData.started = recording.preview?.started ?? rows[0]?.t ?? 0;
+    frozen = true;
+    frozenEnd = replayData.samples.at(-1)?.t ?? 0;
+    $("scrub").value = 1000;
+    selectedEvent = null;
+    $("replayStatus").textContent =
+      `Replay ${graph.complete ? "complete" : "partial — limit reached"}: ${feeds.length} reports, ${graph.events.length} occurrences, ${r.frames.length} frames. Live session unchanged. Raw input and interval-average rates available; processed/ownership snapshots were not recorded.`;
+    if (replayData.fullDiagnostics)
+      $("replayStatus").textContent =
+        `Replay ${graph.complete ? "complete" : "partial — recording limit reached"}: ${feeds.length} reports, ${graph.events.length} occurrences. Showing the saved 30-second diagnostic window with values, ownership and event evidence. Live session unchanged.`;
+    $("freeze").textContent = "Resume display";
+  } catch (error) {
+    $("replayStatus").textContent = `Replay failed: ${error.message}`;
+  } finally {
+    e.target.value = "";
+  }
+};
+function drawPlan() {
+  const p = canvasPose,
+    parts = [
+      '<rect x="-600" y="-400" width="1200" height="800" fill="#f7f8f5"/>',
+    ];
+  for (let x = -600; x <= 600; x += 50)
+    parts.push(`<path d="M${x} -400V400" stroke="#dce4df"/>`);
+  for (let y = -400; y <= 400; y += 50)
+    parts.push(`<path d="M-600 ${y}H600" stroke="#dce4df"/>`);
+  parts.push(
+    '<path d="M-280-150H280V150H-280Z M-80-150V150 M100-150V20H280 M-80 20H100" fill="none" stroke="#48635a" stroke-width="8"/>',
+  );
+  for (const [x, y, label] of [
+    [-220, -30, "Studio"],
+    [0, -60, "Kitchen"],
+    [175, -60, "Office"],
+    [75, 100, "Living room"],
+  ])
+    parts.push(
+      `<text x="${x}" y="${y}" fill="#29493d" font-size="19">${label}</text>`,
+    );
+  $("plan").innerHTML = parts.join("");
+  $("plan").setAttribute(
+    "transform",
+    `translate(${400 + p.x} ${220 + p.y}) scale(${p.zoom})`,
+  );
+}
+function drawExample() {
+  const a = active(),
+    selection = ["selection", "routing", "lifecycle"].includes(example);
+  $("selectionOverlay").hidden = !selection || !a;
+  const v = a?.state.value;
+  if (selection && a) {
+    $("instruction").textContent =
+      "Keep holding. Tilt toward a style; release pressure to apply.";
+    $("expected").textContent =
+      settings.cancelMode === "none"
+        ? "No cancellation gesture configured. Use Cancel in Debug to abort."
+        : `Cancel with ${optionNames[settings.cancelMode].toLowerCase()}.`;
+    $("radial").replaceChildren(
+      ...[5, 6, 7, 4, null, 0, 3, 2, 1].map((i) => {
+        const s = document.createElement("span");
+        s.textContent = i === null ? "Release to apply" : styles[i];
+        s.className = i === null ? "center" : i === v ? "selected" : "";
+        return s;
+      }),
+    );
+  } else {
+    $("instruction").textContent = examples[example][4];
+    $("expected").textContent = examples[example][5];
+  }
+  $("sessionState").textContent = a
+    ? `${a.name} active · session ${a.state.sessionId}`
+    : "No interaction active";
+  $("visualState").textContent =
+    example === "canvas"
+      ? `Zoom ${canvasPose.zoom.toFixed(2)}×`
+      : selection
+        ? `${styles[style]} · ${a ? "menu owns input" : "navigation available"}`
+        : "Target orbit · all six axes";
+  if (!$("scene").hidden) drawScene($("scene"), camera, style);
+  if (example === "canvas") drawPlan();
+  if (["values", "scalar", "vector"].includes(example)) {
+    const value =
+      example === "values"
+        ? puck.read(groups.values.value)
+        : example === "scalar"
+          ? adjusted
+          : point;
+    $("valueCaption").textContent =
+      example === "values"
+        ? `${settings.source} → ${settings.as}`
+        : example === "scalar"
+          ? "Integrated scalar value"
+          : "Integrated 2D position";
+    $("valueOutput").textContent =
+      typeof value === "number"
+        ? value.toFixed(3)
+        : value === null
+          ? "null"
+          : Array.isArray(value)
+            ? value.map((v) => v.toFixed(2)).join(" / ")
+            : axes.map((a) => `${a}: ${value[a].toFixed(2)}`).join("  ");
+    $("valueOutput").style.fontSize =
+      value && typeof value === "object" && !Array.isArray(value) ? "19px" : "";
+    const vector = Array.isArray(value);
+    $("vector").toggleAttribute("hidden", !vector);
+    $("scalar").hidden = vector || typeof value !== "number";
+    if (vector) {
+      $("vectorDot").setAttribute(
+        "cx",
+        250 + Math.max(-1, Math.min(1, value[0])) * 200,
+      );
+      $("vectorDot").setAttribute(
+        "cy",
+        110 + Math.max(-1, Math.min(1, value[1])) * 90,
+      );
+    } else if (typeof value === "number")
+      $("scalar").value = Math.max(-1, Math.min(1, value));
+  }
+}
+function frame() {
+  safe(() => {
+    const t = performance.now();
+    if (run) {
+      if (t - run.start > 2500) stop();
+      else if (
+        run.index < run.rows.length &&
+        t >= run.start + run.rows[run.index].t
+      )
+        feed(run.rows[run.index++].input, t);
+      if (run && run.index === run.rows.length && t - run.start > 1600) {
+        run = null;
+        $("status").textContent =
+          "Simulation finished. Device counts are separate.";
+      }
+    }
+    receive(recognizer.advance(t));
+    const f = puck.frame(t),
+      linear = f.integrate(common.translation),
+      angular = f.integrate(common.rotation);
+    if (["navigation", "selection", "routing", "lifecycle"].includes(example))
+      moveCamera(camera, linear, angular);
+    if (activeContext() === "canvas") {
+      const [x, y] = f.integrate(groups.canvas.pan),
+        dz = f.integrate(groups.canvas.zoom),
+        next = Math.max(0.15, Math.min(6, canvasPose.zoom * Math.exp(dz))),
+        ratio = next / canvasPose.zoom;
+      canvasPose = {
+        x: canvasPose.x * ratio + x,
+        y: canvasPose.y * ratio + y,
+        zoom: next,
+      };
+    }
+    if (activeContext() === "scalar")
+      for (const h of Object.values(groups.scalar)) adjusted += f.integrate(h);
+    if (activeContext() === "vector")
+      for (const h of Object.values(groups.vector)) {
+        const d = f.integrate(h);
+        point = point.map((v, i) => Math.max(-1, Math.min(1, v + d[i])));
+      }
+    if (t - lastDraw >= 33) {
+      const linearRate = puck.read(common.translation),
+        angularRate = puck.read(common.rotation);
+      samples.push({
+        t,
+        input: { ...input },
+        processed: puck.read(common.observed),
+        rate: Object.fromEntries(
+          axes.map((a, i) => [
+            a,
+            i < 3
+              ? linearRate[i] / (settings.translationSpeed || 1)
+              : angularRate[i - 3] /
+                ((settings.rotationSpeed * Math.PI) / 180 || 1),
+          ]),
+        ),
+        actual: Object.fromEntries(
+          axes.map((a, i) => [a, i < 3 ? linearRate[i] : angularRate[i - 3]]),
+        ),
+        inspection: {
+          context: activeContext(),
+          controls: puck
+            .inspect()
+            .controls.map(
+              ({
+                name,
+                kind,
+                ownership,
+                eligible,
+                suppressedBy,
+                sessionId,
+              }) => ({
+                name,
+                kind,
+                ownership,
+                eligible,
+                suppressedBy,
+                sessionId,
+              }),
+            ),
+        },
+        output:
+          example === "values"
+            ? puck.read(groups.values.value)
+            : (active()?.state.value ?? null),
+        recognizer: recognizer.state,
+        interaction: active()?.state ?? null,
+        frameMs: f.end - f.start,
+      });
+      while (samples.length && samples[0].t < t - 30000) samples.shift();
+      if (page === "examples") drawExample();
+      if (page === "debug") debugFrame();
+      $("recognizerState").textContent =
+        `${recognizer.state.phase}${recognizer.state.pending ? " · waiting for double: " + recognizer.state.pending : ""}${recognizer.state.hold ? " · hold active" : ""}`;
+      if (puck.recordingFull)
+        $("recordStatus").textContent =
+          "Recording limit reached. Export, then start a new recording.";
+      lastDraw = t;
+    }
+  });
   requestAnimationFrame(frame);
 }
-make();requestAnimationFrame(frame);
+newRuntime();
+renderExample();
+const initial = location.hash.slice(1);
+if (initial in examples) {
+  context(initial);
+  showPage("examples");
+} else showPage(["tester", "debug"].includes(initial) ? initial : "examples");
+requestAnimationFrame(frame);
