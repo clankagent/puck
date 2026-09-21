@@ -1,13 +1,67 @@
 # Browser quickstart
 
-## Recommended application integration
+## Application controls (1.0)
 
-Start with the [application API guide](application-api.md). Use `createPuck({controls})` and the optional `/webhid` `connectPuck` bridge. The low-level example below remains supported for existing integrations.
+Install with pnpm add @clankagent/puck@1.0.0. Your page supplies a Connect button
+and a status element. The application owns rendering; connectPuck owns report
+delivery and recognition deadlines, including while the cap is held still.
 
+```js
+import { createPuck, control, recipes } from '@clankagent/puck';
+import { connectPuck } from '@clankagent/puck/webhid';
+
+const controls = { ...recipes.panZoom(), action: control.gesture('push') };
+const puck = createPuck({ controls });
+const status = document.querySelector('#status');
+let connection = null, connecting = false, frameId, disposed = false;
+const off = puck.on(controls.action, () => { status.textContent = 'Push detected'; });
+
+function render() {
+  const frame = puck.frame(performance.now());
+  const [dx, dy] = frame.integrate(controls.pan);
+  const zoomFactor = Math.exp(frame.integrate(controls.zoom));
+  // Apply dx, dy and zoomFactor to your application's view.
+  frameId = requestAnimationFrame(render);
+}
+render();
+document.querySelector('#connect').onclick = async () => {
+  if (connecting || connection || disposed) return;
+  connecting = true;
+  try {
+    const opened = await connectPuck(puck, {
+      onDisconnect() { connection = null; status.textContent = 'Disconnected'; },
+      onError(error) { status.textContent = String(error); },
+    });
+    if (disposed) { await opened?.close(); return; }
+    connection = opened;
+    status.textContent = opened ? 'Connected — release to neutral' : 'Connection cancelled';
+  } catch (error) { status.textContent = String(error); }
+  finally { connecting = false; }
+};
+// Call when removing this view. Avoid starting a chooser during teardown.
+async function dispose() {
+  disposed = true;
+  cancelAnimationFrame(frameId);
+  // Await any in-flight Connect handler before disposing its runtime.
+  while (connecting) await new Promise(resolve => setTimeout(resolve, 16));
+  await connection?.close();
+  connection = null;
+  off();
+  puck.dispose();
+}
+```
+
+For a pressure-gated menu or held value, use an interaction rather than a
+discrete command. See [application controls](application-api.md) for symmetric
+push/pull sessions, commit/cancel and explicit ownership. Use one monotonic clock;
+call frame(performance.now()) rather than mixing a report timestamp with an older
+requestAnimationFrame timestamp. A cancelled chooser returns null.
+
+## Retained low-level gesture integration
 
 [Documentation](../README.md) · [API reference](api.md)
 
-These examples target the source checkout described in the README. Use a browser with WebHID in a secure context and call connection from a user click. A cancelled chooser returns `null`; unsupported browsers and device errors reject the promise. Catch and display those errors in your UI.
+The low-level examples below remain supported in 1.0. Use a browser with WebHID in a secure context and call connection from a user click. A cancelled chooser returns `null`; unsupported browsers and device errors reject the promise. Catch and display those errors in your UI.
 
 Copy [gesture-session.mjs](../examples/gesture-session.mjs) into your app. It is a complete connection and recording wrapper using public imports, with one clock, lifecycle resets and frame cleanup. Resolve its package imports through your bundler. It is an example file, not a package export.
 

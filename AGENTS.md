@@ -5,14 +5,13 @@ commit and push, CI verification, versioned npm publication, and a clean install
 check before reporting completion. Stop only for an actual blocker or an explicit
 source-only request.
 
-## V1 release gate
+## V1 release approval
 
-The v1 API change is an unreleased preview. Implementation, tests and preview
-deployment are authorized. Do not create release tags, GitHub releases or npm
-publications (including release candidates and other prereleases) until the user
-has tested the change with their real physical controller and explicitly approved
-release. Automated checks and browser simulations do not satisfy this gate.
-This gate overrides the default publication workflow above.
+The application-facing API was physically tested and release 1.0.0 was explicitly
+approved on 2026-09-21 after review of a real-device performance trace. The prior
+preview-only gate is satisfied for this release. Follow RELEASING.md, including
+documentation, package checks, registry verification and accurate tested scope.
+Do not infer additional hardware compatibility from this approval.
 
 Puck is a public library hosted at https://github.com/clankagent/puck, published as @clankagent/puck. Maintain the focused library scope: source, tests, documentation and small code examples. Do not add a website, test page, local server or router setup unless explicitly requested.
 

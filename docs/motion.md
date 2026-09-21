@@ -2,7 +2,17 @@
 
 [Documentation](../README.md) · [API reference](api.md)
 
-## Motion behavior
+## Application controls (1.0)
+
+Use recipes.panZoom() or recipes.sixAxis() with createPuck and integrate their
+velocity handles through puck.frame(performance.now()). Six-axis translation is
+600 units/s and rotation pi/2 rad/s at full deflection. The navigation recipe
+uses +x/+y/+z and +rx/+ry/-rz scales; raw controls retain device signs. The app
+owns camera-axis assignment and may override scale using puck.configure().
+Semantic tilt is [-ry,rx], right/down positive. Motion calibration is not implied
+by normalizing sensor values. See [application API](application-api.md).
+
+## Retained createPanZoom behavior
 
 - `step(timestampMs)` uses the timestamp supplied by your render loop, once per frame. The first step produces no movement. It never assumes a display refresh rate.
 - A held cap requests velocity. Input report count does not determine movement distance. The latest deflection remains active between reports, including bursty delivery.

@@ -1,10 +1,10 @@
-# Architecture and release preparation
+# Architecture
 
 The product goal is to make responsive six-axis interaction easy to implement correctly. Correct defaults and clear ownership matter more than exposing many switches.
 
 ## Boundaries
 
-The core consumes normalized deflection and frame timestamps. It produces screen-space pan deltas and a multiplicative zoom factor. It does not own a view transform, renderer, event loop, browser or device. Incoming reports update a held sample; they never directly advance a camera.
+The core consumes normalized deflection and monotonic timestamps. The application runtime exposes typed continuous values, discrete commands and persistent interactions; velocity controls integrate report boundaries into per-frame deltas. The retained pan/zoom processor produces screen-space pan deltas and a multiplicative zoom factor. It does not own a view transform, renderer, event loop, browser or device. Incoming reports update a held sample; they never directly advance a camera.
 
 The optional WebHID adapter decodes one verified device profile, handles explicit device permission and connection lifetime, and forwards samples. It clears input on interruption. A consuming application can pause input when a modal/tool takes ownership, or use the core with another transport entirely.
 
@@ -18,12 +18,12 @@ These are verified defaults for the tested hardware and interaction. They are no
 
 ## Package shape
 
-One ESM TypeScript package, core and `/webhid` exports, no runtime dependencies. Emitted declarations use explicit `.js` relative specifiers and a Node-compatible module resolution mode. Tests import built output, keeping package behavior visible outside the compiler. A renderer can use the core without importing browser glue. [TypeScript library compilation guidance](https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-writing-a-library), [WebHID lifecycle and reports](https://developer.chrome.com/docs/capabilities/hid).
+One ESM TypeScript package, core, `/webhid` and `/graph` exports, no runtime dependencies. Emitted declarations use explicit `.js` relative specifiers and a Node-compatible module resolution mode. Tests import built output, keeping package behavior visible outside the compiler. A renderer can use the core without importing browser glue. [TypeScript library compilation guidance](https://www.typescriptlang.org/docs/handbook/modules/guides/choosing-compiler-options.html#im-writing-a-library), [WebHID lifecycle and reports](https://developer.chrome.com/docs/capabilities/hid).
 
 ## Release scope
 
 Puck ships a core and an optional WebHID adapter. No website, renderer or server
-is part of the library. The first release documents the measured hardware scope
+is part of the library. The release documents the measured hardware scope
 and distinguishes prototype physical testing from extracted-adapter tests.
 
 ## Tune and calibration API
@@ -40,3 +40,8 @@ The optional /graph export provides renderer-neutral data and a standalone SVG
 renderer. It draws four unsigned direction lanes instead of overlaying two
 signed axes and four gates. It owns no DOM, camera, subscriptions or frame loop.
 The lab adds selection/zoom and tune editing as application responsibilities.
+
+
+## Application runtime
+
+Definitions are immutable handles; runtime instances own independent state. Explicit ownership and contexts resolve conflicts. Persistent interactions have begin/update/commit/cancel events, qualified release and neutral rearming. Settings validate mutable fields separately from structural definitions. Bounded recording, cursors and traces make behavior inspectable without application authors building recognizer graphs. See docs/application-api.md.

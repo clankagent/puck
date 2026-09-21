@@ -1,6 +1,6 @@
 {
   "name": "@clankagent/puck",
-  "version": "1.0.0-dev.0",
+  "version": "1.0.0",
   "description": "Typed physical controls, six-axis motion and gestures for SpaceMouse applications",
   "type": "module",
   "sideEffects": false,
@@ -16,7 +16,8 @@
     "AGENTS.md",
     "CONTRIBUTING.md",
     "DESIGN.md",
-    "VERIFICATION.md"
+    "VERIFICATION.md",
+    "RELEASING.md"
   ],
   "exports": {
     "./graph": {

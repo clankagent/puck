@@ -45,3 +45,8 @@ release notes; include the adoption guide. Verify the packed artifact contains
 the changelog and linked user documentation before pushing a release tag.
 After publication, verify the published version and exports before announcing
 installation instructions as available.
+
+
+## 1.0 approval
+
+The physical-testing gate for 1.0.0 was explicitly satisfied on 2026-09-21. This authorizes the 1.0.0 tag, npm publication and GitHub release after documentation and package checks. Retain the measured scope in docs/v1-verification.md; do not claim broader compatibility from release approval.

@@ -4,7 +4,7 @@
 
 | Symptom | Check / fix |
 |---|---|
-| Import or graph entry point missing | Gesture and graph APIs require 0.2.0 or later. Check your installed version and package exports; see the upgrade guide. |
+| Import or graph entry point missing | Application controls require 1.0.0; retained gesture/graph APIs require 0.2.0 or later. Check your installed version and package exports; see the upgrade guide. |
 | Bare import fails in browser | Resolve package imports with a bundler or import map. A browser cannot resolve npm package names by itself. |
 | WebHID unavailable / chooser fails | Use a supporting browser and secure context; connect from a user click and display the caught error. Core processing works without WebHID. |
 | Chooser cancelled | A null connection is expected; allow another click. |
@@ -21,7 +21,11 @@
 | Calibration ambiguous | Close singles may resemble a double; runs of three or more fast pulses are ambiguous. Inspect raw graph and repeat only unclear actions with pauses between independent actions. |
 | Saved tune has no methods | JSON stores data only. Call createGestureTune(JSON.parse(saved)). |
 | Tune edit throws on assignment | Tunes and toJSON data are frozen. Copy nested objects before editing, or use the immutable methods. |
-| Recorder stops adding entries | Inspect full; stop/save and start another capture. Defaults are two minutes / 50000 timeline entries. |
+| Interaction suppressed | Inspect ownership/context with puck.inspect(); release fully to satisfy neutral rearming. |
+| Twist cancel does not finish | Keep pressure held and complete the twist by returning it to center; inspect cancellation state. |
+| Continuous tilt travels different amounts | Compare raw signed rx/ry values. Equal sensor values are shaped symmetrically; gesture calibration does not equalize physical response. |
+| 3D directions differ from preference | Use per-axis scale overrides. Camera transforms are application-specific; raw input signs do not change. |
+| Recorder stops adding entries | Inspect full; stop/save and start another capture. The legacy gesture recorder defaults to two minutes / 50000 timeline entries. Application recording has a separate recordingLimit (50000 by default). |
 | Graph overlays wrong session | Pass the zero-based recordingIndex used in the combined calibration. |
 
 When reporting a problem, include package version, runtime/browser, OS, device IDs and connection type, relevant configuration, expected/actual events and a minimal synthetic reproduction when possible. Remove personal information from any raw capture. See [contribution guidance](../CONTRIBUTING.md) for evidence needed for a new profile.

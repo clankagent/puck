@@ -1,11 +1,8 @@
 # Puck playground
 
-[Open the preview](https://clankagent.github.io/puck/) · [Application API](application-api.md)
+[Open the playground](https://clankagent.github.io/puck/) · [Application API](application-api.md)
 
-This is an **unreleased v1 preview** for hands-on testing. It runs the repository's
-actual SDK; the npm package is still 0.5.0. A preview deployment is not a release.
-The user's physical-controller testing and explicit approval are required before
-any v1 publication, including prereleases.
+This is the Puck 1.0 demonstration and debugging application. It runs the public SDK and recipes; camera transforms, drawing and UI belong to the application. See [verification scope](v1-verification.md) for tested hardware and limitations.
 
 ## Examples
 
@@ -39,7 +36,7 @@ input samples through the SDK; they do not fabricate recognition events. Focus
 loss interrupts the session. Speed changes update the live runtime; structural
 changes such as source, interpretation or cancellation policy start a new capture.
 Export a capture before changing its structure. Restore defaults resets the
-preview's settings and starts a fresh runtime.
+playground's settings and starts a fresh runtime.
 
 ## Gesture tester
 
@@ -79,7 +76,7 @@ An optional preview extension retains the last 30 seconds of browser diagnostic
 snapshots and event evidence. Loading it shows those saved graphs without altering
 the live runtime. Plain SDK recordings replay too, with explicit indications of
 which diagnostic snapshots are unavailable. Very large files are rejected by the
-browser preview; the public replay API remains available to applications.
+browser playground; the public replay API remains available to applications.
 
 Settings export/restore uses the public versioned format. Restoring validates
 against the current definition. A file cannot silently change control structure.
@@ -90,7 +87,7 @@ The [calibration lab](https://clankagent.github.io/puck/lab/) provides presets,
 force/timing settings, labeled physical recordings and calibration analysis.
 The [legacy playground](https://clankagent.github.io/puck/legacy.html) is retained
 for compatibility testing; see its [guide](legacy-playground.md). Lab recordings
-use browser IndexedDB; the new preview's current session stays in memory until
+use browser IndexedDB; the new playground's current session stays in memory until
 export. Neither format is automatically uploaded.
 
 WebHID requires a supporting desktop browser and device permission. The current
@@ -108,7 +105,7 @@ pnpm site:serve
 
 Open `http://127.0.0.1:47827/puck/`. The build copies an explicit public asset list
 and the compiled SDK into ignored `site/`. Main deploys to GitHub Pages after CI.
-No release tag or npm publication is part of deploying this preview.
+Website deployment and npm publication are separate operations; see RELEASING.md.
 
 
 
@@ -116,11 +113,11 @@ No release tag or npm publication is part of deploying this preview.
 
 [Blender's NDOF documentation](https://docs.blender.org/UATEST/manual/en/dev/editors/preferences/input.html)
 describes object-in-hand navigation, forward/back versus up/down zoom, and
-independent pan/rotation inversions. The preview exposes those direction choices;
+independent pan/rotation inversions. The playground exposes those direction choices;
 it does not claim to reproduce every Blender navigation mode or pivot policy.
 [Onshape's documentation](https://cad.onshape.com/help/Content/Plans/my_account_preferences.htm)
 refers SpaceMouse setup to the device's own settings rather than specifying a
-separate universal mapping. The preview reads WebHID directly and does not inherit
+separate universal mapping. The playground reads WebHID directly and does not inherit
 settings from the desktop 3Dconnexion driver.
 
 Both vector displays use a square plot with equal signed-axis travel. Menu
@@ -136,8 +133,8 @@ gap. JavaScript work excludes browser paint; frame interval includes scheduling.
 These measurements are separate from the device report-gap graph. Hidden-tab gaps
 are excluded. Capture export still retains raw input and diagnostic snapshots.
 
-Settings export also includes the preview's camera zoom-axis preference; SDK
-settings contain the six axis scales. Import validates the preview preference.
+Settings export also includes the playground's camera zoom-axis preference; SDK
+settings contain the six axis scales. Import validates the playground preference.
 
 
 ### Confirmed 3D profile (2026-09-21)
@@ -147,9 +144,8 @@ Physical user testing confirmed the three reversal switches above as the expecte
 and regression-tested against the public sixAxis recipe. The recipe uses translation
 scales x=+1, y=+1, z=+1 and rotation scales rx=+1, ry=+1, rz=-1. Raw sources, tilt,
 2D pan/zoom and gestures are unchanged. The switches retain their existing meaning
-relative to the initial preview so saved preferences are not silently reinterpreted.
+relative to the initial development preview so saved preferences are not silently reinterpreted.
 
 Unequal continuous tilt travel remains an open calibration observation. The
 [API calibration notes](application-api.md#motion-calibration-versus-gesture-tuning)
 distinguish sensor normalization, continuous shaping and gesture calibration.
-

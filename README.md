@@ -1,70 +1,97 @@
 # Puck
 
-## Application-facing SDK · unreleased v1 preview
+Typed physical controls for SpaceMouse applications: continuous six-axis motion,
+discrete commands and persistent push/pull interactions. TypeScript, ESM and zero
+runtime dependencies. Your application owns its camera, rendering and storage.
 
-The new API declares typed continuous controls, gestures and persistent interactions. Read current values, subscribe to occurrences, integrate motion per frame, and inspect ownership using the same handles. Push and pull have symmetric capabilities.
-
-This is an unreleased source and browser preview. npm remains at 0.5.0; the new API is not published. Read the [application API](docs/application-api.md), [preview verification](docs/v1-verification.md), or [try application controls](https://clankagent.github.io/puck/controls.html). Existing low-level APIs remain supported.
-
-
-Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.
-
-**Version note:** the low-level examples target the compatible 0.5 API. Gesture recognition, tunes, recording, calibration and graphs are included, with experimental APIs. See the [changelog](CHANGELOG.md) and [upgrade guide](docs/upgrading.md) when adopting updates.
-
-Try the [feature showcase](https://clankagent.github.io/puck/), [32-outcome gesture tester](https://clankagent.github.io/puck/#tester), or [debug workspace](https://clankagent.github.io/puck/#debug). Examples include live declarations, settings, perspective navigation, bounded menus and held values. Debug captures stay in your browser; export before changing a structural definition.
-
-## Start here
-
-**[Open the Puck playground](https://clankagent.github.io/puck/)** — tune live movement
-speeds, pan/zoom or navigate a perspective 3D scene, test all 32 gesture outcomes,
-reset detection counts, watch six-axis graphs, and record
-or calibrate input. Works without hardware using simulated input. The public
-site keeps recordings in your browser. [Playground guide](docs/playground.md).
-
-| You want to… | Read |
-|---|---|
-| See what changed and adopt an update | [Changelog](CHANGELOG.md), [upgrade guide](docs/upgrading.md) |
-| Connect a device and recognize gestures | [Complete browser integration](docs/quickstart.md) |
-| Add smooth pan and zoom | [Motion and hardware](docs/motion.md), [camera arithmetic](examples/camera.mjs) |
-| Set sensitivity or learn a personal tune | [Tunes, recording and calibration](docs/tuning.md) |
-| Look up imports, methods, defaults or units | [API reference](docs/api.md) |
-| Fix input or calibration problems | [Troubleshooting](docs/troubleshooting.md) |
-| Integrate using an agent | [Agent integration guide](docs/agents.md), [plain-text index](llms.txt) |
-| Try and record real input | [Gesture lab](docs/lab.md) |
-| Understand the next release and 1.0 criteria | [Roadmap](docs/roadmap.md) |
-| Add standalone or pressure-first tilts | [Push/pull + tilt](docs/press-tilt.md) |
-
-For a registry release, install with `pnpm add @clankagent/puck`. For this checkout:
+## Install
 
 ```sh
-pnpm install
-pnpm check
+pnpm add @clankagent/puck@1.0.0
 ```
 
-The build emits `dist/*.js` and matching TypeScript declarations. Examples use package imports; a bundler or browser import map must resolve them. No CommonJS build is provided.
+```ts
+import { createPuck, control, recipes } from '@clankagent/puck';
+import { connectPuck } from '@clankagent/puck/webhid';
 
-```js
-import { createGestures, gesturePresets } from '@clankagent/puck';
-
-const tune = gesturePresets.default.soften(0.1).widen(0.15);
-const gestures = createGestures(tune);
-// Feed every report to update(input, time), and tick advance(time).
-// See the complete integration for clocks, lifecycle and cleanup.
+const controls = {
+  ...recipes.panZoom(),
+  choose: recipes.directionSelection({
+    activation: 'pull',
+    cancel: { input: 'twist', direction: 'either' },
+    ownership: { mode: 'exclusive', channels: 'all' },
+  }),
+};
+const puck = createPuck({
+  controls,
+  conflicts: [{ prefer: controls.choose, over: [controls.pan, controls.zoom] }],
+});
+puck.on(controls.choose, event => {
+  if (event.type === 'commit') console.log('Selected sector:', event.value);
+});
+// In a Connect button handler: const connection = await connectPuck(puck);
+// In your render loop: const frame = puck.frame(performance.now());
+// const [dx, dy] = frame.integrate(controls.pan);
+// const zoomFactor = Math.exp(frame.integrate(controls.zoom));
+// Teardown: stop the loop, await connection?.close(), then puck.dispose().
 ```
 
-## What Puck owns
+The palette owns input while open, so incidental motion cannot pan the canvas.
+Use symmetric push or pull activation, choose a value by tilting, commit on
+qualified release, or cancel with a completed twist. Applications decide what
+the selected sector means. See the [complete browser quickstart](docs/quickstart.md).
+
+## Try it
+
+[Feature showcase](https://clankagent.github.io/puck/) ·
+[32-outcome gesture tester](https://clankagent.github.io/puck/#tester) ·
+[Debug workspace](https://clankagent.github.io/puck/#debug)
+
+The playground uses the public SDK and recipes. It includes 3D navigation with
+direction settings, 2D pan/zoom, square continuous-value plots, a compact radial
+palette, held scalar/vector controls, contexts, generated code and synchronized
+diagnostics. Device and simulator counts are separate. Captures stay local;
+export before reloading or changing a structural definition.
+
+## Documentation
+
+| Task | Guide |
+|---|---|
+| Connect and clean up a browser application | [Quickstart](docs/quickstart.md) |
+| Declare/read controls, sessions, ownership and settings | [Application API](docs/application-api.md) |
+| Adopt 1.0 from 0.x | [Upgrade guide](docs/upgrading.md), [changelog](CHANGELOG.md) |
+| Understand movement, units and device support | [Motion and hardware](docs/motion.md) |
+| Tune gesture recognition | [Calibration](docs/tuning.md), [lab](docs/lab.md) |
+| Use retained low-level processors | [Low-level API](docs/api.md), [tilt](docs/press-tilt.md), [press/rotate](docs/press-rotate.md) |
+| Diagnose input or timing | [Troubleshooting](docs/troubleshooting.md), [playground guide](docs/playground.md) |
+| Integrate with a coding agent | [Agent guide](docs/agents.md), [plain-text index](llms.txt) |
+| Understand testing and future scope | [Verification](docs/v1-verification.md), [roadmap](docs/roadmap.md) |
+
+## Boundaries
 
 | Layer | Responsibility |
 |---|---|
-| Core `@clankagent/puck` | Decode reports; process motion and gestures; record samples; derive tunes. No browser globals, timers or storage. |
-| Optional `/webhid` | Device chooser, reports and connection lifecycle. |
-| Optional `/graph` | Gesture-family graph data and a standalone SVG renderer. |
-| Your app | Render loop, action handling, camera, capture controls, persistence and UI. |
+| Core | Typed controls, recognition, motion integration, contexts, ownership, inspection and bounded recording/replay. No browser globals or timers. |
+| Optional /webhid | Device chooser, reports, interruptions and connectPuck deadline ticking. No rendering. |
+| Optional /graph | Renderer-neutral control/gesture graph data and gesture SVG rendering. |
+| Application | Camera transforms, menus, render loop, persistence and UI. |
 
-The verified device profile is vendor `0x256f`, product `0xc63a`, Bluetooth on Windows. Other layouts and physical buttons are not implemented. Gestures are **cap pulses**, not button clicks. See [hardware scope](docs/motion.md#hardware-scope) before adding a profile.
+The verified hardware profile is vendor 0x256f, product 0xc63a, Bluetooth on
+Windows. Other layouts and physical buttons are not implemented. Gestures are
+cap movements, not button clicks. WebHID requires a supporting browser, a secure
+context and device permission; the core also accepts custom transports.
+
+Continuous values are normalized sensor deflections, not angles or distances.
+Per-device continuous-motion calibration is not implemented. Gesture calibration
+learns recognition thresholds and timing, not equal travel in every direction.
+Existing 0.x low-level exports remain available in 1.0.
 
 ## Development
 
-Use Node 24 and the pnpm version pinned in `package.json`. `pnpm check` builds and runs tests. Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing an API or device profile; [AGENTS.md](AGENTS.md) describes repository development constraints. [DESIGN.md](DESIGN.md) explains architecture and [VERIFICATION.md](VERIFICATION.md) records validation. MIT licensed.
+Use Node 24 and the pnpm version pinned in package.json. Run pnpm install and
+pnpm check. The build emits ESM and TypeScript declarations; use a bundler or
+import map in browsers. No CommonJS build is provided.
 
-Push/pull + rotation supports taps and continuous holds by default. See [press and rotate](docs/press-rotate.md) for lifecycle events and application integration.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before contributing.
+[DESIGN.md](DESIGN.md) explains architecture and [VERIFICATION.md](VERIFICATION.md)
+records checks. MIT licensed.

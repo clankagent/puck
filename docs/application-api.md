@@ -1,12 +1,11 @@
-# Application controls · unreleased v1 preview
+# Application controls · Puck 1.0
 
 Puck provides three kinds of physical control: continuous values, discrete
 gestures and interactions with a lifetime. Applications name the controls and
 decide what they do. Definitions are immutable typed handles; creating two Puck
 instances from them creates independent state.
 
-Evaluate this unreleased API from source or the browser preview. npm remains at 0.5.0 until real-device testing and explicit release approval. The new defaults have software coverage;
-their subjective feel is not certified by simulation.
+Install @clankagent/puck@1.0.0. See [verification scope](v1-verification.md) for automated and physical evidence; support is limited to the documented device profile.
 
 ```ts
 import { createPuck, control, recipes } from '@clankagent/puck';
@@ -231,7 +230,7 @@ are queued until the current event batch finishes. Create frames outside callbac
 of the same public declarations. `motionDefaults` exposes their shared defaults.
 Pan is 1320 pixels/second, log zoom 1.5/second; six-axis translation is 600 app
 units/second and rotation is π/2 radians/second. The application exponentiates
-integrated log zoom and owns camera bounds, coordinate frames and rendering.
+integrated log zoom and owns camera bounds, coordinate frames and rendering. The confirmed sixAxis navigation scales are {x:1,y:1,z:1} and {rx:1,ry:1,rz:-1}; standalone raw sources retain device signs.
 
 The [application-controls workbench](https://clankagent.github.io/puck/controls.html)
 uses these APIs directly. The main playground's movement also uses these recipes.
@@ -240,10 +239,10 @@ remain exported. Version-1 legacy gesture recordings and version-1 application
 recordings are different named formats; do not send one to the other's validator.
 
 There is no new public graph compiler or arbitrary temporal language in this
-candidate. Public declarations plus the existing low-level APIs cover the agreed
+release. Public declarations plus the existing low-level APIs cover the agreed
 controls; applications are not required to wire recognizer state machines.
 
-### Tilt coordinates in the preview
+### Tilt coordinates
 
 The semantic tilt vector is [horizontal, vertical] = [-ry, rx], with right and down positive. Direction sector 0 points right and sectors advance clockwise; eight sectors put down at 2, left at 4 and up at 6. This mapping also applies to velocity, integrated values and interaction recipes. Raw axes and rotation retain their original channel order and signs. Per-axis scale options remain indexed by the physical channel. Held-vector recipes default to speed 2; held twist remains at 1.
 
@@ -262,4 +261,3 @@ measure neutral and repeatable comfortable ranges independently in both signs of
 each axis. It must remain separate from camera navigation directions, preserve
 raw diagnostics and avoid learning an arbitrary correction from normal use.
 No such measured profile is available from the current physical feedback alone.
-

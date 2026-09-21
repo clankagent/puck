@@ -1,34 +1,36 @@
 # Agent integration guide
 
-[Documentation](../README.md) · [API reference](api.md) · [Complete integration](quickstart.md)
+Use the [application API](application-api.md) and [browser quickstart](quickstart.md)
+for new Puck 1.0 integrations. Match documentation to the installed version.
+Repository contribution rules are in [AGENTS.md](../AGENTS.md).
 
-This guide is for agents building applications with Puck. Repository contribution instructions live separately in [AGENTS.md](../AGENTS.md).
+- Import only the root, /webhid and /graph entry points. Core owns no DOM or timer.
+- Declare typed continuous, gesture or interaction controls. Read values, subscribe
+  to occurrences and integrate only velocity-valued controls with puck.frame().
+- Use connectPuck for browser delivery/lifecycle/deadlines. Custom transports feed
+  every report and advance with one monotonic millisecond clock. Interrupt on
+  blur/disconnect; do not synthesize a release that commits a selection.
+- Raw axes are normalized deflection, not angles. +z is push and +rz clockwise
+  for the verified profile. Semantic tilt is [-ry,rx], right/down positive.
+- The sixAxis recipe uses x/y/z positive, rx/ry positive and rz negative scales;
+  these navigation preferences do not alter raw sources or gesture directions.
+- Declare contexts and preferences for overlapping exclusive ownership. A modal
+  canvas palette can claim all channels; ordinary 3D navigation uses all six axes.
+- Handle begin/update/commit/cancel. Cancelled interactions never commit. Release
+  qualification and fresh-neutral rearming are deliberate behavior.
+- Persist application settings/recordings separately from legacy gesture tunes
+  and gesture recordings. Use their matching restore/replay APIs; observe bounds.
+- Gesture calibration learns thresholds/timing for its selected family. It does
+  not provide continuous-motion calibration or establish labeled intent accuracy.
+- Camera transforms, rendering, storage, UI and reconnect policy belong to the app.
 
-1. Read the README version note. Match docs to the installed package version and its exports/declarations; experimental checkout APIs may not exist in the registry release.
-2. Read the API reference for exact entry points, axis signs, units and defaults. Use public imports only. Core is transport-independent; WebHID and graph rendering are optional.
-3. Adapt the complete session example for gestures/recording, or the motion example for cameras. The application owns timers, rendering, persistence and teardown.
-4. Verify behavior with synthetic inputs and the actual application lifecycle. Do not claim physical compatibility or subjective feel from synthetic tests.
+Retained low-level createGestures integrations must advance during report silence
+and process holdstart/holdend/holdcancel as well as single/double events. Ignore
+the exact neutralInput lifecycle sentinel in onInput and reset via onReset or
+onInterrupt. See [low-level API](api.md) and [press/rotate](press-rotate.md).
 
-## Integration invariants
-
-- Six axes are normalized deflection, not velocity or angle. Verified signs: +rz clockwise, +z push down. Gestures are cap pulses, not physical button events.
-- Feed every input report to the recognizer and recorder. Call advance during report silence. Use one monotonic millisecond clock; do not mix performance.now() reports with rAF-supplied gesture timestamps.
-- Ignore the adapter's exact neutralInput lifecycle sentinel in the gesture report callback; reset on onReset. Do not infer a physical release on blur/disconnect. Reset requires fresh neutral to rearm.
-- Exclusive singles intentionally wait for the double window. Immediate mode produces an additive single then double. Choose consciously.
-- Tune edits return new immutable values. Persist JSON data; restore through createGestureTune. Rotation shares one band for both directions. Typical low/high are not acceptance limits.
-- Calibration needs at least three instances of EACH of eight actions, in any order. Check tune for null, show missing/ambiguous results, and retain raw input for inspection. Deduplicate recordings before combining. Inferred counts are not labeled intent accuracy.
-- No automatic backend, upload, storage or device reconnection is supplied. Never invent those capabilities or promise unverified hardware support.
-
-## Verification checklist
-
-Exercise a single, a double, neutral rearming, a long hold, a reversal, report silence, blur/disconnect and teardown. Confirm one action handler invocation per expected event and no completed gesture caused by disconnect. Check incomplete calibration and JSON tune restoration. Use performance.now() consistently in a browser and an explicit monotonic clock in deterministic tests.
-
-For library contributions, run `pnpm check` from the source checkout. The tests use built ESM modules. Read CONTRIBUTING before proposing API/profile changes. Do not edit generated dist files as the source of truth.
-
-## Tilt integrations (0.3)
-
-Read [standalone and combined tilt](press-tilt.md) before enabling these families.
-Use `calibrateTilts` for standalone singles/doubles and `calibratePressTilts` for
-pressure-first combinations; do not interpret one family's coverage as another.
-Handle expanded direction unions and optional event.tilt. Keep modes separate
-from persisted tune data, and never claim inferred labels are ground truth.
+Exercise neutral rearming, report silence, release/cancel, ownership changes,
+blur/disconnect, teardown and settings restoration in the consuming application.
+Synthetic tests do not establish hardware compatibility. Read CONTRIBUTING.md
+before new public APIs or profiles. Run pnpm check; never edit generated dist as
+the source of truth.

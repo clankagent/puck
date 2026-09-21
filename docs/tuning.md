@@ -6,7 +6,7 @@ The snippets below explain individual operations. Use the complete integration e
 
 ## Gesture tunes
 
-The experimental gesture API uses an immutable tune object. The default profile
+The gesture API uses an immutable tune object. The default profile
 has a shared rotation center of .465, push .314, and pull .289. It uses rotation
 activation/release .25/.15, push .20/.08, pull .12/.06, neutral dwell 25 ms, and a
 400 ms double window. These are useful starting defaults, not universal hardware
@@ -144,3 +144,6 @@ steps, and highlights inferred action intervals. Its text is escaped. For
 combined calibrations, pass the corresponding recording and `recordingIndex`.
 Apps can use the model with their own chart library instead. Only graph a tune
 when available; incomplete calibration can be inspected with the default tune.
+
+
+Continuous-motion calibration is separate and is not implemented. These routines learn gesture recognition thresholds/timing, not equal signed sensor travel. See [motion calibration limits](application-api.md#motion-calibration-versus-gesture-tuning).

@@ -2,7 +2,7 @@
 
 [Open the legacy demo](https://clankagent.github.io/puck/legacy.html) · [Documentation](../README.md)
 
-This guide covers the retained compatibility playground. The [main preview](playground.md) has the new application-facing examples and debugging workspace.
+This guide covers the retained compatibility playground. The [main playground](playground.md) has the new application-facing examples and debugging workspace.
 
 The public demo runs entirely in the browser, served from GitHub Pages. No
 account, installation or device is required to try simulated input.

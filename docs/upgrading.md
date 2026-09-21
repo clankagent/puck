@@ -1,8 +1,8 @@
 # Upgrading and adopting updates
 
-## From 0.5 to 1.0.0-dev.0
+## From 0.5 to 1.0.0
 
-The unreleased preview adds the [application-facing API](application-api.md). Existing exports and defaults remain available; adoption is incremental. New application recordings/settings are distinct from legacy tune/recording formats. Continuous controls integrate actual report boundaries and use explicit velocity units; do not integrate raw deflection. The new runtime limits stalled-frame movement to the first configured interval while current velocity evolves through elapsed time. Declare overlapping ownership explicitly and forward lifecycle interruptions rather than synthetic releases. Evaluate from source or the browser preview; there is no npm prerelease.
+1.0 adds the [application-facing API](application-api.md). Existing 0.5 low-level exports and defaults remain available; adoption is incremental. New application recordings/settings are distinct from legacy tune/recording formats. Continuous controls integrate actual report boundaries and use explicit velocity units; do not integrate raw deflection. The new runtime limits stalled-frame movement to the first configured interval while current velocity evolves through elapsed time. Declare overlapping ownership explicitly and forward lifecycle interruptions rather than synthetic releases. Use createPuck and connectPuck for new application integrations. Retain createGestures/createPanZoom when lower-level control is needed.
 
 
 [Changelog](../CHANGELOG.md) · [Documentation](../README.md) · [API reference](api.md)
@@ -11,14 +11,14 @@ The unreleased preview adds the [application-facing API](application-api.md). Ex
 
 Read the changelog for the version you are adopting, then use docs from that same tag or installed package. Main can contain unreleased features. `pnpm list @clankagent/puck` shows your app's installed version; its exports and declarations determine which APIs are available.
 
-Gesture, tune, recording, calibration and graph APIs are included in 0.2.0. In your consuming app:
+In your consuming app:
 
 ```sh
-pnpm add @clankagent/puck@0.5.0
+pnpm add @clankagent/puck@1.0.0
 pnpm list @clankagent/puck
 ```
 
-Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v0.5.0 source tag. The new gesture APIs remain experimental; existing motion integrations retain their behavior.
+Commit your app's updated manifest and lockfile. Use the documentation shipped with that package or the v1.0.0 source tag. Existing low-level motion integrations retain their behavior.
 
 To test future unreleased source, build a chosen revision with `pnpm install --frozen-lockfile`, `pnpm check` and `pnpm pack --pack-destination artifacts`, then install the generated tarball into your app with `pnpm add /path/to/package.tgz`. Record the source commit alongside it; a working-tree package version alone does not identify unreleased changes.
 
@@ -95,7 +95,18 @@ To add gestures alongside motion, reuse the existing connection and frame loop. 
 
 Before shipping, check a single, double, held input, neutral rearming, blur/disconnect and teardown. Check JSON restoration and incomplete calibration if used. [Troubleshooting](troubleshooting.md) maps common symptoms to fixes.
 
-Unreleased preview correction: semantic tilt now uses [-ry, rx] (right/down positive), including direction selection and held values. Raw axes/rotation are unchanged. Six-axis translation defaults to 600 units/s; held vectors to 2, held twist remains 1. These changes are not yet published to npm.
+## Changes from development previews
 
+Semantic tilt is [-ry, rx], with right/down positive, including direction
+selection and held values. Raw axes/rotation retain device signs. Six-axis
+translation defaults to 600 units/s and rotation to pi/2 rad/s. Held vectors
+default to speed 2; held twist remains 1.
 
-Unreleased 3D profile correction (2026-09-21): sixAxis now uses positive x/y translation and negative rz rotation to match the physically confirmed navigation. Standalone continuous sources and panZoom are unchanged. Existing explicit scale overrides retain their meaning.
+The confirmed sixAxis recipe uses translation scale {x:1,y:1,z:1} and rotation
+scale {rx:1,ry:1,rz:-1}. This reverses sideways/forward translation and twist
+relative to early previews. Standalone continuous controls and panZoom are
+unchanged. Existing explicit scale overrides retain their meaning.
+
+Recordings and settings exported by development previews are not a compatibility
+promise: restore validates against the current control definition. Do not load
+gesture-tune JSON as application settings or gesture recordings as PuckRecording.

@@ -1,8 +1,8 @@
-# Standalone and combined tilts (0.4.0)
+# Standalone and combined tilts
 
 [Documentation](../README.md) · [Roadmap](roadmap.md)
 
-These experimental APIs are enabled by default. `createGestures()` recognizes plain, standalone tilt and combined press/tilt gestures. Disable them explicitly with `{pressMode:'simple', standaloneTilt:false}`.
+These low-level APIs are enabled by default. `createGestures()` recognizes plain, standalone tilt and combined press/tilt gestures. Disable them explicitly with `{pressMode:'simple', standaloneTilt:false}`.
 
 ```js
 import {createGestures, defaultGestureTune} from '@clankagent/puck';

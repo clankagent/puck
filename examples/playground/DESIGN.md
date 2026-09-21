@@ -61,3 +61,7 @@ recording. Imported plain SDK recordings explicitly lack these UI snapshots.
 
 Physical-feedback revision: keep all six axes for 3D navigation. Demonstrate pressure menus and ownership on a 2D drawing, with a compact radial ink palette, explicit View/Edit modes and cancellation retaining the previous color. Explain each setting beside its control; show multiaxis values once per channel.
 
+
+## 1.0 completion
+
+Physical testing confirmed the final direction profile and usable selection. The modal palette now owns all input while open; vector axes have equal visual scale. Keep the completed feature layout and frame diagnostics. Release scope and physical limitations are recorded in docs/v1-verification.md.

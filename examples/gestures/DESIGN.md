@@ -8,7 +8,7 @@ Reference inspected: https://docs.stripe.com/keys (rendered desktop, 2026-09-18)
 
 Rationale read: https://www.nngroup.com/articles/response-times-3-important-limits/ . Delays affect perceived direct manipulation. Show raw input immediately even when the exclusive single recognizer waits for a double. Make the additive/exclusive tradeoff explicit instead of presenting one as universally best.
 
-This is an experimental local example, not a published API commitment. Physical feel still requires hardware testing. Existing contribution guidance requires an issue before proposing a new public API; no issue or release is posted by this experiment.
+This lab is example application code using the published low-level gesture APIs. Hardware scope and physical evidence are documented in docs/v1-verification.md. New public APIs and device profiles still require the contribution-guidance discussion.
 
 ## Calibration and graphs refinement
 

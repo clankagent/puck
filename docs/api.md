@@ -7,15 +7,15 @@ For `createPuck`, `control.continuous`, `control.gesture`, `control.interaction`
 
 [Documentation](../README.md) · [Quickstart](quickstart.md) · [Tuning guide](tuning.md)
 
-This section documents the compatible low-level API, including experimental gesture recognition. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
+This section documents the compatible low-level API, including gesture recognition. Emitted `dist/*.d.ts` files are the exact TypeScript signatures for your build. Named exports only; use the three supported entry points below, not deep imports into `dist`.
 
 ## Imports and units
 
 | Entry point | Runtime exports |
 |---|---|
-| `@clankagent/puck` | `decodeCombinedReport`, `neutralInput`, `createPanZoom`, `createGestures`, `createGestureTune`, `defaultGestureTune`, `gesturePresets`, `createGestureRecorder`, `validateGestureRecording`, `calibrateGestures`, `gestureDirections`, `calibratePressTilts`, `calibrateTilts`, `tiltDirections` |
-| `@clankagent/puck/webhid` | `connectWebHid`, `combinedProfile` |
-| `@clankagent/puck/graph` | `createGestureGraph`, `createPressTiltGraph`, `createTiltGraph`, `renderGestureGraphSvg` |
+| `@clankagent/puck` | `createPuck`, `control`, `recipes`, `motionDefaults`, `replayPuck`, `EventOverflowError`, `decodeCombinedReport`, `neutralInput`, `createPanZoom`, `createGestures`, `createGestureTune`, `defaultGestureTune`, `gesturePresets`, `createGestureRecorder`, `validateGestureRecording`, `calibrateGestures`, `gestureDirections`, `calibratePressTilts`, `calibrateTilts`, `tiltDirections` |
+| `@clankagent/puck/webhid` | `connectPuck`, `connectWebHid`, `combinedProfile` |
+| `@clankagent/puck/graph` | `createControlGraph`, `createGestureGraph`, `createPressTiltGraph`, `createTiltGraph`, `renderGestureGraphSvg` |
 
 `InputState` has six finite normalized axes: `x,y,z,rx,ry,rz`, each in [-1,1]. They represent deflection, not angles. For the verified profile, positive `rz` is clockwise and positive `z` is push down; negative values are counterclockwise and pull up. Force bands use positive magnitudes [0,1]. Times are milliseconds. Recorder and calibration times are relative to capture start; live recognizer event times use the supplied clock.
 
@@ -38,7 +38,7 @@ Speeds/times must be finite and nonnegative; deadzones are in [0,1). Invalid opt
 
 `createGestures(tuneOrOptions?)` returns `update(input,time)`, `advance(time)`, `reset()`, and read-only `state` (`phase`, `direction`, `pending`). Both update and advance return event arrays. Process EVERY report; advance even when reports are silent. Timestamps must be finite and nondecreasing or throw `RangeError`.
 
-An event is `{direction, kind, timestamp, durationMs}`. Direction is `clockwise|counterclockwise|push|pull`; kind is `single|double`. Timestamp is the logical recognition deadline, which can precede dispatch. Reset cancels pending actions and requires fresh neutral input. A hold is not repeated presses; reversal without neutral cancels the action.
+An event is `{direction, kind, timestamp, durationMs}`. Plain pulse directions are `clockwise|counterclockwise|push|pull`. Standalone tilt adds `rx+|rx-|ry+|ry-`; combined events carry `tilt` or `rotation`. Kinds include `single|double|holdstart|holdend|holdcancel`; pressure/rotation holds are described in [press and rotate](press-rotate.md). Timestamp is the logical recognition deadline, which can precede dispatch. Reset cancels pending actions and requires fresh neutral input. A hold is not repeated presses; pressure/rotation combinations have explicit hold lifecycle events. Reversal without neutral cancels the action.
 
 | Default | Rotation (both signs) | Push | Pull |
 |---|---|---|---|

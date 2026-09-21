@@ -1,23 +1,28 @@
 # Changelog
 
-## Unreleased v1 preview
+## 1.0.0 — 2026-09-21
 
-- Preserve the physically confirmed 3D mapping as both six-axis recipe and playground defaults: reverse sideways pan, forward/backward and twist relative to the initial preview. Keep raw input, tilt, 2D and gestures unchanged. Document that continuous motion is normalized, not yet per-device calibrated; equal signed tilt magnitudes are regression-tested.
+[Compare with 0.5.0](https://github.com/clankagent/puck/compare/v0.5.0...v1.0.0)
 
-- Add six SDK-backed navigation inversion controls and an application zoom-axis choice; correct forward dolly to object-in-hand direction. Make vector plots square, lock the drawing while a palette is open, retain static DOM, render motion at animation-frame cadence, and add frame-stall diagnostics. No release; physical retesting remains required.
+- Add the application-facing createPuck runtime with typed continuous values,
+  discrete gestures and persistent interactions, symmetric push/pull activation,
+  release qualification, cancellation and explicit ownership/context rules.
+- Add selection, held-value, pan/zoom and six-axis recipes; optional connectPuck
+  WebHID delivery; settings, event cursors, inspection, tracing and recording/replay.
+- Expose semantic tilt as [-ry,rx], right/down positive. Raw channels retain device
+  signs. The confirmed sixAxis profile uses translation scales +x/+y/+z and
+  rotation +rx/+ry/-rz, translation speed 600 and rotation speed pi/2.
+- Keep all 32 low-level gesture outcomes and existing 0.x exports. Held vectors
+  default to speed 2; held twist to 1. Pan/zoom defaults are unchanged.
+- Rebuild the public playground with feature examples, executable declarations,
+  a resettable tester, square vector plots, a compact modal palette and diagnostic
+  graphs, replay, frame timing and camera direction controls. Reduce rendering churn.
+- Update all integration/release documentation. Physical testing and trace review
+  approved the release; device support remains limited to the documented profile.
 
-- Correct semantic tilt coordinates throughout the SDK, preserve raw channels, fix example camera roll, and increase default six-axis translation and held-vector speeds. Replace oversized 3D menu/conflict demos with a compact 2D ink palette and View/Edit modes; explain settings, show cancellation progress and display each continuous axis once. Physical retesting remains required.
-
-- Rebuild the playground around feature examples, a complete gesture tester and a synchronized debug workspace. Add perspective target-orbit camera, instructional menu/hold examples, generated declarations, separate device/simulator counts, freeze/scrub and replayable diagnostic snapshots. Existing calibration and compatibility tools remain linked.
-
-- Add typed continuous, gesture and interaction controls behind `createPuck`, with symmetric push/pull sessions, scalar/vector values, rate integration, ownership, contexts and settings.
-- Add bounded event cursors, inspection/tracing, portable recording/replay and control graphs.
-- Add public selection, held-value, pan/zoom and six-axis recipes plus the optional `connectPuck` browser bridge.
-- Add the application-controls workbench and move the original playground movement onto exported SDK recipes. Preserve all existing low-level APIs and 32-outcome recognition coverage.
-- Keep v1 unreleased until real-device testing by the user and explicit release approval. npm remains at 0.5.0. See the [API](docs/application-api.md), [upgrade guide](docs/upgrading.md) and [verification scope](docs/v1-verification.md).
-
-
-User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
+See the [application API](docs/application-api.md), [migration guide](docs/upgrading.md)
+and [verification limits](docs/v1-verification.md). Continuous motion normalization
+is not per-device calibration. Package and JSON format versions are independent.
 
 ## 0.5.0 — 2026-09-20
 
@@ -110,4 +115,3 @@ This is a source-history reference, not a claim that an npm release was publishe
 - ESM and TypeScript declarations, no runtime dependencies.
 
 [Baseline source](https://github.com/clankagent/puck/tree/f065d4a) · [Motion behavior and hardware](docs/motion.md)
-

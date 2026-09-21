@@ -42,7 +42,7 @@ captures are fine if two minutes is too short.
 The recorder saves all six raw axes regardless of existing recognition gates.
 The combined-tilt parser shows eight-direction coverage and six lanes for
 pressure and tilt. Its tune preserves the base simple/double-press settings.
-See the [combined gesture guide](press-tilt.md) and [1.0 criteria](roadmap.md).
+See the [combined gesture guide](press-tilt.md) and [future scope](roadmap.md).
 
 For standalone tilt research, use `?capture=tilt`. Record at least three
 singles and three doubles for each of the four rx/ry directions, without
