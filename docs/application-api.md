@@ -46,7 +46,7 @@ rendering. Custom transports call `feed(sample, time)` for every report and call
 
 ## Continuous values
 
-`control.continuous(source, options?)` returns normalized calibrated deflection
+`control.continuous(source, options?)` returns normalized, shaped deflection
 by default. Sources are `slide`/`tilt` (two-component tuples),
 `translation`/`rotation` (three-component tuples), `pressure`/`twist` (signed
 scalars), `push`/`pull` (positive magnitudes), and `axes` (x/y/z/rx/ry/rz object).
@@ -62,7 +62,7 @@ reversal. Deflection outputs do not apply velocity smoothing.
 `as:'direction'` is available for slide/tilt: `sectors` (8), `hysteresis` (.08
 radians) and `sticky` (false). The result is a sector or `null` at center before
 selection. Sector 0 points along the first positive vector component, increasing
-toward the second positive component. These are device coordinates; orient them
+toward the second positive component. Tilt uses semantic right/down coordinates; slide retains device coordinates. Orient them
 with `scale` or in the application.
 
 `read(handle)` has no timing or consumption effects. Velocity is typed differently
@@ -246,4 +246,20 @@ controls; applications are not required to wire recognizer state machines.
 ### Tilt coordinates in the preview
 
 The semantic tilt vector is [horizontal, vertical] = [-ry, rx], with right and down positive. Direction sector 0 points right and sectors advance clockwise; eight sectors put down at 2, left at 4 and up at 6. This mapping also applies to velocity, integrated values and interaction recipes. Raw axes and rotation retain their original channel order and signs. Per-axis scale options remain indexed by the physical channel. Held-vector recipes default to speed 2; held twist remains at 1.
+
+
+### Motion calibration versus gesture tuning
+
+The WebHID decoder currently divides every signed sensor channel by 350 and
+clamps to [-1, 1]. Continuous controls then apply their configured scale, deadzone
+and curve. This is normalization, not a measured per-device motion calibration.
+Equal raw magnitudes receive equal shaping with the default tilt settings; equal
+physical effort need not produce equal raw values.
+
+The existing calibration lab estimates gesture thresholds and timing. It does
+not equalize continuous tilt travel. A future motion-calibration profile should
+measure neutral and repeatable comfortable ranges independently in both signs of
+each axis. It must remain separate from camera navigation directions, preserve
+raw diagnostics and avoid learning an arbitrary correction from normal use.
+No such measured profile is available from the current physical feedback alone.
 

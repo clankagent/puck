@@ -97,3 +97,5 @@ Before shipping, check a single, double, held input, neutral rearming, blur/disc
 
 Unreleased preview correction: semantic tilt now uses [-ry, rx] (right/down positive), including direction selection and held values. Raw axes/rotation are unchanged. Six-axis translation defaults to 600 units/s; held vectors to 2, held twist remains 1. These changes are not yet published to npm.
 
+
+Unreleased 3D profile correction (2026-09-21): sixAxis now uses positive x/y translation and negative rz rotation to match the physically confirmed navigation. Standalone continuous sources and panZoom are unchanged. Existing explicit scale overrides retain their meaning.

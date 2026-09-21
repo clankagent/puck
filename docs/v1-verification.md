@@ -104,3 +104,17 @@ preview now retains foreground frame-stall counts for a physical retest.
 
 Only preview deployment is authorized. Physical feel and intermittent performance
 remain subject to user testing; there is no release approval.
+
+## Confirmed 3D direction profile, 2026-09-21
+
+The user physically confirmed reversing sideways pan, forward/backward and twist
+as their expected 3D setup. Preserve those switches on by default, all others off.
+The public sixAxis recipe now supplies the same signed scales without requiring
+application overrides. A regression checks recipe/profile agreement, processed
+outputs and unchanged raw input/2D settings. A second checks continuous tilt's
+symmetry at equal signed raw magnitudes through the default deadzone and curve.
+137 tests and public type fixtures pass.
+
+Unequal travel under physical tilt is reported but not measured in a device
+capture. No calibration coefficients were guessed. Gesture tuning does not
+calibrate continuous input. The release gate remains in force.

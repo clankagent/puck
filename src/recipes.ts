@@ -24,8 +24,8 @@ export const recipes = Object.freeze({
   sixAxis(options: { translationSpeed?: number; rotationSpeed?: number; panDeadzone?: number; rotationDeadzone?: number; responseMs?: number } = {}) {
     const o = { ...motionDefaults, ...options };
     return {
-      translation: control.continuous('translation', { as: 'velocity', speed: o.translationSpeed, deadzone: o.panDeadzone, responseMs: o.responseMs, scale: { x: -1, y: -1 } }),
-      rotation: control.continuous('rotation', { as: 'velocity', speed: o.rotationSpeed, deadzone: o.rotationDeadzone, responseMs: o.responseMs }),
+      translation: control.continuous('translation', { as: 'velocity', speed: o.translationSpeed, deadzone: o.panDeadzone, responseMs: o.responseMs, scale: { x: 1, y: 1, z: 1 } }),
+      rotation: control.continuous('rotation', { as: 'velocity', speed: o.rotationSpeed, deadzone: o.rotationDeadzone, responseMs: o.responseMs, scale: { rx: 1, ry: 1, rz: -1 } }),
     };
   },
 });

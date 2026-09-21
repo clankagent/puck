@@ -19,7 +19,7 @@ zoom limits and drawings belong to the example, not the recognizer.
 - **3D navigation:** screen-relative pan, forward/back dolly and orbit around a
   visible pivot. Fit / reset view restores the camera. Translation speed is world
   units per second; rotation speed is displayed in degrees and passed to the SDK
-  in radians per second. Camera orientation uses normalized quaternions. The default is object-in-hand: pushing forward moves the object away; lifting raises it. Choose lift/press zoom instead, or independently reverse all six physical motions. Inversions use SDK scale settings; choosing the zoom gesture belongs to the application camera.
+  in radians per second. Camera orientation uses normalized quaternions. The physical-test-confirmed default enables Reverse sideways pan, Reverse forward / backward, and Reverse twist; the other three reversals stay off. Choose lift/press zoom instead, or independently reverse all six physical motions. Inversions use SDK scale settings; choosing the zoom gesture belongs to the application camera.
 - **2D pan & zoom:** slide to pan, twist to zoom around the viewport center.
 - **Continuous values:** select any public source and supported interpretation.
   Direction is available for slide and tilt; configure sectors, memory and
@@ -138,4 +138,18 @@ are excluded. Capture export still retains raw input and diagnostic snapshots.
 
 Settings export also includes the preview's camera zoom-axis preference; SDK
 settings contain the six axis scales. Import validates the preview preference.
+
+
+### Confirmed 3D profile (2026-09-21)
+
+Physical user testing confirmed the three reversal switches above as the expected
+3D navigation. They are now startup/reset defaults, recorded in navigationDefaults
+and regression-tested against the public sixAxis recipe. The recipe uses translation
+scales x=+1, y=+1, z=+1 and rotation scales rx=+1, ry=+1, rz=-1. Raw sources, tilt,
+2D pan/zoom and gestures are unchanged. The switches retain their existing meaning
+relative to the initial preview so saved preferences are not silently reinterpreted.
+
+Unequal continuous tilt travel remains an open calibration observation. The
+[API calibration notes](application-api.md#motion-calibration-versus-gesture-tuning)
+distinguish sensor normalization, continuous shaping and gesture calibration.
 

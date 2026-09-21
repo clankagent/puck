@@ -40,7 +40,7 @@ test('movement controls change SDK pan/zoom rates and zero speed disables them',
 });
 test('all six held axes produce continuous movement and stop at neutral', () => {
   const { m, pose } = integrate({ translationSpeed: 100, rotationSpeed: 60 }, { x: -1, y: -1, z: 1, rx: 1, ry: 1, rz: 1 });
-  pose.position.forEach(v => assert.ok(Math.abs(v - 100) < 1e-8)); pose.angles.forEach(v => assert.ok(Math.abs(v - 60) < 1e-8));
+  pose.position.forEach((v,i) => assert.ok(Math.abs(v - [-100,-100,100][i]) < 1e-8)); pose.angles.forEach((v,i) => assert.ok(Math.abs(v - [60,60,-60][i]) < 1e-8));
   m.setInput(neutralInput); const d = m.step(1010); assert.deepEqual(d.translation, [0,0,0]); assert.deepEqual(d.rotation, [0,0,0]);
   assert.ok(projectCube(pose).flat().every(Number.isFinite));
 });

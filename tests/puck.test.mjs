@@ -212,3 +212,14 @@ test('a modal 2D palette locks pan and zoom until neutral rearming, for push and
   p.feed(neutralInput,60);p.feed(input({x:.4,rz:.5}),80);assert.notEqual(p.read(panzoom.pan)[0],0);assert.notEqual(p.read(panzoom.zoom),0);
  }
 });
+
+test('default tilt shaping is symmetric at equal signed raw magnitudes',()=>{
+ const tilt=control.continuous('tilt'),{p,feed}=setup({tilt});let t=10;
+ for(const magnitude of [.03,.1,.4,.8,1]){
+  const expected=magnitude<=.05?0:(magnitude-.05)/.95;
+  for(const [axis,sign,index] of [['ry',1,0],['ry',-1,0],['rx',1,1],['rx',-1,1]]){
+   feed(t++,{[axis]:sign*magnitude});const result=p.read(tilt);
+   close(Math.abs(result[index]),expected);close(result[1-index],0);
+  }
+ }
+});

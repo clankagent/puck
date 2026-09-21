@@ -6,8 +6,45 @@ import {
   moveCamera,
   projection,
   rotate,
+  navigationDefaults,
+  navigationScale,
 } from "../examples/playground/navigation.js";
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} ≠ ${b}`);
+
+test("confirmed navigation profile reverses sideways, forward/back and twist without changing raw or 2D recipes", () => {
+  const controls = recipes.sixAxis({
+    responseMs: 0,
+    panDeadzone: 0,
+    rotationDeadzone: 0,
+  });
+  const puck = createPuck({ controls, clock: () => 0 });
+  assert.deepEqual(
+    controls.translation.options.scale,
+    navigationScale(["x", "y", "z"]),
+  );
+  assert.deepEqual(
+    controls.rotation.options.scale,
+    navigationScale(["rx", "ry", "rz"]),
+  );
+  puck.configure(
+    controls.translation,
+    { scale: navigationScale(["x", "y", "z"]) },
+    0,
+  );
+  puck.configure(
+    controls.rotation,
+    { scale: navigationScale(["rx", "ry", "rz"]) },
+    0,
+  );
+  puck.feed({ x: 0.5, y: 0.5, z: 0.5, rx: 0.5, ry: 0.5, rz: 0.5 }, 0);
+  assert.deepEqual(puck.read(controls.translation), [300, 300, 300]);
+  const angular = Math.PI / 4;
+  assert.deepEqual(puck.read(controls.rotation), [angular, angular, -angular]);
+  assert.equal(puck.inspect().input.rz, 0.5);
+  assert.deepEqual(recipes.panZoom().pan.options.scale, { x: -1, y: -1 });
+  assert.equal(navigationDefaults.zoomAxis, "forward");
+  puck.dispose(0);
+});
 
 test("object-in-hand zoom modes and six SDK inversions affect only their assigned motion", () => {
   const home = () => ({

@@ -11,7 +11,13 @@ import {
 import { connectWebHid } from "../../dist/webhid.js";
 import { createControlGraph } from "../../dist/graph.js";
 import { axes, gestures, key, title, sequence } from "./model.js";
-import { cameraHome, moveCamera, drawScene } from "./navigation.js";
+import {
+  cameraHome,
+  moveCamera,
+  drawScene,
+  navigationDefaults,
+  navigationScale as profileScale,
+} from "./navigation.js";
 const $ = (id) => document.getElementById(id);
 const examples = {
   navigation: [
@@ -19,7 +25,7 @@ const examples = {
     "CONTINUOUS INPUT",
     "Navigate in 3D",
     "Explore a mechanical assembly with screen-relative pan, forward/back dolly and rotation around the crosshair.",
-    "Hold the model like the cap: slide sideways to pan, lift to raise it, push forward to move it away. Tilt and twist to rotate it.",
+    "Slide sideways to pan, lift/press for vertical pan, and slide forward/back to zoom. Tilt and twist to rotate.",
     "All six axes work together. Release the cap to stop. Fit view returns to the starting position.",
   ],
   canvas: [
@@ -102,13 +108,7 @@ const palette = [
 const isCanvasExample = () =>
   ["canvas", "selection", "routing", "lifecycle"].includes(example);
 const settings = {
-  zoomAxis: "forward",
-  invertX: false,
-  invertY: false,
-  invertZ: false,
-  invertRX: false,
-  invertRY: false,
-  invertRZ: false,
+  ...navigationDefaults,
   translationSpeed: motionDefaults.translationSpeed,
   rotationSpeed: (motionDefaults.rotationSpeed * 180) / Math.PI,
   panSpeed: motionDefaults.panSpeed,
@@ -132,13 +132,7 @@ const settings = {
 };
 const defaults = { ...settings };
 function navigationScale(axisNames) {
-  return Object.fromEntries(
-    axisNames.map((a) => [
-      a,
-      (["x", "y"].includes(a) ? -1 : 1) *
-        (settings["invert" + a.toUpperCase()] ? -1 : 1),
-    ]),
-  );
+  return profileScale(axisNames, settings);
 }
 let example = "navigation",
   page = "examples",
@@ -568,7 +562,7 @@ const optionNames = {
 const helpFor = (key) =>
   ({
     zoomAxis:
-      "Object-in-hand navigation: move the model with the cap. Choose forward/back zoom or lift/press zoom; the other motion pans vertically. These are application camera mappings.",
+      "Choose forward/back zoom or lift/press zoom; the other motion pans vertically. The default direction profile was confirmed with a physical SpaceMouse. Reverse switches let you override it.",
     invertX:
       "Reverse only sideways model movement. This changes the SDK translation X scale.",
     invertY:
@@ -1956,8 +1950,8 @@ function drawExample() {
   if (example === "navigation") {
     $("instruction").textContent =
       settings.zoomAxis === "forward"
-        ? "Object in hand: slide sideways to pan, lift to raise, push forward to move the model away. Tilt to pitch/roll; twist to turn."
-        : "Object in hand: slide sideways/forward to pan, lift toward you to enlarge, press down to shrink. Tilt to pitch/roll; twist to turn.";
+        ? "Slide sideways to pan, lift/press for vertical pan, and slide forward/back to zoom. Tilt to pitch/roll; twist to turn."
+        : "Slide sideways/forward to pan; lift/press to zoom. Tilt to pitch/roll; twist to turn.";
     $("expected").textContent =
       "Use the six Reverse switches to match your preferred directions. These invert the SDK controls; raw Debug input stays unchanged.";
   }

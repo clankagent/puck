@@ -1,5 +1,25 @@
-// Application camera: sixAxis already applies its X/Y scaling. Rendering uses
+// Application camera: sixAxis already applies its navigation scaling. Rendering uses
 // X right, Y up, Z toward the viewer. Do not apply raw HID sign fixes again.
+// Physically confirmed navigation profile, 2026-09-21. Keep camera preferences
+// separate from device normalization and continuous tilt/gesture calibration.
+export const navigationDefaults = Object.freeze({
+  zoomAxis: "forward",
+  invertX: true,
+  invertY: true,
+  invertZ: false,
+  invertRX: false,
+  invertRY: false,
+  invertRZ: true,
+});
+export function navigationScale(axisNames, preferences = navigationDefaults) {
+  return Object.fromEntries(
+    axisNames.map((a) => [
+      a,
+      (["x", "y"].includes(a) ? -1 : 1) *
+        (preferences["invert" + a.toUpperCase()] ? -1 : 1),
+    ]),
+  );
+}
 const add = (a, b) => a.map((v, i) => v + b[i]);
 const mul = (a, s) => a.map((v) => v * s);
 export function quaternion(a, b) {
