@@ -1,8 +1,8 @@
 # Local preparation checks
 
-## 1.0.0-rc.1 application API
+## 1.0.0-dev.0 application API
 
-125 automated tests and public TypeScript fixtures pass. A clean tarball consumer exercised all three public entry points, symmetric push/pull selection, six-axis/continuous motion, replay and graph data. Browser verification covered commands, both selection directions, single/double cancellation, held adjustment, counter reset and replay of a recording from the installed package. Desktop and 390px viewport checks passed after fixing file-picker overflow. The original playground was checked with public-recipe six-axis movement. No new physical-device comfort testing was performed; see [candidate scope](docs/v1-verification.md).
+125 automated tests and public TypeScript fixtures pass. A clean tarball consumer exercised all three public entry points, symmetric push/pull selection, six-axis/continuous motion, replay and graph data. Browser verification covered commands, both selection directions, single/double cancellation, held adjustment, counter reset and replay of a recording from the installed package. Desktop and 390px viewport checks passed after fixing file-picker overflow. The original playground was checked with public-recipe six-axis movement. No new physical-device comfort testing was performed; see [preview scope](docs/v1-verification.md).
 
 
 - TypeScript build and 13 tests pass. Tests cover report bounds/signs, zero and non-motion handling, frame-rate independence, held input through report gaps, reversal, zoom-axis switching, snapshots, render-owned zoom anchors/limits, adapter pause/resume/disconnect, foreground interruption and cleanup.

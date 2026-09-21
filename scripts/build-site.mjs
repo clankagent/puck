@@ -8,7 +8,7 @@ await mkdir(new URL('dist/', out), { recursive: true });
 for (const file of ['index.html', 'style.css', 'app.js', 'model.js', 'movement.js', 'controls.html', 'controls.css', 'controls-app.js']) {
   let text = await readFile(new URL('examples/playground/' + file, root), 'utf8');
   text = text.replaceAll('../../dist/', './dist/').replaceAll('../camera.mjs', './camera.mjs');
-  if (file.endsWith('.html')) text = text.replace('Puck · library defaults', `SDK ${packageVersion}`);
+  if (file.endsWith('.html')) text = text.replace('Puck · library defaults', packageVersion.includes('-dev.') ? `Unreleased preview · SDK ${packageVersion}` : `SDK ${packageVersion}`);
   await writeFile(new URL(file, out), text);
 }
 await copyFile(new URL('examples/camera.mjs', root), new URL('camera.mjs', out));

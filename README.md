@@ -1,10 +1,10 @@
 # Puck
 
-## Application-facing SDK · 1.0 candidate
+## Application-facing SDK · unreleased v1 preview
 
 The new API declares typed continuous controls, gestures and persistent interactions. Read current values, subscribe to occurrences, integrate motion per frame, and inspect ownership using the same handles. Push and pull have symmetric capabilities.
 
-Install with `pnpm add @clankagent/puck@next`. Stable 0.5 remains on `latest` during physical evaluation. Read the [application API](docs/application-api.md), [candidate verification](docs/v1-verification.md), or [try application controls](https://clankagent.github.io/puck/controls.html). Existing low-level APIs remain supported.
+This is an unreleased source and browser preview. npm remains at 0.5.0; the new API is not published. Read the [application API](docs/application-api.md), [preview verification](docs/v1-verification.md), or [try application controls](https://clankagent.github.io/puck/controls.html). Existing low-level APIs remain supported.
 
 
 Six-axis input, responsive pan/zoom, and tunable single/double gestures for SpaceMouse applications. TypeScript, ESM, zero runtime dependencies. Your app owns its camera, rendering and storage.

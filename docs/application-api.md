@@ -1,12 +1,11 @@
-# Application controls · 1.0 release candidate
+# Application controls · unreleased v1 preview
 
 Puck provides three kinds of physical control: continuous values, discrete
 gestures and interactions with a lifetime. Applications name the controls and
 decide what they do. Definitions are immutable typed handles; creating two Puck
 instances from them creates independent state.
 
-Install the candidate with `pnpm add @clankagent/puck@next`. Stable 0.5 remains on
-`latest` during physical evaluation. The new defaults have software coverage;
+Evaluate this unreleased API from source or the browser preview. npm remains at 0.5.0 until real-device testing and explicit release approval. The new defaults have software coverage;
 their subjective feel is not certified by simulation.
 
 ```ts

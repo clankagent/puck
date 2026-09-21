@@ -30,6 +30,6 @@ Exact build signatures are in dist/index.d.ts, dist/webhid.d.ts and dist/graph.d
 
 Push/pull + rotation supports taps and continuous holds by default. See [press and rotate](docs/press-rotate.md) for lifecycle events and application integration.
 
-Application API (1.0 candidate): docs/application-api.md
+Application API (unreleased v1 preview): docs/application-api.md
 Candidate verification and physical evaluation scope: docs/v1-verification.md
 Workbench: https://clankagent.github.io/puck/controls.html

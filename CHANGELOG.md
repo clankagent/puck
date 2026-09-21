@@ -1,12 +1,12 @@
 # Changelog
 
-## 1.0.0-rc.1 — 2026-09-21
+## Unreleased v1 preview
 
 - Add typed continuous, gesture and interaction controls behind `createPuck`, with symmetric push/pull sessions, scalar/vector values, rate integration, ownership, contexts and settings.
 - Add bounded event cursors, inspection/tracing, portable recording/replay and control graphs.
 - Add public selection, held-value, pan/zoom and six-axis recipes plus the optional `connectPuck` browser bridge.
 - Add the application-controls workbench and move the original playground movement onto exported SDK recipes. Preserve all existing low-level APIs and 32-outcome recognition coverage.
-- Publish the candidate on `next` for physical evaluation; stable `latest` stays at 0.5.0. See the [API](docs/application-api.md), [upgrade guide](docs/upgrading.md) and [verification scope](docs/v1-verification.md).
+- Keep v1 unreleased until real-device testing by the user and explicit release approval. npm remains at 0.5.0. See the [API](docs/application-api.md), [upgrade guide](docs/upgrading.md) and [verification scope](docs/v1-verification.md).
 
 
 User-facing changes, compatibility impact, and links for adopting them. **Unreleased** describes source on main, not an available npm version. Package versions and tune/recording JSON format versions are independent.
