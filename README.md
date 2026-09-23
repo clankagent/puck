@@ -7,8 +7,12 @@ runtime dependencies. Your application owns its camera, rendering and storage.
 ## Install
 
 ```sh
-pnpm add @clankagent/puck@1.1.0
+pnpm add @clankagent/puck@1.0.0
 ```
+
+Version 1.1.0 adds SpaceMouse Wireless button events and is tagged in source,
+but npm publication is pending. Install 1.0.0 for the currently published API;
+the button API in [docs/buttons.md](docs/buttons.md) requires 1.1.0.
 
 ```ts
 import { createPuck, control, recipes } from '@clankagent/puck';

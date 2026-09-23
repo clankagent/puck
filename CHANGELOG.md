@@ -2,6 +2,9 @@
 
 ## 1.1.0 — 2026-09-23
 
+Source tagged; npm publication pending. Button events are not in the currently
+published 1.0.0 package.
+
 [Compare with 1.0.0](https://github.com/clankagent/puck/compare/v1.0.0...v1.1.0)
 
 - Expose button `down`, `up` and interruption `cancel` events from the two-bit

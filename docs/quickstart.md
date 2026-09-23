@@ -2,9 +2,11 @@
 
 ## Application controls (1.0)
 
-Install with pnpm add @clankagent/puck@1.1.0. Your page supplies a Connect button
-and a status element. The application owns rendering; connectPuck owns report
-delivery and recognition deadlines, including while the cap is held still.
+Install the published 1.0.0 package with `pnpm add @clankagent/puck@1.0.0`.
+Version 1.1.0 is tagged in source but awaiting npm publication. Your page
+supplies a Connect button and a status element. The application owns rendering;
+connectPuck owns report delivery and recognition deadlines, including while the
+cap is held still.
 
 ```js
 import { createPuck, control, recipes } from '@clankagent/puck';

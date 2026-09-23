@@ -1,5 +1,8 @@
 # SpaceMouse Wireless buttons
 
+This API is in the tagged 1.1.0 source and is awaiting npm publication. The
+currently published 1.0.0 package does not include button events.
+
 The optional WebHID adapter reports the two physical buttons on the measured
 `256f:c63a` SpaceMouse Wireless Bluetooth profile. Both `connectWebHid` and
 `connectPuck` accept `onButton`:

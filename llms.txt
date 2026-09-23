@@ -1,4 +1,7 @@
-# Puck 1.1.0
+# Puck source 1.1.0
+
+The published npm version is 1.0.0; 1.1.0 source is tagged, but npm publication
+is pending. Button events are not available in the published package yet.
 
 > TypeScript/ESM SDK for SpaceMouse continuous controls, discrete commands and persistent interactions. Zero runtime dependencies.
 
