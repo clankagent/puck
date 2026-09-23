@@ -25,6 +25,6 @@ by normalizing sensor values. See [application API](application-api.md).
 
 ## Hardware scope
 
-The report layout and motion defaults were measured with vendor `0x256f`, product `0xc63a`, over Bluetooth on Windows: report 1, twelve bytes, six signed little-endian 16-bit axes, logical range ±350. Buttons and other layouts are not implemented yet. Other devices require a matching `DeviceProfile`; profile support should be backed by descriptors and captures, not guessed from the vendor alone.
+The report layout and motion defaults were measured with vendor `0x256f`, product `0xc63a`, over Bluetooth on Windows: report 1, twelve bytes, six signed little-endian 16-bit axes, logical range ±350. The two buttons are available as separate [button events](buttons.md) from report 3. Other layouts are not implemented. Other devices require a matching `DeviceProfile`; profile support should be backed by descriptors and captures, not guessed from the vendor alone.
 
 WebHID requires browser support and device permission. The adapter inherits that availability; the motion core does not. [Official WebHID guide](https://developer.chrome.com/docs/capabilities/hid).

@@ -20,13 +20,31 @@ export interface DeviceProfile {
   usagePage?: number;
   usage?: number;
   decode(reportId: number, data: DataView): InputState | null;
+  /** Return the currently held, one-based button numbers, or null for other reports. */
+  decodeButtons?(reportId: number, data: DataView): readonly number[] | null;
 }
-/** Hardware-verified combined six-axis report profile. */
+export type ButtonEvent = Readonly<{ button: number; type: 'down' | 'up' }> |
+  Readonly<{ button: number; type: 'cancel'; reason: CancelReason }>;
+
+/** Measured 256f:c63a button report: two bits followed by constant padding. */
+export function decodeWirelessButtons(reportId: number, data: DataView): readonly (1 | 2)[] | null {
+  if (reportId !== 3 || data.byteLength !== 12) return null;
+  const mask = data.getUint8(0);
+  const buttons: (1 | 2)[] = [];
+  if (mask & 1) buttons.push(1);
+  if (mask & 2) buttons.push(2);
+  return buttons;
+}
+
+/** Hardware-verified 256f:c63a motion and button profile. */
 export const combinedProfile: Readonly<DeviceProfile> = Object.freeze({
-  vendorId: 0x256f, productId: 0xc63a, usagePage: 1, usage: 8, decode: decodeCombinedReport,
+  vendorId: 0x256f, productId: 0xc63a, usagePage: 1, usage: 8,
+  decode: decodeCombinedReport, decodeButtons: decodeWirelessButtons,
 });
 export interface ConnectionOptions {
   onInput(input: Readonly<InputState>): void;
+  /** Button edges. A held button emits cancel on lifecycle interruption, never up. */
+  onButton?(event: ButtonEvent): void;
   /** Reset processor timing/response on pause, blur, hidden, close or disconnect. */
   onReset?(): void;
   /** Explicit lifecycle reason for application runtimes. */
@@ -59,13 +77,41 @@ export async function connectWebHid(options: ConnectionOptions): Promise<InputCo
   const focusPolicy = options.pauseOnBlur ?? true;
   let paused = false;
   let closed = false;
+  let heldButtons = new Set<number>();
+  let buttonsNeedNeutral = false;
   const isForeground = () => !focusPolicy || !document || document.hasFocus() && !document.hidden;
-  const clear = (reason: CancelReason) => { options.onInput(neutralInput); options.onReset?.(); options.onInterrupt?.(reason); };
+  const clear = (reason: CancelReason) => {
+    const canceled = heldButtons;
+    heldButtons = new Set();
+    buttonsNeedNeutral = true;
+    for (const button of canceled) options.onButton?.({ button, type: 'cancel', reason });
+    options.onInput(neutralInput); options.onReset?.(); options.onInterrupt?.(reason);
+  };
   const report = (event: Event) => {
     if (paused || closed || !isForeground()) return;
     const input = event as HidReportEvent;
     const decoded = profile.decode(input.reportId, input.data);
     if (decoded) options.onInput(decoded);
+    if (paused || closed || !isForeground()) return;
+    const buttons = profile.decodeButtons?.(input.reportId, input.data);
+    if (buttons === null || buttons === undefined) return;
+    if (buttonsNeedNeutral) {
+      if (buttons.length === 0) buttonsNeedNeutral = false;
+      return;
+    }
+    const next = new Set(buttons);
+    const released = [...heldButtons].filter(button => !next.has(button));
+    const pressed = [...next].filter(button => !heldButtons.has(button));
+    for (const button of released) {
+      if (paused || closed || !isForeground()) return;
+      heldButtons.delete(button);
+      options.onButton?.({ button, type: 'up' });
+    }
+    for (const button of pressed) {
+      if (paused || closed || !isForeground()) return;
+      heldButtons.add(button);
+      options.onButton?.({ button, type: 'down' });
+    }
   };
   const blur = () => { if (focusPolicy) clear('blur'); };
   const visibility = () => { if (document?.hidden) blur(); };

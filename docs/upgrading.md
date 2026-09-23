@@ -1,5 +1,15 @@
 # Upgrading and adopting updates
 
+## From 1.0.0 to 1.1.0
+
+The optional WebHID connector now exposes the two buttons on the measured
+`256f:c63a` SpaceMouse Wireless Bluetooth profile. Pass `onButton` to
+`connectPuck` or `connectWebHid` to receive `down`, `up` and interruption
+`cancel` events. The callback uses button numbers 1 and 2 from the HID report;
+check each physical side before assigning its action. Motion and gesture
+behavior do not change, and existing applications need no migration.
+See the [button guide](buttons.md) for lifecycle behavior and tested scope.
+
 ## From 0.5 to 1.0.0
 
 1.0 adds the [application-facing API](application-api.md). Existing 0.5 low-level exports and defaults remain available; adoption is incremental. New application recordings/settings are distinct from legacy tune/recording formats. Continuous controls integrate actual report boundaries and use explicit velocity units; do not integrate raw deflection. The new runtime limits stalled-frame movement to the first configured interval while current velocity evolves through elapsed time. Declare overlapping ownership explicitly and forward lifecycle interruptions rather than synthetic releases. Use createPuck and connectPuck for new application integrations. Retain createGestures/createPanZoom when lower-level control is needed.

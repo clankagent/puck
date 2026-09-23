@@ -1,4 +1,4 @@
-# Puck 1.0.0
+# Puck 1.1.0
 
 > TypeScript/ESM SDK for SpaceMouse continuous controls, discrete commands and persistent interactions. Zero runtime dependencies.
 
@@ -11,6 +11,7 @@ are dist/index.d.ts, dist/webhid.d.ts and dist/graph.d.ts.
 - Changelog: CHANGELOG.md
 - Physical/software validation and limitations: docs/v1-verification.md
 - Motion and supported hardware: docs/motion.md
+- SpaceMouse Wireless button events: docs/buttons.md
 - Gesture tunes/calibration: docs/tuning.md
 - Low-level compatibility reference: docs/api.md
 - Tilt and press/rotate: docs/press-tilt.md, docs/press-rotate.md

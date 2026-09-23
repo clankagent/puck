@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { connectWebHid, connectPuck } from '../dist/webhid.js';
+import { connectWebHid, connectPuck, decodeWirelessButtons } from '../dist/webhid.js';
 import { neutralInput, createPuck, control } from '../dist/index.js';
 
 test('foreground lifecycle resets input and processor, and removes listeners on close', async () => {
@@ -51,6 +51,13 @@ class Device extends EventTarget {
     event.reportId = id;
     event.data = new DataView(new ArrayBuffer(12));
     event.data.setInt16(4, z, true);
+    this.dispatchEvent(event);
+  }
+  buttons(mask, length = 12) {
+    const event = new Event('inputreport');
+    event.reportId = 3;
+    event.data = new DataView(new ArrayBuffer(length));
+    event.data.setUint8(0, mask);
     this.dispatchEvent(event);
   }
 }
@@ -136,5 +143,80 @@ test('WebHID lifecycle neutral cancels pending gestures instead of completing th
   assert.equal(g.state.phase, 'blocked');
   now = 620; device.report(1, 0);
   assert.equal(g.state.phase, 'neutral');
+  await connection.close();
+});
+
+test('measured two-bit report decodes button state without treating status or motion as buttons', () => {
+  const data = new DataView(new ArrayBuffer(12));
+  assert.deepEqual(decodeWirelessButtons(3, data), []);
+  data.setUint8(0, 1);
+  assert.deepEqual(decodeWirelessButtons(3, data), [1]);
+  data.setUint8(0, 2);
+  assert.deepEqual(decodeWirelessButtons(3, data), [2]);
+  data.setUint8(0, 3);
+  assert.deepEqual(decodeWirelessButtons(3, data), [1, 2]);
+  assert.equal(decodeWirelessButtons(1, data), null);
+  assert.equal(decodeWirelessButtons(23, data), null);
+  assert.equal(decodeWirelessButtons(3, new DataView(new ArrayBuffer(1))), null);
+});
+
+test('button reports emit edges; interruption cancels a hold and requires neutral before another press', async () => {
+  const device = new Device();
+  const events = [], inputs = [];
+  const connection = await connectWebHid({ hid: new Hid([device]), onInput: input => inputs.push(input), onButton: event => events.push(event) });
+  device.buttons(1);
+  device.buttons(1);
+  device.buttons(3);
+  device.buttons(2);
+  device.buttons(0);
+  assert.deepEqual(events, [
+    { button: 1, type: 'down' }, { button: 2, type: 'down' },
+    { button: 1, type: 'up' }, { button: 2, type: 'up' },
+  ]);
+  assert.equal(inputs.length, 0);
+  device.report(23);
+  assert.equal(events.length, 4);
+  device.buttons(1);
+  connection.pause();
+  assert.deepEqual(events.at(-1), { button: 1, type: 'cancel', reason: 'pause' });
+  connection.resume();
+  device.buttons(1); // Still held after an interruption: no fresh down.
+  device.buttons(0);
+  device.buttons(2);
+  assert.deepEqual(events.at(-1), { button: 2, type: 'down' });
+  await connection.close();
+  assert.deepEqual(events.at(-1), { button: 2, type: 'cancel', reason: 'close' });
+  const count = events.length;
+  device.buttons(0);
+  assert.equal(events.length, count);
+});
+
+test('connectPuck passes physical button events to the application', async () => {
+  const device = new Device();
+  const puck = createPuck();
+  const events = [];
+  const connection = await connectPuck(puck, { hid: new Hid([device]), onButton: event => events.push(event) });
+  device.buttons(2);
+  device.buttons(0);
+  assert.deepEqual(events, [{ button: 2, type: 'down' }, { button: 2, type: 'up' }]);
+  await connection.close();
+  puck.dispose();
+});
+
+test('a button action may pause the connection without delivering later edges', async () => {
+  const device = new Device();
+  const events = [];
+  let connection;
+  connection = await connectWebHid({ hid: new Hid([device]), onInput() {}, onButton(event) {
+    events.push(event);
+    if (event.type === 'down') connection.pause();
+  } });
+  device.buttons(3);
+  assert.deepEqual(events, [
+    { button: 1, type: 'down' },
+    { button: 1, type: 'cancel', reason: 'pause' },
+  ]);
+  connection.resume();
+  device.buttons(0);
   await connection.close();
 });

@@ -10,6 +10,9 @@ Repository contribution rules are in [AGENTS.md](../AGENTS.md).
 - Use connectPuck for browser delivery/lifecycle/deadlines. Custom transports feed
   every report and advance with one monotonic millisecond clock. Interrupt on
   blur/disconnect; do not synthesize a release that commits a selection.
+- On the measured Wireless profile, use the optional WebHID `onButton` callback
+  for numbered button down/up/cancel events. Button reports are separate from
+  cap gesture controls; see [button integration](buttons.md).
 - Raw axes are normalized deflection, not angles. +z is push and +rz clockwise
   for the verified profile. Semantic tilt is [-ry,rx], right/down positive.
 - The sixAxis recipe uses x/y/z positive, rx/ry positive and rz negative scales;

@@ -10,8 +10,9 @@ Remaining work is driven by measured application needs:
 - Per-device continuous-motion calibration: neutral offsets and separate signed
   ranges. Existing gesture calibration does not equalize continuous tilt travel.
 - Longer-duration performance and recording tests in consuming applications.
-- Additional device profiles and hardware buttons, only with descriptors and
-  physical captures. The verified profile remains 256f:c63a.
+- Additional device profiles and button layouts, only with descriptors and
+  physical captures. The verified profile remains 256f:c63a; its two button
+  report bits are supported by the WebHID adapter.
 - Broader browser/platform and real-application integration evidence.
 
 There is no committed schedule for these items. Framework adapters, renderers,

@@ -1,5 +1,6 @@
 import { createPuck, control, recipes } from '../../dist/index.js';
 import type { Vec2, Vec3, Velocity } from '../../dist/index.js';
+import { connectPuck } from '../../dist/webhid.js';
 const move = control.continuous('slide', { as: 'velocity', speed: 2 });
 const raw = control.continuous('axes');
 const action = control.gesture('push');
@@ -7,6 +8,12 @@ const held = control.interaction({ activation: 'pull', value: 'tilt' });
 const choose = recipes.directionSelection({ activation: 'push' });
 const rate = control.interaction({ activation: 'pull', value: control.continuous('rotation', { as: 'velocity' }) });
 const puck = createPuck({ controls: { move, raw, action, held, choose, rate } });
+void connectPuck(puck, { onButton(event) {
+  const button: number = event.button;
+  if (event.type === 'cancel') { const reason: string = event.reason; }
+  // @ts-expect-error only canceled buttons have a reason
+  if (event.type === 'down') event.reason;
+} });
 const velocity: Velocity<Vec2> = puck.read(move);
 const delta: Vec2 = puck.frame(0).integrate(move);
 const axes: number = puck.read(raw).rz;

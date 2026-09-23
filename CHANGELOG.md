@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0 — 2026-09-23
+
+[Compare with 1.0.0](https://github.com/clankagent/puck/compare/v1.0.0...v1.1.0)
+
+- Expose button `down`, `up` and interruption `cancel` events from the two-bit
+  report on the measured `256f:c63a` SpaceMouse Wireless Bluetooth profile.
+  `connectWebHid` and `connectPuck` accept an optional `onButton` callback.
+- Keep motion and cap gestures separate from button input. Existing integrations
+  retain their behavior when `onButton` is omitted.
+- Decode from a physical report capture and test transitions, simultaneous bits,
+  interruption and rearming synthetically. Physical left/right mapping and
+  simultaneous presses were not confirmed in the capture; no other device
+  profile is claimed.
+
+See [button integration](docs/buttons.md) and the [adoption guide](docs/upgrading.md).
+
 ## 1.0.0 — 2026-09-21
 
 [Compare with 0.5.0](https://github.com/clankagent/puck/compare/v0.5.0...v1.0.0)

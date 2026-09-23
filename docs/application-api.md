@@ -5,7 +5,7 @@ gestures and interactions with a lifetime. Applications name the controls and
 decide what they do. Definitions are immutable typed handles; creating two Puck
 instances from them creates independent state.
 
-Install @clankagent/puck@1.0.0. See [verification scope](v1-verification.md) for automated and physical evidence; support is limited to the documented device profile.
+Install @clankagent/puck@1.1.0. See [verification scope](v1-verification.md) for the 1.0 motion and application API evidence and [button events](buttons.md) for the measured two-button report. Support is limited to the documented device profile.
 
 ```ts
 import { createPuck, control, recipes } from '@clankagent/puck';

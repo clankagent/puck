@@ -7,7 +7,7 @@ runtime dependencies. Your application owns its camera, rendering and storage.
 ## Install
 
 ```sh
-pnpm add @clankagent/puck@1.0.0
+pnpm add @clankagent/puck@1.1.0
 ```
 
 ```ts
@@ -58,6 +58,7 @@ export before reloading or changing a structural definition.
 | Task | Guide |
 |---|---|
 | Connect and clean up a browser application | [Quickstart](docs/quickstart.md) |
+| Use the two SpaceMouse Wireless buttons | [Button events](docs/buttons.md) |
 | Declare/read controls, sessions, ownership and settings | [Application API](docs/application-api.md) |
 | Adopt 1.0 from 0.x | [Upgrade guide](docs/upgrading.md), [changelog](CHANGELOG.md) |
 | Understand movement, units and device support | [Motion and hardware](docs/motion.md) |
@@ -77,9 +78,11 @@ export before reloading or changing a structural definition.
 | Application | Camera transforms, menus, render loop, persistence and UI. |
 
 The verified hardware profile is vendor 0x256f, product 0xc63a, Bluetooth on
-Windows. Other layouts and physical buttons are not implemented. Gestures are
-cap movements, not button clicks. WebHID requires a supporting browser, a secure
-context and device permission; the core also accepts custom transports.
+Windows. Its two button report bits are supported by the optional WebHID adapter;
+the physical left/right mapping remains unverified. Other layouts and models are
+not implemented. Gestures are cap movements, not button clicks. WebHID requires
+a supporting browser, a secure context and device permission; the core also
+accepts custom transports.
 
 Continuous values are normalized sensor deflections, not angles or distances.
 Per-device continuous-motion calibration is not implemented. Gesture calibration

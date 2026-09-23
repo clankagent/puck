@@ -2,7 +2,7 @@
 
 ## Application controls (1.0)
 
-Install with pnpm add @clankagent/puck@1.0.0. Your page supplies a Connect button
+Install with pnpm add @clankagent/puck@1.1.0. Your page supplies a Connect button
 and a status element. The application owns rendering; connectPuck owns report
 delivery and recognition deadlines, including while the cap is held still.
 
