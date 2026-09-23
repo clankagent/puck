@@ -9,9 +9,12 @@ npm credentials. Successful packaging is not a completed publication.
 
 Publish from the CLI as clankagent. Check `pnpm whoami`; if authentication has
 expired, run `pnpm login --auth-type=web --registry=https://registry.npmjs.org`.
-Give the generated login link to the account owner to open on their other PC
-with their passkey. Keep the CLI process running while they approve. Do not
-require the passkey to be available on this VM or assume login bypasses 2FA.
+Open the generated link in the signed-in npm browser session and check whether
+the CLI login completes. A browser session alone does not authenticate the CLI.
+If npm escalates to an emailed one-time password, respect the email account
+boundary in the VM guidance; do not open mail or ask for a code in chat. Report
+the exact authentication blocker instead of assuming a password or browser
+session completed the login.
 
 The core does not own animation or rendering. A release should preserve the
 measured motion defaults unless a deliberate behavior change is documented.
@@ -30,6 +33,9 @@ only if absent. Do not move release tags or invent versions to repair auth.
 Trusted publishing was attempted but npm rejected the OIDC exchange; it is
 not configured as a working release path. Do not reintroduce it without an
 explicitly authorized setup and a successful end-to-end verification.
+On 2026-09-23, the saved CLI token returned HTTP 401, and a fresh web login in
+the signed-in clankagent browser session escalated to an emailed code that did
+not arrive. The tag artifact is ready, but 1.1.0 is not published on npm.
 
 ## Release notes and adoption guidance
 
