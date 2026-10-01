@@ -1,8 +1,14 @@
 # Puck
 
 Typed physical controls for SpaceMouse applications: continuous six-axis motion,
-discrete commands and persistent push/pull interactions. TypeScript, ESM and zero
-runtime dependencies. Your application owns its camera, rendering and storage.
+discrete commands and persistent push/pull interactions. A Rust processing core,
+typed TypeScript/ESM facade and zero JavaScript runtime dependencies. Your
+application owns its camera, rendering and storage.
+
+The `rewrite/rust-core` branch is 2.0.0-alpha.1: one core built for browser WASM
+and a native C ABI. npm publication is blocked by expired CLI authentication.
+See [native/WASM integration](docs/native.md), [rewrite verification](docs/rust-verification.md)
+and [upgrade requirements](docs/upgrading.md). The Kotlin mouse app is not included.
 
 ## Install
 
