@@ -1,15 +1,12 @@
 # Changelog
 
-## 2.0.0-alpha.1 — Rust rewrite preview
-
-Developed on `rewrite/rust-core`; npm publication is blocked by authentication.
+## 2.0.0-alpha.2 — Rust rewrite preview
 
 - Move motion, gesture recognition, control runtime, ownership, tune transforms,
   calibration, report decoding and recording to one Rust core using f64 values.
 - Preserve the typed synchronous TypeScript API, handle identity, immutable
   results, callback ordering and WebHID lifecycle adapter through a WASM facade.
 - Provide a versioned C ABI, standalone WASM, Windows DLL and JVM library smoke.
-  No Kotlin desktop app, device capture, global shortcut or mouse injection is added.
 - Compare the frozen TypeScript implementation against WASM/native Rust and a
   loaded native library; retain existing behavior and type checks.
 - Add locked builds, dependency audits, path remapping, stripped release assets,
@@ -24,8 +21,8 @@ and [adoption guide](docs/upgrading.md).
 
 ## 1.1.0 — 2026-09-23
 
-Source tagged; npm publication pending. Button events are not in the currently
-published 1.0.0 package.
+Button events require the 1.1.0 source or a later preview; they are absent from
+the 1.0.0 npm package.
 
 [Compare with 1.0.0](https://github.com/clankagent/puck/compare/v1.0.0...v1.1.0)
 

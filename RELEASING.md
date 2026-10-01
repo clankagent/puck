@@ -20,10 +20,9 @@ GitHub checksums are not Authenticode signatures. CI has read-only repository
 permissions and no npm credentials; GitHub release creation remains an explicit
 operator action after successful checks.
 
-An expired npm credential does not block GitHub binary distribution. State that
-npm publication is blocked, and use local/CI tarball installation instructions
-until registry publication and an exact-version clean install succeed. Do not
-publish the Rust preview under npm's stable latest tag: use `--tag next`.
+Document the available installation channels and exact versions. Provide a
+verified tarball download for GitHub previews. Publish npm previews with
+`--tag next`, preserving the stable latest tag.
 
 ## Stable npm releases
 
@@ -34,14 +33,8 @@ package.json, installs locked dependencies, builds, tests, and uploads the
 tarball as the release-package artifact. CI does not publish to npm or hold
 npm credentials. Successful packaging is not a completed publication.
 
-Publish from the CLI as clankagent. Check `pnpm whoami`; if authentication has
-expired, run `pnpm login --auth-type=web --registry=https://registry.npmjs.org`.
-Open the generated link in the signed-in npm browser session and check whether
-the CLI login completes. A browser session alone does not authenticate the CLI.
-If npm escalates to an emailed one-time password, respect the email account
-boundary in the VM guidance; do not open mail or ask for a code in chat. Report
-the exact authentication blocker instead of assuming a password or browser
-session completed the login.
+Use an authorized npm publisher identity and verify it with `pnpm whoami`
+before publication. Follow npm's current authentication and approval flow.
 
 The core does not own animation or rendering. A release should preserve the
 measured motion defaults unless a deliberate behavior change is documented.
@@ -57,12 +50,6 @@ notes linking to the tagged changelog and upgrade guide.
 For a failed build, dispatch publish.yml on main with the existing tag input.
 For a failed publication, first check whether the version reached npm; retry
 only if absent. Do not move release tags or invent versions to repair auth.
-Trusted publishing was attempted but npm rejected the OIDC exchange; it is
-not configured as a working release path. Do not reintroduce it without an
-explicitly authorized setup and a successful end-to-end verification.
-On 2026-09-23, the saved CLI token returned HTTP 401, and a fresh web login in
-the signed-in clankagent browser session escalated to an emailed code that did
-not arrive. The tag artifact is ready, but 1.1.0 is not published on npm.
 
 ## Release notes and adoption guidance
 

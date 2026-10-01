@@ -1,12 +1,12 @@
-# Puck source 2.0.0-alpha.1 (rewrite/rust-core preview)
+# Puck source 2.0.0-alpha.2 (rewrite/rust-core preview)
 
 Rust owns processing; the synchronous typed ESM facade embeds WASM. Native
-consumers use C ABI 1. This preview's npm publication is blocked by authentication.
+consumers use C ABI 1. Install the preview tarball from the GitHub prerelease.
 Read docs/native.md, docs/rust-verification.md and docs/upgrading.md first.
-Do not describe this rewrite as a browser performance improvement or a Kotlin app.
+The current WASM bridge adds browser processing and startup cost.
 
-The published npm version is 1.0.0; 1.1.0 source is tagged, but npm publication
-is pending. Button events are not available in the published package yet.
+The 1.0.0 npm package does not include button events. Use the 1.1.0 source or
+a later preview for the button API.
 
 > TypeScript/ESM SDK for SpaceMouse continuous controls, discrete commands and persistent interactions. Zero runtime dependencies.
 

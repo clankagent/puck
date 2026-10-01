@@ -5,10 +5,9 @@ discrete commands and persistent push/pull interactions. A Rust processing core,
 typed TypeScript/ESM facade and zero JavaScript runtime dependencies. Your
 application owns its camera, rendering and storage.
 
-The `rewrite/rust-core` branch is 2.0.0-alpha.1: one core built for browser WASM
-and a native C ABI. npm publication is blocked by expired CLI authentication.
+The Rust preview builds one processing core for browser WASM and a native C ABI.
 See [native/WASM integration](docs/native.md), [rewrite verification](docs/rust-verification.md)
-and [upgrade requirements](docs/upgrading.md). The Kotlin mouse app is not included.
+and [upgrade requirements](docs/upgrading.md).
 
 ## Install
 
@@ -16,9 +15,10 @@ and [upgrade requirements](docs/upgrading.md). The Kotlin mouse app is not inclu
 pnpm add @clankagent/puck@1.0.0
 ```
 
-Version 1.1.0 adds SpaceMouse Wireless button events and is tagged in source,
-but npm publication is pending. Install 1.0.0 for the currently published API;
-the button API in [docs/buttons.md](docs/buttons.md) requires 1.1.0.
+For the Rust preview, download the package tarball from the
+[GitHub prerelease](https://github.com/clankagent/puck/releases/tag/v2.0.0-alpha.2)
+and install it with `pnpm add ./clankagent-puck-2.0.0-alpha.2.tgz`.
+The preview includes the [SpaceMouse Wireless button API](docs/buttons.md).
 
 ```ts
 import { createPuck, control, recipes } from '@clankagent/puck';
