@@ -1,11 +1,11 @@
 # Rust, WASM and native integration
 
-Puck 2.0.0-alpha.1 uses one Rust processing core. The typed TypeScript facade
+Puck 2.0.0-alpha.2 uses one Rust processing core. The typed TypeScript facade
 retains control identity, immutable results, subscriptions and the optional
 WebHID adapter. Native applications supply normalized reports and timestamps.
 The core opens no devices, injects no mouse events, writes no files, and makes
 no network calls. Recordings and traces remain in memory until the caller
-chooses to save them. No Kotlin desktop application is included.
+chooses to save them.
 
 ## Build and browser use
 
@@ -31,7 +31,8 @@ zero host imports. The application owns instantiation and memory access.
 
 Include `puck.h`. Functions use the C calling convention, uint32_t handles,
 size_t lengths and double-precision axes/timestamps. Load a verified library
-using an absolute path in an application-owned directory. Match library and
+using an absolute path in an application-owned directory. Windows x64 MSVC
+release binaries require the [Microsoft x64 Visual C++ v14 runtime](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). Match library and
 process architecture; inspect `build-info.json` and SHA256SUMS.txt. A checksum
 detects changes against a trusted release; it does not establish publisher
 identity. These initial binaries are not Authenticode signed.

@@ -1,6 +1,6 @@
 # Upgrading and adopting updates
 
-## Rust rewrite preview (2.0.0-alpha.1)
+## Rust rewrite preview (2.0.0-alpha.2)
 
 The synchronous application API and control JSON remain compatible for valid
 inputs. The ESM entry points now compile embedded WASM at import. Ensure your
@@ -12,7 +12,7 @@ Recording notes are capped at 500 Unicode scalar values in native recording.
 
 Build the branch with the pinned Rust toolchain/wasm target, Node 24, pnpm and a
 C++ compiler for parity tests. `pnpm check` verifies all targets; install the
-packed tarball to try the preview while npm authentication is blocked. Keep the
+preview tarball from the GitHub prerelease to try it. Keep the
 source commit with local packages. See [native/WASM integration](native.md) and
 [cost and parity evidence](rust-verification.md).
 
