@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.0-alpha.1 — Rust rewrite preview
+
+Developed on `rewrite/rust-core`; npm publication is blocked by authentication.
+
+- Move motion, gesture recognition, control runtime, ownership, tune transforms,
+  calibration, report decoding and recording to one Rust core using f64 values.
+- Preserve the typed synchronous TypeScript API, handle identity, immutable
+  results, callback ordering and WebHID lifecycle adapter through a WASM facade.
+- Provide a versioned C ABI, standalone WASM, Windows DLL and JVM library smoke.
+  No Kotlin desktop app, device capture, global shortcut or mouse injection is added.
+- Compare the frozen TypeScript implementation against WASM/native Rust and a
+  loaded native library; retain existing behavior and type checks.
+- Add locked builds, dependency audits, path remapping, stripped release assets,
+  an allowlist privacy check, build metadata and SHA-256 checksums.
+- Require WASM compilation at ESM import and modern host APIs; enforce a native
+  runtime limit of 256 controls. Invalid/non-finite low-level motion inputs fail
+  instead of propagating invalid numbers. Embedded WASM increases package/startup
+  cost and does not demonstrate a browser speed improvement.
+
+See [integration](docs/native.md), [verification](docs/rust-verification.md)
+and [adoption guide](docs/upgrading.md).
+
 ## 1.1.0 — 2026-09-23
 
 Source tagged; npm publication pending. Button events are not in the currently

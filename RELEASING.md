@@ -1,5 +1,32 @@
 # Releasing Puck
 
+## Rust preview distribution
+
+The Rust preview stays on `rewrite/rust-core`; a prerelease tag may identify a
+verified branch commit without merging it to main. Pin package/Cargo versions
+and toolchain. Run pnpm check, native ABI tests, Clippy, browser smoke and
+dependency audits, then review the source/package diff. No real device captures
+or personal metadata belong in the repository or artifacts.
+
+The Check and Release package workflows build Windows/Linux native libraries
+and WASM, run parity checks, and call scripts/release-artifacts.mjs. This explicit
+allowlist strips debug information, remaps build paths, rejects host paths and
+obvious secret patterns, and writes checksums plus source/toolchain metadata.
+Download the exact successful tag artifacts before creating a GitHub prerelease.
+Publish only the generated allowlist and npm tarball; never upload target/, work/,
+debug symbols, logs, captures, Cargo caches or the frozen comparison source.
+Verify downloaded checksums and clean installation before announcing availability.
+GitHub checksums are not Authenticode signatures. CI has read-only repository
+permissions and no npm credentials; GitHub release creation remains an explicit
+operator action after successful checks.
+
+An expired npm credential does not block GitHub binary distribution. State that
+npm publication is blocked, and use local/CI tarball installation instructions
+until registry publication and an exact-version clean install succeed. Do not
+publish the Rust preview under npm's stable latest tag: use `--tag next`.
+
+## Stable npm releases
+
 Update package.json to the intended version, run pnpm check, and commit the
 change. Push main, then tag that commit as v<VERSION> and push the tag.
 The publish.yml workflow (displayed as Release package) checks the tag against

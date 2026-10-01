@@ -1,5 +1,21 @@
 # Upgrading and adopting updates
 
+## Rust rewrite preview (2.0.0-alpha.1)
+
+The synchronous application API and control JSON remain compatible for valid
+inputs. The ESM entry points now compile embedded WASM at import. Ensure your
+host supports WebAssembly, atob, FinalizationRegistry and TextEncoder/TextDecoder,
+and permit WASM in your CSP. No extra asset server or initialization call is
+required. New native consumers use ABI 1 and must keep each engine on one thread.
+Runtimes are limited to 256 controls; non-finite low-level motion data is rejected.
+Recording notes are capped at 500 Unicode scalar values in native recording.
+
+Build the branch with the pinned Rust toolchain/wasm target, Node 24, pnpm and a
+C++ compiler for parity tests. `pnpm check` verifies all targets; install the
+packed tarball to try the preview while npm authentication is blocked. Keep the
+source commit with local packages. See [native/WASM integration](native.md) and
+[cost and parity evidence](rust-verification.md).
+
 ## From 1.0.0 to 1.1.0
 
 The optional WebHID connector now exposes the two buttons on the measured
@@ -13,7 +29,6 @@ See the [button guide](buttons.md) for lifecycle behavior and tested scope.
 ## From 0.5 to 1.0.0
 
 1.0 adds the [application-facing API](application-api.md). Existing 0.5 low-level exports and defaults remain available; adoption is incremental. New application recordings/settings are distinct from legacy tune/recording formats. Continuous controls integrate actual report boundaries and use explicit velocity units; do not integrate raw deflection. The new runtime limits stalled-frame movement to the first configured interval while current velocity evolves through elapsed time. Declare overlapping ownership explicitly and forward lifecycle interruptions rather than synthetic releases. Use createPuck and connectPuck for new application integrations. Retain createGestures/createPanZoom when lower-level control is needed.
-
 
 [Changelog](../CHANGELOG.md) · [Documentation](../README.md) · [API reference](api.md)
 
@@ -85,13 +100,13 @@ No migration is required for the new opt-in features: decoding, `createPanZoom` 
 
 ## Add only what your app needs
 
-| Goal | Add | Application responsibility |
-|---|---|---|
-| React to single/double gestures | `createGestures(tune)` | Feed every report, advance the same clock, reset on lifecycle changes, consume events. [Complete integration](quickstart.md) |
-| Offer softer/harder controls | Presets and immutable tune methods | Retain the returned tune and create a new recognizer to apply it. [Tune editing](tuning.md#gesture-tunes) |
-| Save a personal tune | `createGestureTune` | Save JSON; restore through the constructor. [Tune API](api.md#tunes) |
-| Learn a tune from normal input | Recorder plus `calibrateGestures` | Own capture/storage; show missing/ambiguous evidence and apply only a non-null tune. [Calibration](tuning.md#recording-and-custom-calibration) |
-| Explain the learned result | Optional `/graph` imports | Show a text status/count summary and select the matching capture for overlays. [Graphs](api.md#graphs) |
+| Goal                            | Add                                | Application responsibility                                                                                                                     |
+| ------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| React to single/double gestures | `createGestures(tune)`             | Feed every report, advance the same clock, reset on lifecycle changes, consume events. [Complete integration](quickstart.md)                   |
+| Offer softer/harder controls    | Presets and immutable tune methods | Retain the returned tune and create a new recognizer to apply it. [Tune editing](tuning.md#gesture-tunes)                                      |
+| Save a personal tune            | `createGestureTune`                | Save JSON; restore through the constructor. [Tune API](api.md#tunes)                                                                           |
+| Learn a tune from normal input  | Recorder plus `calibrateGestures`  | Own capture/storage; show missing/ambiguous evidence and apply only a non-null tune. [Calibration](tuning.md#recording-and-custom-calibration) |
+| Explain the learned result      | Optional `/graph` imports          | Show a text status/count summary and select the matching capture for overlays. [Graphs](api.md#graphs)                                         |
 
 To add gestures alongside motion, reuse the existing connection and frame loop. Fan physical reports out to both processors. Ignore the exact `neutralInput` lifecycle sentinel for gestures and reset both processors in `onReset`. Use `performance.now()` in both gesture report and frame callbacks. The [session example](../examples/gesture-session.mjs) demonstrates lifecycle handling; adapt it to your existing connection/loop rather than starting duplicate ones.
 

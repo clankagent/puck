@@ -1,0 +1,20 @@
+[workspace]
+members = ["crates/puck-core", "crates/puck-ffi"]
+resolver = "3"
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/clankagent/puck"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+puck-core = { path = "crates/puck-core" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+debug = false

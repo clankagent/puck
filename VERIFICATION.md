@@ -1,5 +1,11 @@
 # Verification
 
+Rust rewrite preview: the existing 141 behavior tests, public type fixtures,
+six differential tests (127 engines / 15,667 snapshots across three Rust build
+paths), three native ABI tests, Kotlin/JNA library smoke and Chromium ESM smoke
+pass locally. New tests are synthetic; hardware claims remain unchanged. See
+[Rust evidence, cost and limitations](docs/rust-verification.md).
+
 Puck 1.1.0: a physical `256f:c63a` Windows/Bluetooth capture contains 58
 button reports with one-bit press states `1` and `2` and zero releases. Its HID
 descriptor declares two one-bit button usages in report 3. The capture did not

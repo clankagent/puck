@@ -1,0 +1,14 @@
+[package]
+name = "puck-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Puck C ABI for Windows DLL and browser WebAssembly"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+puck-core.workspace = true
+serde_json.workspace = true
