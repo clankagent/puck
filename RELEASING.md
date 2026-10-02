@@ -33,7 +33,8 @@ Update package.json to the intended version, run pnpm check, and commit the
 change. Push main, then tag that commit as v<VERSION> and push the tag.
 The publish.yml workflow (displayed as Release package) checks the tag against
 package.json, installs locked dependencies, builds, tests, and uploads the
-tarball as the release-package artifact. CI does not publish to npm or hold
+tarball and runtime files as release-Linux-x64 and release-Windows-x64 artifacts.
+CI does not publish to npm or hold
 npm credentials. Successful packaging is not a completed publication.
 
 Use an authorized npm publisher identity and verify it with `pnpm whoami`
