@@ -268,7 +268,7 @@ pub fn interaction(options: &Value) -> Result<Value> {
             };
         }
         gesture(&c["input"], &opts)?;
-        if c["direction"] == "same" && c["count"] != 2 {
+        if c["direction"] == "same" && number(c, "count", 1.) != 2. {
             return Err("Same-direction cancellation requires two pulses.".into());
         }
     }

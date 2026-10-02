@@ -1,9 +1,18 @@
-# Puck source 2.0.0-alpha.2 (rewrite/rust-core preview)
+# Puck Rust preview and unreleased source fixes
 
 Rust owns processing; the synchronous typed ESM facade embeds WASM. Native
-consumers use C ABI 1. Install the preview tarball from the GitHub prerelease.
+consumers use C ABI 1. The published preview is @clankagent/puck@2.0.0-alpha.2
+on npm's next channel, also available as a tarball from the matching GitHub
+prerelease. Stable npm latest remains 1.0.0.
 Read docs/native.md, docs/rust-verification.md and docs/upgrading.md first.
 The current WASM bridge adds browser processing and startup cost.
+
+Unreleased source fixes deterministic topological precedence, native numeric
+spelling equivalence, no-op restoration of numerically identical settings,
+construction-time eventLimit retention and malformed gesture/reset validation.
+Installation entry points, public API, C ABI 1 and hardware scope are unchanged.
+Read CHANGELOG.md and docs/upgrading.md; do not assume unreleased fixes are in
+the published alpha.2 package.
 
 The 1.0.0 npm package does not include button events. Use the 1.1.0 source or
 a later preview for the button API.

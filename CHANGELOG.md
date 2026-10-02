@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+- Order control precedence topologically, using registration order among controls
+  ready for dispatch. Disconnected and transitive precedence rules now resolve
+  deterministically without trapping WASM or aborting native applications.
+- Treat equivalent native JSON numbers consistently: `0`, `0.0` and `0e0`
+  give the same immediate velocity when `responseMs` is zero. Integral decimal
+  versions, gesture counts, report IDs and bytes are accepted wherever the
+  corresponding integer is valid. Restoring numerically identical settings is
+  a no-op, including nested structural definitions, and preserves active sessions.
+- Capture the validated `eventLimit` at construction so later changes to the
+  caller's options cannot change retention or stall event delivery.
+- Reject malformed supplied gesture thresholds and invalid explicit reset times
+  before changing recognizer state. An omitted reset time retains its default.
+- Include the embedded WASM JavaScript module in playground builds, with matching
+  cache versions for nested runtime modules.
+- Keep installation entry points, the synchronous application API, C ABI 1 and
+  the documented hardware scope unchanged.
+
+These fixes are available in unreleased source; the published Rust preview is
+2.0.0-alpha.2. See [adoption](docs/upgrading.md), [native integration](docs/native.md)
+and [verification](docs/rust-verification.md).
+
 ## 2.0.0-alpha.2 — Rust rewrite preview
 
 - Move motion, gesture recognition, control runtime, ownership, tune transforms,

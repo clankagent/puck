@@ -174,6 +174,34 @@ fn prefers(p: &[Vec<usize>], a: usize, b: usize, seen: &mut BTreeSet<usize>) -> 
     }
     false
 }
+// Precedence is a partial order, not a valid sorting comparator. Kahn's
+// algorithm honors every edge; registration order breaks ties between ready
+// controls, including disconnected components.
+fn precedence_order(preferences: &[Vec<usize>]) -> Result<Vec<usize>> {
+    let mut incoming = vec![0usize; preferences.len()];
+    for edges in preferences {
+        for &next in edges {
+            incoming[next] += 1;
+        }
+    }
+    let mut ready: BTreeSet<_> = (0..preferences.len())
+        .filter(|&i| incoming[i] == 0)
+        .collect();
+    let mut ordered = Vec::with_capacity(preferences.len());
+    while let Some(i) = ready.pop_first() {
+        ordered.push(i);
+        for &next in &preferences[i] {
+            incoming[next] -= 1;
+            if incoming[next] == 0 {
+                ready.insert(next);
+            }
+        }
+    }
+    if ordered.len() != preferences.len() {
+        return Err("Cyclic control precedence.".into());
+    }
+    Ok(ordered)
+}
 pub struct Runtime {
     entries: Vec<Entry>,
     preferences: Vec<Vec<usize>>,
@@ -267,11 +295,9 @@ impl Runtime {
                 }
             }
         }
+        let ordered = precedence_order(&preferences)?;
         let pref = |a, b| prefers(&preferences, a, b, &mut BTreeSet::new());
         for i in 0..entries.len() {
-            if pref(i, i) {
-                return Err("Cyclic control precedence.".into());
-            }
             for j in i + 1..entries.len() {
                 let a = &entries[i];
                 let b = &entries[j];
@@ -297,16 +323,6 @@ impl Runtime {
                 }
             }
         }
-        let mut ordered: Vec<_> = (0..entries.len()).collect();
-        ordered.sort_by(|&a, &b| {
-            if pref(a, b) {
-                std::cmp::Ordering::Less
-            } else if pref(b, a) {
-                std::cmp::Ordering::Greater
-            } else {
-                std::cmp::Ordering::Equal
-            }
-        });
         let mut definition = json!({"controls":controls,"contexts":groups,"conflicts":conflicts,"maxFrameMs":max_frame,"eventLimit":event_limit});
         if let Some(c) = &context {
             definition["context"] = json!(c);
@@ -525,7 +541,7 @@ impl Runtime {
             c.get("direction").cloned().unwrap_or(json!("either"))
         };
         for event in events.as_array().unwrap() {
-            if c["count"] == 2
+            if number(c, "count", 1.) == 2.
                 && matches(
                     &c["input"],
                     &json!({"count":2,"direction":direction}),
@@ -690,7 +706,7 @@ impl Runtime {
                     if v == 0. || v * e.velocity[i] < 0. {
                         e.velocity[i] = 0.;
                     }
-                    if d["options"]["responseMs"] == 0 {
+                    if number(&d["options"], "responseMs", 25.) == 0. {
                         e.velocity[i] = v;
                     }
                 }
@@ -860,7 +876,7 @@ impl Runtime {
                 let controls = saved["controls"]
                     .as_object()
                     .ok_or("Settings do not match this definition.")?;
-                if saved["version"] != 1
+                if number(saved, "version", f64::NAN) != 1.
                     || controls.len() != self.entries.len()
                     || self.entries.iter().any(|e| !controls.contains_key(&e.name))
                 {
@@ -875,7 +891,11 @@ impl Runtime {
                         .as_object()
                         .unwrap()
                         .iter()
-                        .filter(|(k, v)| e.def["options"].get(k.as_str()) != Some(*v))
+                        .filter(|(k, v)| {
+                            !e.def["options"]
+                                .get(k.as_str())
+                                .is_some_and(|old| same_value(old, v))
+                        })
                         .map(|(k, v)| (k.clone(), v.clone()))
                         .collect();
                     self.configured(i, &Value::Object(patch.clone()))?;

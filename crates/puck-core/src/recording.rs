@@ -2,7 +2,7 @@ use crate::*;
 pub fn validate(r: &Value) -> Result<()> {
     let duration = number(r, "durationMs", f64::NAN);
     let rows = r["timeline"].as_array().ok_or("Invalid recording.")?;
-    if r["version"] != 1
+    if number(r, "version", f64::NAN) != 1.
         || !duration.is_finite()
         || !(0. ..=122000.).contains(&duration)
         || rows.len() > 60000

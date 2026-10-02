@@ -1,5 +1,26 @@
 # Upgrading and adopting updates
 
+## Unreleased Rust preview fixes
+
+The next source update fixes precedence routing, native JSON numeric spelling,
+event retention and malformed gesture/reset validation. It requires no change to
+installation entry points, public API declarations or C ABI 1. Hardware scope
+remains the measured `256f:c63a` Bluetooth profile on Windows.
+
+Precedence is resolved topologically; registration order breaks ties between
+controls whose predecessors have already been resolved. Native JSON may use
+integral decimal numbers for versions, counts, report IDs and bytes. Setting
+`responseMs` to any spelling of zero gives immediate velocity, and restoring
+numerically identical settings leaves active sessions intact. Invalid supplied
+gesture thresholds and reset times now fail before changing recognizer state.
+The runtime retains its construction-time `eventLimit` even if the caller later
+modifies the options object.
+
+These fixes are unreleased. The available Rust preview remains
+`@clankagent/puck@2.0.0-alpha.2` on npm's `next` channel and the matching GitHub
+prerelease. Stable npm `latest` remains 1.0.0. Pin the exact package version or
+build and record a chosen source revision as described below.
+
 ## Rust rewrite preview (2.0.0-alpha.2)
 
 The synchronous application API and control JSON remain compatible for valid
@@ -10,9 +31,10 @@ required. New native consumers use ABI 1 and must keep each engine on one thread
 Runtimes are limited to 256 controls; non-finite low-level motion data is rejected.
 Recording notes are capped at 500 Unicode scalar values in native recording.
 
-Build the branch with the pinned Rust toolchain/wasm target, Node 24, pnpm and a
+Build the source with the pinned Rust toolchain/wasm target, Node 24, pnpm and a
 C++ compiler for parity tests. `pnpm check` verifies all targets; install the
-preview tarball from the GitHub prerelease to try it. Keep the
+published preview with `pnpm add @clankagent/puck@2.0.0-alpha.2`, or install its
+tarball from the GitHub prerelease. Keep the
 source commit with local packages. See [native/WASM integration](native.md) and
 [cost and parity evidence](rust-verification.md).
 

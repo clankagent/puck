@@ -26,6 +26,7 @@ import type {
 /** JS owns handles, callbacks and immutable object identity; Rust owns state. */
 export function createRuntime(options: PuckOptions = {}) {
   const clock = options.clock ?? (() => performance.now());
+  const eventLimit = options.eventLimit ?? 2048;
   const byHandle = new Map<Control, string>(),
     byName = new Map<string, Control>();
   const add = (group: Readonly<Record<string, Control>>, prefix: string) => {
@@ -57,7 +58,7 @@ export function createRuntime(options: PuckOptions = {}) {
       over: r.over.map(entry),
     })),
     maxFrameMs: options.maxFrameMs,
-    eventLimit: options.eventLimit,
+    eventLimit,
     recordingLimit: options.recordingLimit,
     trace: options.trace,
     record: options.record,
@@ -89,7 +90,7 @@ export function createRuntime(options: PuckOptions = {}) {
       sequence = event.sequence;
       log.push(event);
       if (options.trace) traces.set(sequence, freeze(evidence));
-      while (log.length > (options.eventLimit ?? 2048)) {
+      while (log.length > eventLimit) {
         const old = log.shift()!;
         traces.delete(old.sequence);
       }

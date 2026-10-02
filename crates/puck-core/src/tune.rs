@@ -3,7 +3,7 @@ pub fn default_tune() -> Value {
     json!({"version":1,"rotation":{"center":0.465,"low":0.349,"high":0.57,"activation":0.25,"release":0.15},"push":{"center":0.314,"low":0.274,"high":0.354,"activation":0.20,"release":0.08},"pull":{"center":0.289,"low":0.18,"high":0.357,"activation":0.12,"release":0.06},"timing":{"minPulseMs":35,"maxPulseMs":650,"neutralMs":25,"doubleMs":400},"dominance":1.4,"pressTilt":{"force":{"center":0.596,"low":0.401,"high":0.803,"activation":0.24,"release":0.115},"minMs":25,"armMs":450,"relaxMs":180,"maxMs":1000,"dominance":1.25},"standaloneTilt":{"rx":{"center":0.458,"low":0.319,"high":0.601,"activation":0.13,"release":0.104},"ry":{"center":0.671,"low":0.536,"high":0.806,"activation":0.28,"release":0.16},"timing":{"minPulseMs":25,"maxPulseMs":650,"neutralMs":10,"doubleMs":400}}})
 }
 pub fn validate(d: &Value) -> Result<Value> {
-    if d["version"] != 1
+    if number(d, "version", f64::NAN) != 1.
         || !number(d, "dominance", f64::NAN).is_finite()
         || number(d, "dominance", 0.) < 1.
     {

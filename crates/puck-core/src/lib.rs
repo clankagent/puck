@@ -12,6 +12,22 @@ pub type Input = [f64; 6];
 pub fn number(v: &Value, k: &str, default: f64) -> f64 {
     v.get(k).map_or(default, |v| v.as_f64().unwrap_or(f64::NAN))
 }
+/// Compare validated JSON settings by their numeric meaning, independent of
+/// whether a native serializer spells a number as an integer or a decimal.
+pub(crate) fn same_value(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Number(a), Value::Number(b)) => a.as_f64() == b.as_f64(),
+        (Value::Array(a), Value::Array(b)) => {
+            a.len() == b.len() && a.iter().zip(b).all(|(a, b)| same_value(a, b))
+        }
+        (Value::Object(a), Value::Object(b)) => {
+            a.len() == b.len()
+                && a.iter()
+                    .all(|(k, a)| b.get(k).is_some_and(|b| same_value(a, b)))
+        }
+        _ => a == b,
+    }
+}
 pub fn boolean(v: &Value, k: &str, default: bool) -> bool {
     v.get(k).and_then(Value::as_bool).unwrap_or(default)
 }
@@ -114,18 +130,18 @@ impl Engine {
                 }
                 "decode" => {
                     let bytes = request["bytes"].as_array().ok_or("Invalid report bytes.")?;
-                    if request["reportId"] != 1 || bytes.len() != 12 {
+                    if number(request, "reportId", f64::NAN) != 1. || bytes.len() != 12 {
                         Ok(Value::Null)
                     } else {
                         let mut axes = [0.; 6];
                         for (i, a) in axes.iter_mut().enumerate() {
                             let lo = bytes[i * 2]
-                                .as_u64()
-                                .filter(|b| *b <= 255)
+                                .as_f64()
+                                .filter(|b| (0. ..=255.).contains(b) && b.fract() == 0.)
                                 .ok_or("Invalid byte.")? as u8;
                             let hi = bytes[i * 2 + 1]
-                                .as_u64()
-                                .filter(|b| *b <= 255)
+                                .as_f64()
+                                .filter(|b| (0. ..=255.).contains(b) && b.fract() == 0.)
                                 .ok_or("Invalid byte.")? as u8;
                             *a = (i16::from_le_bytes([lo, hi]) as f64 / 350.).clamp(-1., 1.);
                         }
@@ -158,7 +174,17 @@ impl Engine {
             Self::Gestures(g) => match op {
                 "update" => g.update(input(&request["input"])?, t),
                 "advance" => g.advance(t),
-                "reset" => g.reset(request.get("time").and_then(Value::as_f64)),
+                "reset" => {
+                    let time = request
+                        .get("time")
+                        .map(|v| {
+                            v.as_f64()
+                                .filter(|t| t.is_finite())
+                                .ok_or("Gesture timestamps must be finite and monotonic.")
+                        })
+                        .transpose()?;
+                    g.reset(time)
+                }
                 "state" => Ok(g.state()),
                 _ => Err("Unknown gesture operation.".into()),
             },
