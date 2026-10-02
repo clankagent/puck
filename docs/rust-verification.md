@@ -16,7 +16,7 @@ presets, 24 seeded streams of 250 noisy reports, four response times, configurat
 ownership, context changes, cancellation, frames, traces, recordings, and complete
 simple/combined/standalone calibration datasets. Fixtures are synthetic.
 
-Unreleased source adds eight regression tests, bringing the JavaScript suite to 155.
+2.0.0-alpha.3 adds eight regression tests, bringing the JavaScript suite to 155.
 They exercise disconnected and transitive precedence, deterministic dispatch,
 ownership through an unrelated observer, cycle rejection, construction-time
 event retention and zero-response velocity across reversal, neutral reports,

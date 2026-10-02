@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.0.0-alpha.3 — 2026-10-02
+
+[Compare with 2.0.0-alpha.2](https://github.com/clankagent/puck/compare/v2.0.0-alpha.2...v2.0.0-alpha.3)
 
 - Order control precedence topologically, using registration order among controls
   ready for dispatch. Disconnected and transitive precedence rules now resolve
@@ -19,8 +21,7 @@
 - Keep installation entry points, the synchronous application API, C ABI 1 and
   the documented hardware scope unchanged.
 
-These fixes are available in unreleased source; the published Rust preview is
-2.0.0-alpha.2. See [adoption](docs/upgrading.md), [native integration](docs/native.md)
+See [adoption](docs/upgrading.md), [native integration](docs/native.md)
 and [verification](docs/rust-verification.md).
 
 ## 2.0.0-alpha.2 — Rust rewrite preview

@@ -24,8 +24,8 @@ Document the available installation channels and exact versions. Provide a
 verified tarball download for GitHub previews. Publish npm previews with
 `--tag next`, preserving the stable `latest` tag at 1.0.0 until a stable release
 is explicitly approved. Publish from the exact verified commit and tag. Keep
-Unreleased source fixes distinct from the currently available 2.0.0-alpha.2 preview
-until the next version has been published and verified.
+source changes distinct from published versions until publication and clean
+installation have been verified.
 
 ## Stable npm releases
 

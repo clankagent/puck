@@ -1,8 +1,8 @@
 # Upgrading and adopting updates
 
-## Unreleased Rust preview fixes
+## From 2.0.0-alpha.2 to 2.0.0-alpha.3
 
-The next source update fixes precedence routing, native JSON numeric spelling,
+2.0.0-alpha.3 fixes precedence routing, native JSON numeric spelling,
 event retention and malformed gesture/reset validation. It requires no change to
 installation entry points, public API declarations or C ABI 1. Hardware scope
 remains the measured `256f:c63a` Bluetooth profile on Windows.
@@ -16,10 +16,9 @@ gesture thresholds and reset times now fail before changing recognizer state.
 The runtime retains its construction-time `eventLimit` even if the caller later
 modifies the options object.
 
-These fixes are unreleased. The available Rust preview remains
-`@clankagent/puck@2.0.0-alpha.2` on npm's `next` channel and the matching GitHub
-prerelease. Stable npm `latest` remains 1.0.0. Pin the exact package version or
-build and record a chosen source revision as described below.
+To adopt this preview, pin `@clankagent/puck@2.0.0-alpha.3` or its matching GitHub
+prerelease tarball. Preview releases use npm's `next` channel; stable npm `latest`
+remains 1.0.0. Build and record a chosen source revision when using a local package.
 
 ## Rust rewrite preview (2.0.0-alpha.2)
 

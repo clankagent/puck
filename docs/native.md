@@ -1,16 +1,15 @@
 # Rust, WASM and native integration
 
-Puck 2.0.0-alpha.2 uses one Rust processing core. The typed TypeScript facade
+Puck 2.0.0-alpha.3 uses one Rust processing core. The typed TypeScript facade
 retains control identity, immutable results, subscriptions and the optional
 WebHID adapter. Native applications supply normalized reports and timestamps.
 The core opens no devices, injects no mouse events, writes no files, and makes
 no network calls. Recordings and traces remain in memory until the caller
 chooses to save them.
 
-The [Unreleased fixes](../CHANGELOG.md#unreleased) improve precedence ordering,
+The [2.0.0-alpha.3 fixes](../CHANGELOG.md#200-alpha3--2026-10-02) improve precedence ordering,
 JSON numeric portability and validation without changing C ABI 1, installation
-entry points or hardware support. They are source changes; the available
-published preview remains 2.0.0-alpha.2.
+entry points or hardware support.
 
 ## Build and browser use
 
@@ -121,7 +120,7 @@ call an initial frame before expecting displacement. Pausing cancels immediately
 and requires a real fresh neutral report before rearming. The desktop host will
 own the global pause shortcut, scroll injection and twist/tilt selection.
 
-In unreleased source, precedence uses a topological order, with registration order
+In 2.0.0-alpha.3, precedence uses a topological order, with registration order
 among ready controls. Equivalent numeric JSON spellings have the same meaning:
 `responseMs:0.0` disables smoothing just like `responseMs:0`, and integral decimal
 versions, counts, report IDs and bytes are accepted within their existing ranges.
