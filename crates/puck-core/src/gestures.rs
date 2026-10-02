@@ -197,6 +197,18 @@ impl Gestures {
             return Err("Invalid gesture options.".into());
         }
         let n = |k, d| number(&o, k, d);
+        // Missing shared thresholds may fall back to per-direction defaults;
+        // malformed supplied values must not be mistaken for that absence.
+        for k in [
+            "pressActivation",
+            "pressRelease",
+            "twistActivation",
+            "twistRelease",
+        ] {
+            if o.get(k).is_some() {
+                finite(n(k, f64::NAN), k, 0., 1.)?;
+            }
+        }
         let activation = n("activation", 0.35);
         let release = n("release", 0.12);
         let pa = n("pressActivation", n("activation", f64::NAN));
@@ -245,6 +257,9 @@ impl Gestures {
             ("neutralMs", 25.),
             ("doubleMs", 400.),
             ("dominance", 1.4),
+            ("tiltActivation", 0.24),
+            ("tiltRelease", 0.115),
+            ("tiltDominance", 1.25),
             ("standaloneMinPulseMs", 25.),
             ("standaloneMaxPulseMs", 650.),
             ("standaloneNeutralMs", 10.),

@@ -7,6 +7,11 @@ The core opens no devices, injects no mouse events, writes no files, and makes
 no network calls. Recordings and traces remain in memory until the caller
 chooses to save them.
 
+The [Unreleased fixes](../CHANGELOG.md#unreleased) improve precedence ordering,
+JSON numeric portability and validation without changing C ABI 1, installation
+entry points or hardware support. They are source changes; the available
+published preview remains 2.0.0-alpha.2.
+
 ## Build and browser use
 
 Install the pinned Rust toolchain and its wasm32-unknown-unknown target, Node 24,
@@ -115,6 +120,15 @@ Frames integrate velocity over report boundaries with the configured frame cap;
 call an initial frame before expecting displacement. Pausing cancels immediately
 and requires a real fresh neutral report before rearming. The desktop host will
 own the global pause shortcut, scroll injection and twist/tilt selection.
+
+In unreleased source, precedence uses a topological order, with registration order
+among ready controls. Equivalent numeric JSON spellings have the same meaning:
+`responseMs:0.0` disables smoothing just like `responseMs:0`, and integral decimal
+versions, counts, report IDs and bytes are accepted within their existing ranges.
+Restoring numerically identical settings, including nested definitions, produces
+no configuration changes or cancellation events. Invalid supplied gesture
+thresholds or explicit reset times return an error before changing state; omitting
+the gesture reset time still uses the last processed time.
 
 Other engine kinds are `gestures`, `motion`, `recorder` and `utilities`.
 Gestures support update/input+time, advance/time, reset/optional time and state.

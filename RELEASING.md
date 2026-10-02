@@ -2,11 +2,11 @@
 
 ## Rust preview distribution
 
-The Rust preview stays on `rewrite/rust-core`; a prerelease tag may identify a
-verified branch commit without merging it to main. Pin package/Cargo versions
-and toolchain. Run pnpm check, native ABI tests, Clippy, browser smoke and
-dependency audits, then review the source/package diff. No real device captures
-or personal metadata belong in the repository or artifacts.
+The Rust preview is intended for main after its pull request passes review and
+checks. Prerelease distribution remains separate from the stable npm channel.
+Pin package/Cargo versions and toolchain. Run pnpm check, native ABI tests,
+Clippy, browser smoke and dependency audits, then review the source/package diff.
+No real device captures or personal metadata belong in the repository or artifacts.
 
 The Check and Release package workflows build Windows/Linux native libraries
 and WASM, run parity checks, and call scripts/release-artifacts.mjs. This explicit
@@ -22,7 +22,10 @@ operator action after successful checks.
 
 Document the available installation channels and exact versions. Provide a
 verified tarball download for GitHub previews. Publish npm previews with
-`--tag next`, preserving the stable latest tag.
+`--tag next`, preserving the stable `latest` tag at 1.0.0 until a stable release
+is explicitly approved. Publish from the exact verified commit and tag. Keep
+Unreleased source fixes distinct from the currently available 2.0.0-alpha.2 preview
+until the next version has been published and verified.
 
 ## Stable npm releases
 

@@ -4,10 +4,10 @@ The frozen comparison implementation is source commit `0078217` (Puck 1.1.0).
 It is compiled only for tests and excluded from distributed packages. It must
 not be edited to make the Rust implementation pass.
 
-The existing 141 behavior tests pass through the Rust-backed TypeScript API,
-as do the public TypeScript compile fixtures. Six additional differential tests
-compare 127 engines and 15,667 result/state snapshots against that frozen
-implementation. The same corpus runs through WASM, direct native Rust and an
+The initial rewrite suite contains 141 existing behavior tests and six differential
+tests, for 147 JavaScript tests, plus the public TypeScript compile fixtures.
+The differential tests compare 127 engines and 15,667 result/state snapshots
+against that frozen implementation. The same corpus runs through WASM, direct native Rust and an
 independently loaded DLL/shared library. Event types, directions, ordering,
 timestamps, durations, sequences and lifecycle outcomes compare exactly.
 Numerical motion/tune values allow relative/absolute tolerance 1e-11 for
@@ -16,12 +16,23 @@ presets, 24 seeded streams of 250 noisy reports, four response times, configurat
 ownership, context changes, cancellation, frames, traces, recordings, and complete
 simple/combined/standalone calibration datasets. Fixtures are synthetic.
 
-Three native ABI tests cover malformed JSON/options, numeric validation,
+Unreleased source adds eight regression tests, bringing the JavaScript suite to 155.
+They exercise disconnected and transitive precedence, deterministic dispatch,
+ownership through an unrelated observer, cycle rejection, construction-time
+event retention and zero-response velocity across reversal, neutral reports,
+frames, configuration and invalid reset timestamps preserving pending gestures.
+The precedence and velocity cases run through WASM and an independently loaded
+native library. A static-site fixture verifies nested runtime modules, shared
+cache versions and exclusion of development-only files.
+
+Nine native ABI tests cover malformed JSON/options, numeric validation,
 atomic structural rejection, null/short buffers, oversized requests, stale
-handles, destruction, allocation and calls from another thread. These tests
-exercise valid memory contracts; they do not establish that arbitrary invalid
-C pointers are safe. Rustfmt and Clippy with warnings denied pass. Dependency
-audits reported zero known RustSec and pnpm advisories on 2026-10-01; this is a
+handles, destruction, allocation and calls from another thread. Added cases cover
+integral decimal versions/counts/report bytes, nested settings restoration during
+an active interaction, malformed thresholds and invalid reset times preserving
+state. These tests exercise valid memory contracts; they do not establish that
+arbitrary invalid C pointers are safe. Rustfmt and Clippy with warnings denied pass. Dependency
+audits reported zero known RustSec and pnpm advisories on 2026-10-02; this is a
 point-in-time check, not a guarantee of absence of defects.
 
 A Kotlin 2.4.20 / JNA 5.19.1 / Java 21 library smoke loads the x64 Windows GNU
@@ -36,6 +47,10 @@ WASM compilation, integrated a synthetic report, interrupted it and observed
 zero movement. All module requests were intercepted locally; there were no
 WASM fetches or external requests. Browser HID permissions and actual-device
 latency were not retested. CI repeats the browser smoke in Chromium.
+
+A Chromium 153 check of the generated playground modules also imported every
+public entry point, integrated and interrupted synthetic motion, and loaded the
+nested embedded-WASM module without a separate WASM fetch.
 
 ## Cost measurements
 

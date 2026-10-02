@@ -129,3 +129,217 @@ fn invalid_numeric_and_structural_options_do_not_silently_default() {
     assert_eq!(command(h, json!({"op":"settings"}))["value"], before);
     puck_destroy(h);
 }
+
+// Native JSON serializers commonly emit doubles even for mathematically integral
+// values. Keep the exact floating-point JSON representation across the C ABI.
+fn floating_numbers(v: Value) -> Value {
+    match v {
+        Value::Number(n) => json!(n.as_f64().unwrap()),
+        Value::Array(a) => Value::Array(a.into_iter().map(floating_numbers).collect()),
+        Value::Object(o) => Value::Object(
+            o.into_iter()
+                .map(|(k, v)| (k, floating_numbers(v)))
+                .collect(),
+        ),
+        v => v,
+    }
+}
+
+#[test]
+fn floating_versions_remain_portable_without_accepting_invalid_versions() {
+    let h = create(json!({"kind":"utilities"}));
+    let tune = command(h, json!({"op":"tune"}))["value"].clone();
+    let recording = json!({"version":1,"durationMs":10,"timeline":[]});
+    assert_eq!(
+        command(
+            h,
+            json!({"op":"tune","data":floating_numbers(tune.clone())})
+        )["ok"],
+        true
+    );
+    assert_eq!(
+        command(
+            h,
+            json!({"op":"validateRecording","recording":floating_numbers(recording.clone())})
+        )["ok"],
+        true
+    );
+    for version in [json!(1.5), json!(2.0), json!("1"), Value::Null] {
+        let mut invalid_tune = tune.clone();
+        invalid_tune["version"] = version.clone();
+        assert_eq!(
+            command(h, json!({"op":"tune","data":invalid_tune}))["ok"],
+            false
+        );
+        let mut invalid_recording = recording.clone();
+        invalid_recording["version"] = version;
+        assert_eq!(
+            command(
+                h,
+                json!({"op":"validateRecording","recording":invalid_recording})
+            )["ok"],
+            false
+        );
+    }
+    puck_destroy(h);
+}
+
+#[test]
+fn decode_accepts_integral_floating_report_ids_and_bytes() {
+    let h = create(json!({"kind":"utilities"}));
+    // +350, -350, +175, -175, zero and +1 in signed little-endian reports.
+    let request = json!({"op":"decode","reportId":1,"bytes":[94,1,162,254,175,0,81,255,0,0,1,0]});
+    let expected = command(h, request.clone());
+    assert_eq!(expected["ok"], true);
+    assert_eq!(command(h, floating_numbers(request.clone())), expected);
+    for byte in [
+        json!(-1.0),
+        json!(256.0),
+        json!(1.5),
+        json!("1"),
+        Value::Null,
+    ] {
+        let mut invalid = request.clone();
+        invalid["bytes"][0] = byte;
+        assert_eq!(command(h, invalid)["ok"], false);
+    }
+    for report_id in [json!(1.5), json!(2.0), json!("1"), Value::Null] {
+        let mut unknown = request.clone();
+        unknown["reportId"] = report_id;
+        assert_eq!(command(h, unknown)["value"], Value::Null);
+    }
+    puck_destroy(h);
+}
+
+#[test]
+fn floating_structural_settings_restore_is_a_noop_during_an_interaction() {
+    let h = create(json!({"kind":"puck","options":{"controls":{
+        "command":{"kind":"gesture","input":"twist","options":{"count":2}},
+        "choose":{"kind":"interaction","options":{
+            "activation":"pull",
+            "value":{"kind":"continuous","source":"slide","options":{"curve":2}},
+            "cancel":{"input":"twist","direction":"same","count":2},
+            "ownership":"observe"
+        }}
+    }}}));
+    assert!(h > 0);
+    assert_eq!(puck_feed(h, 0., 0., 0., 0., 0., 0., 0.), 1);
+    assert_eq!(puck_feed(h, 10., 0.5, 0., -0.5, 0., 0., 0.), 1);
+    let read_request = json!({"op":"read","control":"controls.choose"});
+    let active = command(h, read_request.clone());
+    assert_eq!(active["value"]["value"]["status"], "active");
+    let before = command(h, json!({"op":"settings"}))["value"]["value"].clone();
+    let saved = floating_numbers(before.clone());
+    assert_eq!(
+        command(h, json!({"op":"validateRestoreSettings","settings":saved}))["value"]["value"],
+        json!([])
+    );
+    let restored = command(
+        h,
+        json!({"op":"restoreSettings","time":11,"settings":saved}),
+    );
+    assert_eq!(restored["ok"], true);
+    assert_eq!(restored["value"]["events"], json!([]));
+    assert_eq!(command(h, read_request), active);
+    assert_eq!(
+        command(h, json!({"op":"settings"}))["value"]["value"],
+        before
+    );
+    for version in [json!(1.5), json!(2.0), json!("1"), Value::Null] {
+        let mut invalid = saved.clone();
+        invalid["version"] = version;
+        assert_eq!(
+            command(
+                h,
+                json!({"op":"restoreSettings","time":12,"settings":invalid})
+            )["ok"],
+            false
+        );
+    }
+    let mut structural = saved;
+    structural["controls"]["controls.command"]["count"] = json!(1.0);
+    assert_eq!(
+        command(
+            h,
+            json!({"op":"restoreSettings","time":12,"settings":structural})
+        )["ok"],
+        false
+    );
+    assert_eq!(
+        command(h, json!({"op":"settings"}))["value"]["value"],
+        before
+    );
+    puck_destroy(h);
+}
+
+#[test]
+fn same_direction_cancel_accepts_floating_two_and_rejects_other_counts() {
+    let config = json!({"kind":"puck","options":{"controls":{"choose":{
+        "kind":"interaction","options":{"activation":"pull","value":"slide",
+        "cancel":{"input":"twist","direction":"same","count":2}}
+    }}}});
+    let h = create(floating_numbers(config.clone()));
+    assert!(h > 0);
+    puck_destroy(h);
+    for count in [json!(1.0), json!(1.5), json!("2"), Value::Null] {
+        let mut invalid = config.clone();
+        invalid["options"]["controls"]["choose"]["options"]["cancel"]["count"] = count;
+        assert_eq!(create(invalid), 0);
+    }
+}
+
+#[test]
+fn malformed_optional_gesture_thresholds_do_not_disable_or_default_recognition() {
+    for key in [
+        "pressActivation",
+        "pressRelease",
+        "twistActivation",
+        "twistRelease",
+        "tiltActivation",
+        "tiltRelease",
+        "tiltDominance",
+    ] {
+        for value in [json!("bad"), Value::Null, json!(false), json!({})] {
+            // Direction-specific gates must not hide a malformed shared gate.
+            let mut options = json!({
+                "clockwiseActivation":0.25,"clockwiseRelease":0.15,
+                "counterclockwiseActivation":0.25,"counterclockwiseRelease":0.15
+            });
+            options[key] = value.clone();
+            assert_eq!(
+                create(json!({"kind":"gestures","options":options})),
+                0,
+                "{key} must reject {value}"
+            );
+            assert_eq!(
+                create(json!({"kind":"puck","options":{"controls":{"gesture":{
+                    "kind":"gesture","input":"pull","options":options
+                }}}})),
+                0,
+                "runtime {key} must reject {value}"
+            );
+        }
+    }
+}
+
+#[test]
+fn invalid_explicit_reset_times_preserve_gesture_state_and_omitted_time_resets() {
+    for press_rotate in [false, true] {
+        let h = create(json!({"kind":"gestures","options":{"pressRotate":press_rotate}}));
+        assert!(h > 0);
+        assert_eq!(puck_feed(h, 0., 0., 0., 0., 0., 0., 0.), 1);
+        assert_eq!(puck_feed(h, 10., 0., 0., -0.5, 0., 0., 0.), 1);
+        let active = command(h, json!({"op":"state"}));
+        assert_eq!(active["value"]["phase"], "active");
+        for time in [json!("bad"), Value::Null, json!(false), json!({})] {
+            assert_eq!(command(h, json!({"op":"reset","time":time}))["ok"], false);
+            assert_eq!(command(h, json!({"op":"state"})), active);
+        }
+        assert_eq!(command(h, json!({"op":"reset"}))["ok"], true);
+        assert_eq!(
+            command(h, json!({"op":"state"}))["value"]["phase"],
+            "blocked"
+        );
+        puck_destroy(h);
+    }
+}

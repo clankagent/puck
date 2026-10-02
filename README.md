@@ -15,10 +15,20 @@ and [upgrade requirements](docs/upgrading.md).
 pnpm add @clankagent/puck@1.0.0
 ```
 
-For the Rust preview, download the package tarball from the
+For the published Rust preview:
+
+```sh
+pnpm add @clankagent/puck@2.0.0-alpha.2
+```
+
+Alternatively, download the package tarball from the
 [GitHub prerelease](https://github.com/clankagent/puck/releases/tag/v2.0.0-alpha.2)
 and install it with `pnpm add ./clankagent-puck-2.0.0-alpha.2.tgz`.
 The preview includes the [SpaceMouse Wireless button API](docs/buttons.md).
+Stable npm `latest` remains 1.0.0. The [Unreleased fixes](CHANGELOG.md#unreleased)
+for precedence, native JSON portability, event retention and validation are
+source changes pending the next preview publication; see the
+[adoption guide](docs/upgrading.md).
 
 ```ts
 import { createPuck, control, recipes } from '@clankagent/puck';
